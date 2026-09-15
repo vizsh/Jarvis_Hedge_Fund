@@ -1,0 +1,64 @@
+# Policy profiles.
+#
+# The original single policy was institutional: 5% per stock, 30% per sector. Pointing
+# that at a real retail portfolio produced thirteen red findings and a grade E, which
+# is not a diagnosis, it is an alarm. A ten-stock portfolio CANNOT satisfy a 5% cap --
+# the arithmetic forbids it -- so the advice was unreachable by construction.
+#
+# Same engine, same maths, different thresholds per kind of investor. Which profile is
+# active is always shown, because a limit you did not choose is a limit you will argue
+# with.
+
+profiles:
+  retail:
+    name: "Retail investor"
+    blurb: >-
+      For a personal portfolio of 8-20 stocks. Limits are set where a private
+      investor can actually reach them.
+    limits:
+      max_position_pct: 0.15
+      # 0.40 let a 40%-technology portfolio score a clean A, which is toothless. The
+      # retail profile exists so the advice is REACHABLE, not so nothing ever fails.
+      max_sector_pct: 0.35
+      min_cash_pct: 0.05
+      max_drawdown_pct: 0.20
+    execution:
+      cost_bps: 30
+      allow_short: false
+      allow_fractional: false
+
+  balanced:
+    name: "Serious private investor"
+    blurb: >-
+      Tighter, for someone managing a larger pot who wants real diversification.
+    limits:
+      max_position_pct: 0.10
+      max_sector_pct: 0.35
+      min_cash_pct: 0.08
+      max_drawdown_pct: 0.15
+    execution:
+      cost_bps: 20
+      allow_short: false
+      allow_fractional: false
+
+  fund:
+    name: "Boutique fund"
+    blurb: >-
+      Institutional mandate limits. This is the profile the scripted demo uses.
+    limits:
+      max_position_pct: 0.05
+      max_sector_pct: 0.30
+      min_cash_pct: 0.10
+      max_drawdown_pct: 0.05
+    execution:
+      cost_bps: 15
+      allow_short: false
+      allow_fractional: false
+
+default: retail
+
+# Governance applies to every profile without exception. These are not tunable.
+governance:
+  broker_execution: false
+  require_citations: true
+  require_human_approval: true

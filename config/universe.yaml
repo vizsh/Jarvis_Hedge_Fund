@@ -1,0 +1,131 @@
+# Coverage universe.
+#
+# Expanded from 14 hand-picked names to the NIFTY 50 plus a few mid-cap IT names and
+# the index itself. The reason is usability, not completeness: with 14 tickers nobody
+# could enter their own portfolio, which made the whole product a diorama. A real
+# Indian retail portfolio is mostly drawn from this list.
+#
+# Sectors are grouped for RISK, not for taxonomy. NTPC and POWERGRID sit in UTILITIES
+# rather than ENERGY because they behave like regulated utilities; the point of a
+# sector cap is to bound things that fall together.
+
+benchmark:
+  ticker: "^NSEI"
+  label: "NIFTY 50"
+
+india:
+  sector_map:
+    # --- IT ---
+    TCS.NS: IT
+    INFY.NS: IT
+    WIPRO.NS: IT
+    HCLTECH.NS: IT
+    TECHM.NS: IT
+    LTTS.NS: IT
+    TATAELXSI.NS: IT
+    MPHASIS.NS: IT
+    PERSISTENT.NS: IT
+    COFORGE.NS: IT
+
+    # --- Financials ---
+    HDFCBANK.NS: FINANCIALS
+    ICICIBANK.NS: FINANCIALS
+    KOTAKBANK.NS: FINANCIALS
+    AXISBANK.NS: FINANCIALS
+    SBIN.NS: FINANCIALS
+    BAJFINANCE.NS: FINANCIALS
+    BAJAJFINSV.NS: FINANCIALS
+    INDUSINDBK.NS: FINANCIALS
+    SBILIFE.NS: FINANCIALS
+    HDFCLIFE.NS: FINANCIALS
+
+    # --- FMCG ---
+    ITC.NS: FMCG
+    HINDUNILVR.NS: FMCG
+    NESTLEIND.NS: FMCG
+    BRITANNIA.NS: FMCG
+    TATACONSUM.NS: FMCG
+
+    # --- Auto ---
+    MARUTI.NS: AUTO
+    TMPV.NS: AUTO            # Tata Motors Passenger Vehicles, post-demerger
+    M&M.NS: AUTO
+    BAJAJ-AUTO.NS: AUTO
+    EICHERMOT.NS: AUTO
+    HEROMOTOCO.NS: AUTO
+
+    # --- Pharma & healthcare ---
+    SUNPHARMA.NS: PHARMA
+    DRREDDY.NS: PHARMA
+    CIPLA.NS: PHARMA
+    DIVISLAB.NS: PHARMA
+    APOLLOHOSP.NS: PHARMA
+
+    # --- Materials ---
+    TATASTEEL.NS: MATERIALS
+    JSWSTEEL.NS: MATERIALS
+    HINDALCO.NS: MATERIALS
+    ULTRACEMCO.NS: MATERIALS
+    GRASIM.NS: MATERIALS
+    ASIANPAINT.NS: MATERIALS
+
+    # --- Energy ---
+    RELIANCE.NS: ENERGY
+    ONGC.NS: ENERGY
+    BPCL.NS: ENERGY
+    COALINDIA.NS: ENERGY
+
+    # --- Utilities ---
+    NTPC.NS: UTILITIES
+    POWERGRID.NS: UTILITIES
+
+    # --- Infra & conglomerates ---
+    LT.NS: INFRA
+    ADANIENT.NS: INFRA
+    ADANIPORTS.NS: INFRA
+
+    # --- Telecom & consumer ---
+    BHARTIARTL.NS: TELECOM
+    TITAN.NS: CONSUMER
+
+us:
+  sector_map:
+    AAPL: IT
+    MSFT: IT
+    NVDA: IT
+  cik:
+    AAPL: "0000320193"
+    MSFT: "0000789019"
+    NVDA: "0001045810"
+
+macro:
+  # FRED's CSV endpoint needs no API key, which keeps us inside the free-only rule.
+  fred_series:
+    DGS10: "US 10Y Treasury yield"
+    DGS2: "US 2Y Treasury yield"
+    CPIAUCSL: "US CPI"
+    VIXCLS: "CBOE volatility index"
+
+# GDELT allows one request every 5s and throttles hard past that, and Google News RSS
+# costs ~1.5s per ticker. Both are bounded to the names the demo actually narrates;
+# every other ticker still gets prices, fundamentals and macro.
+gdelt_tickers:
+  - TCS.NS
+  - INFY.NS
+  - HDFCBANK.NS
+  - RELIANCE.NS
+
+news_tickers:
+  - TCS.NS
+  - INFY.NS
+  - HDFCBANK.NS
+  - ICICIBANK.NS
+  - RELIANCE.NS
+  - ITC.NS
+  - TATAMOTORS.NS
+  - SUNPHARMA.NS
+
+# An explicit start date, not a rolling window. The Covid rewind is the single best
+# moment in the demo and it needs Feb-Mar 2020 in the snapshot -- a relative period
+# quietly slid the window forward and left 2020 out entirely.
+history_start: "2019-06-01"

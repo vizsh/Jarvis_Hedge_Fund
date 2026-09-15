@@ -1,0 +1,23 @@
+# Risk policy — declarative and versioned, NOT if-statements buried in code.
+# Versioning is what makes the policy simulator possible: change a number, replay the
+# same decisions, show the counterfactual.
+version: "v1"
+name: "Boutique Fund Default"
+
+limits:
+  max_position_pct: 0.05    # any single holding <= 5% of NAV
+  max_sector_pct:   0.30    # any one sector <= 30% of NAV
+  min_cash_pct:     0.10    # keep >= 10% of NAV in cash
+  max_drawdown_pct: 0.05    # advisory: projected daily drawdown trigger
+
+execution:
+  cost_bps: 15              # round-trip friction. The 2026 literature is explicit that
+                            # omitting costs inflates every reported backtest return,
+                            # so we price it in from the first line of code.
+  allow_short: false
+  allow_fractional: false
+
+governance:
+  broker_execution: false   # PAPER ONLY. Not negotiable in this build.
+  require_citations: true   # an uncited claim never reaches this engine
+  require_human_approval: true

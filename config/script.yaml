@@ -1,0 +1,77 @@
+# The demo script. The frontend renders `say` as a teleprompter line and fires
+# `command` when you advance, so you are never typing while talking.
+#
+# Ordered for the argument, not for the features: establish the thesis, show the
+# governance mechanisms working, then land the Covid rewind as the payoff.
+
+title: "JARVIS // ALPHA OS — 3 minute run"
+
+steps:
+  - key: boot
+    command: "@boot"
+    say: >-
+      This is a governance layer for AI investment decisions. Not an alpha engine.
+      Watch the subsystems come up — point-in-time guard, citation enforcement,
+      and broker execution disabled. This is paper only.
+    beat: "let the boot finish before speaking"
+
+  - key: analyse
+    command: "analyse TCS"
+    say: >-
+      Four analyst desks run in parallel on a local eight-billion-parameter model.
+      The particle core you have been looking at is now the provenance graph — same
+      particles, they just moved. Every claim on screen cites the evidence it rests on.
+    beat: "~15s while the desks think — talk over it"
+
+  - key: verdict
+    command: "@none"
+    say: >-
+      Conviction is computed, not generated. And note the counter at the top: claims
+      the model asserted without evidence were dropped in code before they reached
+      the risk engine.
+    beat: "point at the citations-dropped counter"
+
+  - key: propose
+    command: "buy 30 shares of Persistent"
+    say: >-
+      Here is a small, individually reasonable trade. One point seven percent position.
+      The firewall blocks it — not on the position limit, on the sector cap — and it
+      does not just refuse. It solves for the largest compliant size: twenty one shares.
+    beat: "let the red panel land before continuing"
+
+  - key: simulate
+    command: "what if we relax the sector cap to 40%"
+    say: >-
+      Policy is declarative and versioned, so we can ask what-if directly. Same trade,
+      looser cap, verdict flips — and the live policy is untouched.
+
+  - key: rewind
+    command: "rewind to 2020-03-23"
+    say: >-
+      Now the part no competing agent repo can do. We are going back to the bottom of
+      the Covid crash. The fund reprices, the chart truncates, and the desks lose access
+      to everything published after this date. Lookahead is impossible by construction.
+    beat: "watch NAV drop and the chart cut off"
+
+  - key: rerun
+    command: "analyse TCS"
+    say: >-
+      Same desks, same code, a world that stops on the twenty third of March twenty
+      twenty. Published work says LLM agents fail out-of-sample once you control for
+      lookahead — this is us controlling for it, live.
+    beat: "~15s — set up the groupthink line while it runs"
+
+  - key: groupthink
+    command: "@none"
+    say: >-
+      Every desk turned bearish and the red team found no counter-case, so the system
+      flagged groupthink and halved conviction rather than confirming it. That was the
+      single best buying day of the decade. Four correlated agents agreeing told us
+      nothing — and the system said so.
+    beat: "this is the closing argument, do not rush it"
+
+  - key: close
+    command: "show me the portfolio"
+    say: >-
+      Everything you saw ran on this machine. Local model, local speech recognition,
+      six free data sources, no broker, no API keys. Thank you.

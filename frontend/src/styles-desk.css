@@ -1,0 +1,171 @@
+/* Fund-desk surfaces: voice transport, rebalancer, correlation, screener, attribution. */
+
+/* ---------------------------------------------------------------- voice bar */
+.voicebar {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.35);
+  padding: 4px 8px; font-size: 9.5px; white-space: nowrap;
+}
+.voicebar.live { border-color: var(--cyan-dim); box-shadow: 0 0 16px rgba(37, 217, 255, 0.12) inset; }
+.voicebar.muted { border-color: rgba(255, 176, 32, 0.4); }
+.vb-state {
+  display: flex; align-items: center; gap: 6px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-faint); white-space: nowrap;
+}
+.vb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
+.vb-dot.speaking { background: var(--cyan); box-shadow: 0 0 9px var(--cyan); animation: pulse 0.9s infinite; }
+.vb-dot.muted { background: var(--amber); box-shadow: 0 0 9px var(--amber); }
+
+.vb-progress { display: flex; gap: 2px; width: 52px; flex-shrink: 0; }
+.vb-progress span {
+  flex: 1; height: 3px; background: rgba(255, 255, 255, 0.12); transition: background 0.2s;
+}
+.vb-progress span.on { background: var(--cyan); box-shadow: 0 0 6px var(--cyan-dim); }
+
+.vb-btn { padding: 4px 9px; font-size: 10px; }
+.vb-mute { position: relative; }
+.vb-menu {
+  position: absolute; bottom: 100%; right: 0; z-index: 30; margin-bottom: 4px;
+  background: rgba(8, 6, 18, 0.98); border: 1px solid var(--cyan-dim); min-width: 90px;
+}
+.vb-menu div { padding: 6px 10px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
+.vb-menu div:hover { background: rgba(37, 217, 255, 0.14); color: var(--cyan); }
+
+.vb-rate { display: flex; align-items: center; gap: 5px; }
+.vb-rate input[type=range] { width: 52px; appearance: none; height: 3px; background: var(--rule); }
+.vb-rate input[type=range]::-webkit-slider-thumb {
+  appearance: none; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--cyan); cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- rebalance */
+.plan-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 10.5px; color: var(--text-dim); margin-bottom: 9px;
+}
+.ba-grid {
+  display: grid; grid-template-columns: 1fr 22px 1fr; gap: 6px;
+  border: 1px solid var(--rule-soft); padding: 8px; margin-bottom: 10px;
+}
+.ba-label {
+  font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 5px;
+}
+.ba-col.after .ba-label { color: var(--green); }
+.ba-row { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; color: var(--text-dim); }
+.ba-row b { color: var(--text); font-variant-numeric: tabular-nums; }
+.ba-arrows {
+  display: flex; flex-direction: column; justify-content: flex-end;
+  gap: 2px; padding-bottom: 2px; font-size: 11px; text-align: center;
+}
+.ba-arrows > div { height: 17px; line-height: 17px; color: var(--text-faint); }
+.up { color: var(--green); }
+.down { color: var(--red); }
+
+.trades { max-height: 190px; overflow-y: auto; }
+.trade {
+  display: grid; grid-template-columns: 34px 44px 1fr auto; gap: 7px;
+  align-items: center; padding: 5px 0 6px; border-bottom: 1px solid var(--rule-soft);
+  font-size: 10.5px;
+}
+.t-side { font-weight: 700; font-size: 9px; letter-spacing: 0.1em; }
+.trade.sell .t-side { color: var(--red); }
+.trade.buy .t-side { color: var(--green); }
+.t-qty { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.t-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-val { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.t-why { grid-column: 1 / -1; font-size: 9.5px; color: var(--text-faint); margin-top: 2px; }
+
+/* ---------------------------------------------------------------- correlation */
+.heat { display: grid; gap: 1px; margin-bottom: 10px; }
+.heat-cell { aspect-ratio: 1; min-height: 9px; }
+
+.pair { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); }
+.pair-names { font-size: 11px; color: var(--text); }
+.pair-names .amp { color: var(--text-faint); }
+.pair-meta { display: flex; gap: 9px; align-items: baseline; margin-top: 2px; }
+.pair-r { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- screener */
+.ask-chip.on { border-color: var(--cyan); color: var(--cyan); background: rgba(37, 217, 255, 0.14); }
+.screen-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 9px; align-items: baseline;
+  padding: 5px 0; border-bottom: 1px solid var(--rule-soft); font-size: 11px;
+}
+.s-name { color: var(--text); }
+.screen-row .num { color: var(--cyan); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- attribution */
+.attr-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px;
+}
+.attr-head > span:first-child {
+  font-family: var(--display); font-size: 24px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.attr-row {
+  display: grid; grid-template-columns: 96px 1fr 52px; gap: 8px;
+  align-items: center; padding: 3px 0; font-size: 10.5px;
+}
+.a-name { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-bar { height: 8px; background: rgba(255, 255, 255, 0.05); position: relative; }
+.a-bar span { display: block; height: 100%; }
+.a-bar .pos { background: linear-gradient(90deg, rgba(34, 255, 160, 0.4), var(--green)); }
+.a-bar .neg { background: linear-gradient(90deg, rgba(255, 71, 107, 0.4), var(--red)); }
+.attr-row .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+
+/* Chips take the space they need; the voice transport is pinned right and never wraps
+   onto a line of its own -- that extra line is what pushed the input off screen. */
+.cmd-foot { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cmd-foot .marks { flex: 1; min-width: 0; }
+
+.mic-error {
+  font-size: 10.5px; color: #ffd98a; line-height: 1.5;
+  border-left: 2px solid var(--amber); padding-left: 8px;
+  animation: slideIn 0.2s ease both;
+}
+
+.vb-dot.stopped { background: var(--amber); box-shadow: 0 0 9px var(--amber); }
+
+/* ---------------------------------------------------------------- waveform */
+.waveform {
+  width: 100%; height: 26px; display: block;
+  border-left: 2px solid var(--cyan); padding-left: 6px;
+  animation: slideIn 0.15s ease both;
+}
+
+/* ---------------------------------------------------------------- chart */
+.chart-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.chart-head > span:first-child {
+  font-family: var(--display); font-size: 21px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.chart-foot {
+  display: flex; justify-content: space-between; align-items: center; margin-top: 5px;
+}
+.legend { display: flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 2px; display: inline-block; }
+.legend .l-port { background: var(--cyan); }
+.legend .l-bench { background: rgba(139, 92, 246, 0.85); margin-left: 7px; }
+
+/* ---------------------------------------------------------------- tax */
+.tax-total { margin-bottom: 9px; }
+.tt-value {
+  display: block; font-family: var(--display); font-size: 25px; font-weight: 700;
+  color: var(--amber); text-shadow: 0 0 16px rgba(255, 176, 32, 0.35);
+}
+.defer {
+  border: 1px solid rgba(34, 255, 160, 0.34); background: rgba(34, 255, 160, 0.06);
+  padding: 9px 10px; margin-top: 9px;
+}
+.defer .code {
+  font-family: var(--display); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.18em; color: var(--green); margin-bottom: 5px;
+}
+.defer-row { font-size: 10.5px; line-height: 1.55; color: var(--text-dim); padding: 3px 0; }
+.defer-row b { color: var(--text); }
+.lot-form {
+  display: grid; grid-template-columns: 1fr 74px 1fr auto; gap: 5px;
+  margin-top: 9px; align-items: center;
+}
+.lot-form .field { padding: 5px 7px; font-size: 10px; }

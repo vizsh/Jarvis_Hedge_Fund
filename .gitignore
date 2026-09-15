@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite
+data/snapshot/
+node_modules/
+frontend/dist/
+.pytest_cache/
+*.wav
+models/
+
+# scratch tooling used to generate the dossier document -- not app source
+docx_build/
+docx_assets/
+JARVIS_Alpha_OS_Dossier.docx
