@@ -8,8 +8,7 @@ numpy==2.2.1
 
 # --- data sources (all free, no paid tier) ---
 yfinance==0.2.51          # NSE .NS + US OHLC, fundamentals, options
-nsepython==2.96           # NSE announcements, delivery %, bulk deals
-jugaad-data==0.26         # NSE/RBI historical + macro
+nsepython==2.97           # NSE announcements, delivery %, bulk deals
 feedparser==6.0.11        # Google News RSS
 requests==2.32.3          # EDGAR companyfacts, GDELT, FRED
 
@@ -18,3 +17,4 @@ faster-whisper==1.1.1
 
 # --- dev ---
 pytest==8.3.4
+pytest-asyncio==1.4.0
