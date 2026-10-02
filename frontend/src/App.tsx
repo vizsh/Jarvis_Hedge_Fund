@@ -21,6 +21,7 @@ import { DrillDown } from "./components/DrillDown";
 import { WatchlistPanel } from "./components/Watchlist";
 import { ReportView } from "./components/Report";
 import { useGuide } from "./lib/guide";
+import { OrbMic } from "./components/VoiceInput";
 import {
   BootSequence, ClaimsPanel, ConvictionPanel, DeskPanel, ExecutionPanel, FundPanel,
   Inspector, LogPanel, PositionsPanel, PriceChart, RiskPanel, SourcesPanel,
@@ -118,6 +119,10 @@ export default function App() {
           </EffectComposer>
         </Canvas>
       </div>
+
+      {/* The microphone, at the centre of the orb. Rendered outside the HUD so it sits
+          above the canvas but takes clicks only on its own circle. */}
+      <OrbMic />
 
       {booting && <BootSequence />}
       {builder && <PortfolioBuilder onClose={() => setBuilder(false)} />}

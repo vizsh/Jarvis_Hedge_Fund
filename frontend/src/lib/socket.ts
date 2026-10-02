@@ -130,6 +130,10 @@ export async function loadPrices(ticker: string): Promise<{ time: string; value:
 let ctx: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
 let raf = 0;
+// The capture loop runs on a TIMER, not requestAnimationFrame. Frames are throttled or
+// paused whenever the page is not actively painting (covered window, busy GPU, a
+// background tab), and a silence detector that stops ticking never sends anything.
+let vadTimer = 0;
 
 let recorder: MediaRecorder | null = null;
 let chunks: Blob[] = [];
@@ -142,9 +146,24 @@ let peakLevel = 0;      // loudest frame seen, so we can tell "silent" from "unh
 export let spectrum: Uint8Array = new Uint8Array(0);
 
 export let micError: string | null = null;
+/** Live read-outs for the interface: how loud now, and whether speech has been heard. */
+export let lastLevel = 0;
+export let heardSpeechNow = false;
+
+// --- voice-activity detection ---------------------------------------------------
+// Click-to-talk only works if the recorder can tell when you have finished. Hold-to-talk
+// let the key release do that job; a click does not, so the capture loop has to.
+//
+//   silence   you spoke, then went quiet            -> send what was said
+//   nospeech  nothing but room noise for too long   -> give up, say so, nothing sent
+//   max       a hard ceiling so a stuck mic cannot record forever
+const SILENCE_MS = 1300;      // quiet this long AFTER speech = end of utterance
+const NO_SPEECH_MS = 7000;    // never heard speech in this long = abandon
+const MAX_MS = 20000;
+export type AutoStop = "silence" | "nospeech" | "max";
 
 /** Mic envelope -> orb, plus recording for local transcription. */
-export async function startMic(): Promise<boolean> {
+export async function startMic(onAuto?: (why: AutoStop) => void): Promise<boolean> {
   micError = null;
   if (!navigator.mediaDevices?.getUserMedia) {
     // getUserMedia is gated to secure origins. localhost counts; a LAN IP does not,
@@ -201,6 +220,14 @@ export async function startMic(): Promise<boolean> {
     ctx.createMediaStreamSource(stream).connect(analyser);
 
     const bins = new Uint8Array(analyser.frequencyBinCount);
+    // Per-recording VAD state. The speech threshold is relative to the room's own noise
+    // floor, measured in the first third of a second, because a fixed number is too
+    // sensitive in a noisy hall and deaf on a quiet laptop microphone.
+    let noiseSum = 0, noiseN = 0, speechMs = 0, heardSpeech = false;
+    let lastLoud = 0, lastFrame = performance.now(), fired = false;
+    lastLevel = 0;
+    heardSpeechNow = false;
+
     const loop = () => {
       if (!analyser) return;
       analyser.getByteFrequencyData(bins);
@@ -208,10 +235,37 @@ export async function startMic(): Promise<boolean> {
       for (let i = 0; i < bins.length; i++) sum += bins[i];
       const level = Math.min(1, sum / bins.length / 90);
       peakLevel = Math.max(peakLevel, level);
+      lastLevel = level;
       spectrum = bins.slice(0, 48);
       useStore.getState().setAudio(level);
-      raf = requestAnimationFrame(loop);
+
+      const now = performance.now();
+      const dt = now - lastFrame;
+      lastFrame = now;
+      const t = now - startedAt;
+
+      if (t < 350) {
+        noiseSum += level; noiseN += 1;
+      } else {
+        const floor = noiseN ? noiseSum / noiseN : 0.02;
+        const threshold = Math.max(0.09, floor * 2.2 + 0.04);
+        if (level > threshold) {
+          speechMs += dt;
+          lastLoud = now;
+          if (speechMs > 140) { heardSpeech = true; heardSpeechNow = true; }
+        }
+        if (!fired && onAuto) {
+          if (heardSpeech && t > 900 && now - lastLoud > SILENCE_MS) {
+            fired = true; onAuto("silence");
+          } else if (!heardSpeech && t > NO_SPEECH_MS) {
+            fired = true; onAuto("nospeech");
+          } else if (t > MAX_MS) {
+            fired = true; onAuto("max");
+          }
+        }
+      }
     };
+    vadTimer = window.setInterval(loop, 40);
     loop();
     return true;
   } catch (err: any) {
@@ -231,6 +285,7 @@ export async function startMic(): Promise<boolean> {
 /** Stop recording, post the utterance for local transcription, return what was heard. */
 export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | null> {
   cancelAnimationFrame(raf);
+  window.clearInterval(vadTimer);
   analyser = null;
   spectrum = new Uint8Array(0);
   useStore.getState().setAudio(0);
@@ -248,16 +303,16 @@ export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | 
   const heldMs = performance.now() - startedAt;
   // Separate the three ways this goes wrong, because they need different advice.
   if (heldMs < 500) {
-    micError = "That was too quick — hold the key down while you speak, then release.";
+    micError = "That was too short to catch anything. Tap the mic, speak, and pause.";
     return { ok: false };
   }
   if (peakLevel < 0.04) {
-    micError = "I could not hear anything. Check the right microphone is selected "
+    micError = "I could not hear any speech. Check the right microphone is selected "
       + "and speak a little closer.";
     return { ok: false };
   }
   if (blob.size < 2000) {
-    micError = "The recording came out empty. Try holding for a moment longer.";
+    micError = "The recording came out empty. Tap the mic and try again.";
     return { ok: false };
   }
 
@@ -280,6 +335,23 @@ export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | 
     micError = "Could not reach the transcriber.";
     return { ok: false };
   }
+}
+
+/** Abandon the recording: stop everything and send nothing. */
+export function cancelMic(): void {
+  cancelAnimationFrame(raf);
+  window.clearInterval(vadTimer);
+  analyser = null;
+  spectrum = new Uint8Array(0);
+  useStore.getState().setAudio(0);
+  const rec = recorder;
+  recorder = null;
+  if (rec && rec.state !== "inactive") {
+    rec.onstop = null;
+    try { rec.stop(); } catch { /* already stopped */ }
+  }
+  chunks = [];
+  releaseStream();
 }
 
 function releaseStream(): void {

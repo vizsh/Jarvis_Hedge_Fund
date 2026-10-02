@@ -839,7 +839,14 @@ async def speech_to_text(request: Request) -> dict:
 
     # Below this, the decoder was guessing. Show what it heard and let the operator
     # retry rather than acting on it -- a misheard "sell" is not a recoverable mistake.
-    if result.confidence < 0.45 or not result.text.strip():
+    #
+    # The bar depends on what was heard. A COMMAND can propose a trade, so it keeps the
+    # strict threshold. A QUESTION cannot do anything but answer, so a misheard one costs
+    # a wrong answer the person can see and repeat -- rejecting it outright just made
+    # short, correctly-transcribed questions ("analyse TCS" scored 0.57) feel broken.
+    heard_kind = route_input(result.text).kind if result.text.strip() else "question"
+    floor = 0.45 if heard_kind == "command" else 0.30
+    if result.confidence < floor or not result.text.strip():
         bus.emit(EventType.ERROR, where="stt",
                  message=f"Low confidence ({result.confidence:.2f}) - not dispatched.")
         return {"ok": False, "reason": "low confidence", "transcript": result.text,

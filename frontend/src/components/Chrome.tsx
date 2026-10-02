@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useStore, type Phase } from "../lib/store";
-import { micError, send, startMic, stopMic } from "../lib/socket";
+import { send } from "../lib/socket";
 import * as socket from "../lib/socket";
 import { VoiceBar } from "./VoiceBar";
 import { onVoice } from "../lib/speak";
 import { useGuide } from "../lib/guide";
 import { Waveform } from "./Waveform";
+import { MicButton } from "./VoiceInput";
+import { installVoiceKeys, useVoice } from "../lib/voice";
 
 
 const PHASES: Phase[] = ["boot", "core", "graph", "terminal", "simulate", "execute"];
@@ -105,6 +107,11 @@ function ForceStop() {
       // there is nothing to dismiss.
       const g = useGuide.getState();
       if (g.palette || g.drill || g.report || g.flow) return;
+      // Same for the microphone: Esc while it is open means "cancel the recording",
+      // not "silence JARVIS". The voice controller swallows the key first in a real
+      // keypress, but listener order is not something to lean on.
+      const mic = useVoice.getState().status;
+      if (mic === "listening" || mic === "starting" || mic === "processing") return;
       socket.forceStopVoice();
       setSilenced(true);
     };
@@ -141,19 +148,16 @@ const SUGGESTIONS = [
 
 export function CommandBar() {
   const [text, setText] = useState("");
-  const [micOn, setMicOn] = useState(false);
-  const [thinking, setThinking] = useState(false);
-  const [micMsg, setMicMsg] = useState<string | null>(null);
+  const [, tick] = useState(0);
   const speech = useStore((s) => s.speech);
   const transcript = useStore((s) => s.transcript);
+  const status = useVoice((s) => s.status);
+  const speaking = useVoice((s) => s.speaking);
+  const heard = useVoice((s) => s.heard);
+  const heardAt = useVoice((s) => s.heardAt);
+  const error = useVoice((s) => s.error);
+  const clearError = useVoice((s) => s.clearError);
   const input = useRef<HTMLInputElement>(null);
-  // React state cannot guard this. `startMic()` is async, so between keydown and the
-  // moment `micOn` flips there is a 100-500ms window (longer on the permission
-  // prompt) where a keyup sees micOn === false and silently drops the release --
-  // the recorder then runs forever and the next keydown is blocked by the stale
-  // guard. These refs hold the truth synchronously.
-  const wantMic = useRef(false);      // is the key/button held RIGHT NOW
-  const micBusy = useRef(false);      // a start or stop is in flight
 
   const submit = (value: string) => {
     const v = value.trim();
@@ -162,114 +166,64 @@ export function CommandBar() {
     setText("");
   };
 
-  const beginMic = async () => {
-    if (wantMic.current || micBusy.current) return;   // key repeat, or already going
-    wantMic.current = true;
-    micBusy.current = true;
-    let ok = false;
-    try {
-      ok = await startMic();
-    } finally {
-      // Always clear the guard. Leaving it latched is how the microphone ends up
-      // permanently dead with no visible reason.
-      micBusy.current = false;
-    }
-    if (!ok) {
-      wantMic.current = false;
-      setMicOn(false);
-      setMicMsg(socket.micError);
-      return;
-    }
-    setMicMsg(null);
-    // Released while we were still asking for the microphone: honour the release
-    // now rather than leaving a recorder running that nothing will ever stop.
-    if (!wantMic.current) { void endMic(); return; }
-    setMicOn(true);
-  };
-
-  const endMic = async () => {
-    if (!wantMic.current && !micOn) {
-      // Released before start finished; startMic's own guard handles the teardown.
-      if (!micBusy.current) { await stopMic(); }
-      return;
-    }
-    wantMic.current = false;
-    if (micBusy.current) return;      // start still running; it will call us back
-    setMicOn(false);
-    setThinking(true);
-    // Recording stops here and the utterance goes to faster-whisper on the backend,
-    // which transcribes AND dispatches. We only surface what it heard.
-    const result = await stopMic();
-    setThinking(false);
-    if (result?.transcript) setText(result.transcript);
-    setMicMsg(result && !result.ok ? socket.micError : null);
-  };
-
-  // Push-to-talk on the spacebar, as long as you are not typing into the box.
+  // SPACE and Escape for the microphone, and "/" to jump to the text box. The microphone
+  // logic itself lives in lib/voice.ts so the orb, this panel and the keyboard are all
+  // driving one state machine rather than three half-copies of it.
   useEffect(() => {
     const typing = () => document.activeElement === input.current
       || (document.activeElement as HTMLElement)?.tagName === "TEXTAREA";
-    const down = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !typing()) {
-        e.preventDefault();
-        if (e.repeat) return;          // holding a key fires keydown repeatedly
-        void beginMic();
-      }
-      if (e.key === "/" && !typing()) {
-        e.preventDefault();
-        input.current?.focus();
-      }
+    const off = installVoiceKeys(typing);
+    const slash = (e: KeyboardEvent) => {
+      if (e.key === "/" && !typing()) { e.preventDefault(); input.current?.focus(); }
     };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !typing()) { e.preventDefault(); void endMic(); }
-    };
-    // Losing focus mid-hold (alt-tab) never delivers the keyup, which would strand
-    // the recorder open.
-    const blur = () => { if (wantMic.current) void endMic(); };
+    window.addEventListener("keydown", slash);
+    return () => { off(); window.removeEventListener("keydown", slash); };
+  }, []);
 
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
-    };
-  });
+  // Let the "I heard" card age out.
+  useEffect(() => {
+    if (!heardAt) return;
+    const id = window.setTimeout(() => tick((n) => n + 1), 12000);
+    return () => window.clearTimeout(id);
+  }, [heardAt]);
+
+  const shownHeard = (transcript || heard);
+  const recentlyHeard = !!shownHeard && Date.now() - heardAt < 12000;
+
+  const status_line =
+    status === "starting" ? "Allow the microphone if your browser asks…"
+    : status === "listening"
+      ? (speaking ? "Hearing you… pause when you are done." : "Listening — speak now.")
+    : status === "processing" ? "Transcribing locally…"
+    : speech || "Standing by. Tap the mic or click the orb to speak, or press / to type.";
 
   return (
-    <div className="command">
+    <div className={`command ${status}`}>
       <div className="jarvis-line">
         <span className="tag">JARVIS</span>
-        <span>
-          {micOn ? "Listening…"
-            : thinking ? "Transcribing locally…"
-            : speech || "Standing by. Hold SPACE to speak, or press / to type."}
-        </span>
+        <span>{status_line}</span>
       </div>
-      <Waveform active={micOn} />
-      {micMsg && <div className="mic-error">{micMsg}</div>}
-      {!micMsg && transcript && (
-        <div className="heard">
-          heard: &ldquo;{transcript}&rdquo;
+      <Waveform active={status === "listening"} />
+      {error && status === "idle" && (
+        <div className="mic-error" onClick={clearError}>{error}</div>
+      )}
+      {!error && recentlyHeard && status !== "listening" && (
+        <div className="heard-card">
+          <span className="heard-label">I heard</span>
+          <span className="heard-text">&ldquo;{shownHeard}&rdquo;</span>
         </div>
       )}
 
       <div className="cmdrow">
         <input
+          id="command-input"
           ref={input}
-          value={micOn && transcript ? transcript : text}
+          value={text}
           placeholder="analyse TCS · buy 30 Persistent · rewind to 2020-03-23"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(text); }}
         />
-        <button className={`btn mic ${micOn ? "on" : ""}`}
-                title="Hold to speak — transcribed locally by faster-whisper"
-                onMouseDown={() => beginMic()}
-                onMouseUp={() => endMic()}
-                onMouseLeave={() => { if (wantMic.current) void endMic(); }}>
-          {micOn ? "● REC" : thinking ? "…" : "HOLD"}
-        </button>
+        <MicButton />
         <button className="btn go" onClick={() => submit(text)}>Send</button>
       </div>
 

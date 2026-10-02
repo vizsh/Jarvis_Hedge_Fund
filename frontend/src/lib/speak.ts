@@ -269,6 +269,28 @@ export function speak(text: string): void {
   speakNext();
 }
 
+/** Cut off whatever is being said RIGHT NOW, without latching anything.
+ *
+ *  Used when the user starts talking: JARVIS must stop mid-sentence (people do not
+ *  speak over a voice, and the microphone would record it), but this is not a request
+ *  to stay quiet -- the spoken answer to the question about to be asked must still play.
+ *  `stop()` and `forceStop()` both latch; this one deliberately does not.
+ */
+export function interrupt(): void {
+  generation += 1;
+  queue = [];
+  index = 0;
+  current = "";
+  lastSpoken = "";          // the answer to the next question may legitimately repeat a line
+  lastSpokenAt = 0;
+  const synth = window.speechSynthesis;
+  if (synth) {
+    if (synth.paused) synth.resume();
+    synth.cancel();
+  }
+  if (!silenced && !stopped) setState("idle");
+}
+
 export function stop(): void {
   stopped = true;
   // Order matters: invalidate handlers FIRST, so anything `cancel()` wakes up is

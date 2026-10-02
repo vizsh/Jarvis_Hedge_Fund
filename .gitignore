@@ -18,3 +18,7 @@ models/
 docx_build/
 docx_assets/
 JARVIS_Alpha_OS_Dossier.docx
+
+# runtime logs and Office lock files
+*.log
+~$*
