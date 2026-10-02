@@ -11,11 +11,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import math
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 from agents.llm import available, warm_up
@@ -30,6 +31,10 @@ from analysis import stress as stress_mod
 from analysis import tax as tax_mod
 from analysis import xray as xray_mod
 from backend import actions as actions_mod
+from backend import ledger as ledger_mod
+from backend import tts as tts_mod
+from analysis import scanner as scanner_mod
+from analysis import shield as shield_mod
 from backend import drilldown as drilldown_mod
 from backend import explain, portfolios
 from backend import flows as flows_mod
@@ -114,8 +119,11 @@ async def _startup() -> None:
     ensure_sim_clock_column(session.conn)
     portfolios.ensure_schema(session.conn)
     watchlist_mod.ensure_schema(session.conn)
+    ledger_mod.ensure(session.conn)
     _seed_presets()
     _land_on_default()
+    _seed_sample_lots()
+    _spawn(asyncio.to_thread(tts_mod.warm_up))
     # Load the weights now. A cold first desk costs ~10 extra seconds and it always
     # lands on the command the audience is watching.
     _spawn(warm_up())
@@ -493,6 +501,11 @@ async def sandbox_commit() -> dict:
             ticker, side, shares, price, session.policy.execution.cost_bps)
         session.counters.trades_executed += 1
         applied.append({**t, "price": price, "value": shares * price})
+        ledger_mod.record(session.conn, sim_clock=session.pit.clock_iso, kind="TRADE",
+                          ticker=ticker, side=side, shares=shares, price=price,
+                          cost=shares * price * session.policy.execution.cost,
+                          nav_after=session.nav(), reason=str(t.get("reason") or "sandbox commit"),
+                          policy=session.policy.profile)
 
     staged.clear()
     emit_telemetry(session, bus)
@@ -630,6 +643,11 @@ async def rebalance_apply(deploy: bool = True) -> dict:
             session.portfolio = session.portfolio.apply(
                 t.ticker, t.side, t.shares, t.price, session.policy.execution.cost_bps)
             booked.append(t.as_dict())
+            ledger_mod.record(session.conn, sim_clock=session.pit.clock_iso, kind="TRADE",
+                              ticker=t.ticker, side=t.side, shares=t.shares, price=t.price,
+                              cost=t.shares * t.price * session.policy.execution.cost,
+                              nav_after=session.nav(), reason="rebalance plan",
+                              policy=session.policy.profile)
         else:
             refused.append({**t.as_dict(),
                             "why": decision.violations[0].code if decision.violations else "?"})
@@ -749,6 +767,10 @@ async def evidence(ticker: str) -> dict:
             "items": [i.__dict__ for i in pack.items]}
 
 
+_last_full = ""
+_MORE = re.compile(r"^\s*(tell me more|more( detail)?|go on|continue|read (it|that) (all|out)|full answer)\W*$", re.I)
+
+
 async def dispatch(text: str) -> dict:
     """The single entry point for anything typed or spoken.
 
@@ -756,6 +778,12 @@ async def dispatch(text: str) -> dict:
     to: the command bar ran an imperative parser that turned "what should I sell" into
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
+    global _last_full
+    if _MORE.match(text or "") and _last_full:
+        # "tell me more": read the long version of the last answer. Answers are spoken
+        # short by default; this is how the person asks for the rest.
+        bus.emit(EventType.SPEECH, text=_last_full, final=True)
+        return {"accepted": True, "kind": "more"}
     decision = route_input(text)
     if decision.kind == "command" and decision.intent:
         _spawn(handle(session, bus, decision.intent))
@@ -767,6 +795,7 @@ async def dispatch(text: str) -> dict:
     # again -- which is how people actually talk, and especially how they speak.
     answer = explain.answer(text, session.pit, session.portfolio,
                             session.prices, session.policy, convo=convo)
+    _last_full = answer.spoken_full()
     bus.emit(EventType.INTENT, verb="ask", ticker=answer.subject,
              args={"question": text}, via="router")
     bus.emit(EventType.SPEECH, text=answer.spoken(), final=True,
@@ -879,6 +908,104 @@ async def _announce_portfolio() -> None:
 async def replay_boot() -> dict:
     _spawn(boot(session, bus))
     return {"ok": True}
+
+
+def _seed_sample_lots() -> None:
+    """Example purchase records for the bundled example portfolio ONLY.
+
+    Cost basis is something the owner has to supply, and the product never guesses it for a
+    real portfolio. The bundled "Typical Indian retail" book is itself an example, so it
+    ships with example purchase dates -- spread so the tax page has short-term, near-the-
+    threshold, long-term and loss cases to show. A lot the user already entered is kept.
+    """
+    pid = "preset_typical_retail"
+    have = portfolios.load_lots(session.conn, pid)
+    from datetime import datetime, timedelta
+    today = datetime.fromisoformat(session.pit.clock_iso[:10])
+    plan = {  # ticker: (days ago bought, price vs today)
+        "TCS.NS": (345, 0.93), "WIPRO.NS": (351, 0.88), "SBIN.NS": (320, 1.05),
+        "INFY.NS": (210, 0.97), "ICICIBANK.NS": (140, 1.08), "RELIANCE.NS": (640, 0.80),
+        "ITC.NS": (900, 0.70), "HCLTECH.NS": (95, 0.99),
+    }
+    for t, (days, factor) in plan.items():
+        px = session.prices.get(t)
+        if t in have and have[t].buy_price not in (1500.0, 450.0) or not px:
+            continue
+        portfolios.save_lot(session.conn, pid, t, 0, round(px * factor, 2),
+                            (today - timedelta(days=days)).strftime("%Y-%m-%d"))
+
+
+class FirewallIn(BaseModel):
+    ticker: str
+    side: str = "BUY"
+    shares: int
+
+
+@app.post("/firewall/check")
+async def firewall_check(body: FirewallIn) -> dict:
+    """Run a proposed trade through the risk firewall WITHOUT touching the book."""
+    ticker = universe.resolve(body.ticker) or body.ticker
+    price = session.prices.get(ticker, 0.0)
+    if not price:
+        return {"ok": False, "reason": f"No price for {body.ticker}."}
+    prop = Proposal(ticker=ticker, side=body.side.upper(), shares=max(0, int(body.shares)),
+                    price=price, rationale="firewall check")
+    d = session.engine.evaluate(session.portfolio, prop, session.prices, session.sectors)
+    return {"ok": True, "ticker": ticker, "name": universe.name(ticker), "price": price,
+            "side": prop.side, "shares": prop.shares, "value": prop.shares * price,
+            "approved": d.approved, "violations": [v.model_dump() for v in d.violations],
+            "remedy": d.remedy.model_dump() if d.remedy else None,
+            "policy": session.policy.describe()}
+
+
+class TTSIn(BaseModel):
+    text: str
+    voice: str | None = None
+
+
+@app.post("/tts")
+async def tts_speak(body: TTSIn) -> Response:
+    """One sentence in, one WAV out. The browser plays it through an <audio> element it
+    controls, which is what makes interruption instant (see backend/tts.py)."""
+    text = body.text.strip()[:500]
+    if not text or not tts_mod.available(body.voice):
+        return Response(status_code=204)
+    wav = await asyncio.to_thread(tts_mod.synthesize, text, body.voice)
+    return Response(content=wav, media_type="audio/wav", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/tts/status")
+async def tts_status() -> dict:
+    return {"available": tts_mod.available(), "voice": tts_mod.DEFAULT_VOICE,
+            "voices": tts_mod.voices()}
+
+
+class ScanIn(BaseModel):
+    text: str
+
+
+@app.post("/scan")
+async def scan_tip(body: ScanIn) -> dict:
+    """Check a pasted stock tip against dated data on file. Deterministic -- no model."""
+    return scanner_mod.scan(session.pit, body.text)
+
+
+@app.get("/tax/shield")
+async def tax_shield() -> dict:
+    from datetime import datetime
+    if not session or not session.portfolio.positions:
+        return {"rows": [], "total_saving": 0.0}
+    lots = portfolios.load_lots(session.conn, session.portfolio_id)
+    asof = datetime.fromisoformat(session.pit.clock_iso[:10]).date()
+    out = shield_mod.shield(session.portfolio, session.prices, lots, asof)
+    out["sample"] = bool(session.portfolio_id and session.portfolio_id.startswith("preset_"))
+    return out
+
+
+@app.get("/ledger")
+async def get_ledger(limit: int = 100) -> dict:
+    return {"entries": ledger_mod.entries(session.conn, limit),
+            "chain": ledger_mod.verify(session.conn)}
 
 
 @app.websocket("/ws")

@@ -1,0 +1,27 @@
+// Tiny hash router. Hash routes need no server rewrite rules and survive a refresh, which
+// is all this app needs; a routing library would be more machinery than the problem.
+import { useEffect, useState } from "react";
+
+export const ROUTES = [
+  { path: "/", label: "Home" },
+  { path: "/portfolio", label: "Portfolio" },
+  { path: "/protect", label: "Protect" },
+  { path: "/learn", label: "Learn" },
+  { path: "/govern", label: "Govern" },
+  { path: "/research", label: "Research" },
+  { path: "/assistant", label: "Assistant" },
+] as const;
+
+const read = () => (location.hash.replace(/^#/, "") || "/").split("?")[0];
+
+export function useRoute(): string {
+  const [route, setRoute] = useState(read());
+  useEffect(() => {
+    const on = () => { setRoute(read()); window.scrollTo(0, 0); };
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return route;
+}
+
+export function go(path: string): void { location.hash = "#" + path; }

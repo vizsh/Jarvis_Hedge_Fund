@@ -4,7 +4,7 @@ import { useStore, type Phase } from "../lib/store";
 import { send } from "../lib/socket";
 import * as socket from "../lib/socket";
 import { VoiceBar } from "./VoiceBar";
-import { onVoice } from "../lib/speak";
+import { interrupt, isSpeaking, onVoice } from "../lib/speak";
 import { useGuide } from "../lib/guide";
 import { Waveform } from "./Waveform";
 import { MicButton } from "./VoiceInput";
@@ -91,7 +91,7 @@ export function TopBar({ onOpenBuilder }: { onOpenBuilder?: () => void }) {
  *  This one sets the hard latch: nothing the program does on its own can start it
  *  talking again. It is deliberately the only bright-red thing in the top bar, it never
  *  collapses at small widths, and Escape reaches it from anywhere. */
-function ForceStop() {
+export function ForceStop() {
   const [silenced, setSilenced] = useState(socket.voiceSilenced());
 
   useEffect(() => {
@@ -112,8 +112,9 @@ function ForceStop() {
       // keypress, but listener order is not something to lean on.
       const mic = useVoice.getState().status;
       if (mic === "listening" || mic === "starting" || mic === "processing") return;
-      socket.forceStopVoice();
-      setSilenced(true);
+      // Esc while JARVIS is talking = "that's enough": stop it NOW, no latch. (The
+      // STOP VOICE button is the one that keeps it quiet afterwards.)
+      if (isSpeaking()) { interrupt(); return; }
     };
     window.addEventListener("keydown", onKey);
     return () => { off(); window.removeEventListener("keydown", onKey); };

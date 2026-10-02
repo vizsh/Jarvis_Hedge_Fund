@@ -82,6 +82,22 @@ GLOSSARY: dict[str, str] = {
 }
 
 
+def _brief(text: str, max_words: int) -> str:
+    """Whole sentences up to roughly `max_words`, dropping any " — " qualification."""
+    text = (text or "").split(" — ")[0].strip()
+    out: list[str] = []
+    n = 0
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        w = len(sent.split())
+        if out and n + w > max_words:
+            break
+        out.append(sent)
+        n += w
+        if n >= max_words * 0.6:
+            break
+    return " ".join(out)
+
+
 @dataclass
 class Answer:
     headline: str
@@ -97,9 +113,21 @@ class Answer:
     subject: str | None = None           # the ticker this answer was about, if any
 
     def spoken(self) -> str:
-        """What JARVIS says aloud. Headline plus at most two supporting facts --
-        a spoken paragraph of six bullets is unlistenable."""
-        parts = [self.headline, *self.bullets[:2]]
+        """What JARVIS says by default: the short version.
+
+        Reading the whole answer aloud was the problem -- a paragraph of qualifications
+        spoken at you when you wanted the one-line answer. The screen carries everything;
+        the voice gives the headline (cut before any trailing qualification) and, only
+        when that is very short, one supporting fact. "Tell me more" reads the rest.
+        """
+        parts = [_brief(self.headline, 30)]
+        if len(parts[0].split()) < 14 and self.bullets:
+            parts.append(_brief(self.bullets[0], 22))
+        return " ".join(p for p in parts if p)
+
+    def spoken_full(self) -> str:
+        """The long version, for when the person asks for it."""
+        parts = [self.headline, *self.bullets[:3]]
         if self.action:
             parts.append(self.action)
         return " ".join(parts)

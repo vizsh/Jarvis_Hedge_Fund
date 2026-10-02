@@ -314,6 +314,15 @@ async def do_execute(session: Session, bus: EventBus) -> None:
     session.counters.trades_executed += 1
     session.pending = None
     nav = session.nav()
+    try:
+        from backend import ledger
+        ledger.record(session.conn, sim_clock=session.pit.clock_iso, kind="TRADE",
+                      ticker=p["ticker"], side=p["side"], shares=p["shares"], price=p["price"],
+                      cost=p["shares"] * p["price"] * session.policy.execution.cost,
+                      nav_after=nav, reason="approved by operator after firewall check",
+                      policy=session.policy.profile)
+    except Exception:  # noqa: BLE001 - never let bookkeeping break an approved trade
+        pass
 
     bus.emit(EventType.EXECUTION, ticker=p["ticker"], side=p["side"],
              shares=p["shares"], price=p["price"], nav_after=nav, paper=True)

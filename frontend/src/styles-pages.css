@@ -1,0 +1,237 @@
+/* Page layout: calm, readable, one idea per screen.
+ * The first version put fourteen glowing panels on one screen. This replaces that with a
+ * top nav, one purpose per page, plain sans-serif body text, and monospace kept for
+ * numbers only. The orb canvas is mounted on the Assistant page alone. */
+
+.app {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  z-index: 1;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  scroll-behavior: smooth;
+}
+body::before { opacity: 0.45; }
+
+/* ----------------------------------------------------------------- top nav */
+.topnav {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 22px;
+  padding: 0 24px; height: 56px;
+  background: rgba(6, 9, 16, 0.94);
+  border-bottom: 1px solid var(--rule-soft);
+  backdrop-filter: blur(10px);
+}
+.brand-mini {
+  font-family: var(--display); font-weight: 600; letter-spacing: 0.08em;
+  color: var(--text); text-decoration: none; font-size: 16px; white-space: nowrap;
+}
+.brand-mini b { font-weight: 700; color: #fff; }
+.brand-mini span { color: var(--cyan); margin: 0 6px; }
+.navlinks { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.navlinks::-webkit-scrollbar { display: none; }
+.navlinks a {
+  padding: 8px 13px; font-size: 14px; font-weight: 500; color: var(--text-dim);
+  text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.navlinks a:hover { color: var(--text); }
+.navlinks a.on { color: var(--cyan); border-bottom-color: var(--cyan); }
+.nav-right { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.nav-right .force-stop { margin-left: 0; }
+
+.app-body { min-height: calc(100% - 56px); }
+
+/* ----------------------------------------------------------------- pages */
+.page { width: 100%; max-width: 1180px; margin: 0 auto; padding: 34px 24px 150px; }
+.page-head { margin-bottom: 26px; max-width: 760px; }
+.page-head h1 {
+  margin: 0 0 8px; font-family: var(--display); font-weight: 700;
+  font-size: clamp(28px, 4vw, 40px); letter-spacing: 0.01em; color: #fff; text-wrap: balance;
+}
+.page-head p { margin: 0; color: var(--text-dim); font-size: 16px; text-wrap: pretty; }
+
+.grid { display: grid; gap: 18px; margin-bottom: 18px; align-items: start; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); }
+.stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.card {
+  background: rgba(13, 19, 31, 0.9);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+.card h2 { margin: 0 0 6px; font-family: var(--display); font-size: 20px; letter-spacing: 0.02em; color: #fff; }
+.card h3 { margin: 18px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.muted { color: var(--text-dim); } .faint { color: var(--text-faint); } .small { font-size: 12.5px; }
+.neg { color: var(--red); } .pos { color: var(--green); }
+.note { padding: 14px 16px; border-left: 3px solid var(--cyan-dim); color: var(--text-dim); font-size: 14px; }
+.note a, .card a { color: var(--cyan); }
+
+/* The older HUD panels were drawn for tiny rails. In a page they sit flatter and larger. */
+.page .panel {
+  zoom: 1.12;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: rgba(13, 19, 31, 0.9);
+  border-color: var(--rule-soft);
+  border-radius: 4px;
+}
+.page .panel::before, .page .panel::after { display: none; }
+.page .panel .panel-title { font-size: 11px; }
+.page .scroll { max-height: 360px; }
+
+/* ----------------------------------------------------------------- home */
+.pillars { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin-bottom: 26px; }
+.pillar {
+  display: block; text-decoration: none; color: var(--text-dim);
+  background: rgba(13, 19, 31, 0.9); border: 1px solid var(--rule-soft); border-radius: 4px;
+  padding: 22px; transition: border-color 0.15s, transform 0.15s;
+}
+.pillar:hover { border-color: var(--cyan-dim); transform: translateY(-2px); }
+.pillar-tag { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
+.pillar h2 { margin: 6px 0 8px; font-family: var(--display); font-size: 28px; color: #fff; }
+.pillar p { margin: 0 0 12px; font-size: 14.5px; }
+.pillar ul { margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--cyan); }
+.pillar li { padding: 3px 0; }
+
+/* ----------------------------------------------------------------- forms */
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.page input, .page select, .page textarea {
+  background: rgba(0, 0, 0, 0.35); border: 1px solid var(--rule); color: var(--text);
+  padding: 9px 11px; font: inherit; font-size: 14px; border-radius: 3px; outline: none; min-width: 0;
+}
+.page input:focus, .page select:focus, .page textarea:focus { border-color: var(--cyan); }
+.tip-box { width: 100%; resize: vertical; line-height: 1.5; }
+.chip {
+  background: transparent; border: 1px solid var(--rule); color: var(--text-dim);
+  padding: 5px 11px; border-radius: 99px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.chip:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+.page .btn { font-family: inherit; letter-spacing: 0.04em; font-size: 13px; padding: 9px 16px; text-transform: none; border-radius: 3px; }
+.page .btn.sm { padding: 5px 11px; font-size: 12px; }
+
+/* ----------------------------------------------------------------- scanner */
+.scan-result { margin-top: 18px; }
+.vbanner { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: 3px; border-left: 5px solid; }
+.vbanner.red { background: rgba(255, 71, 107, 0.12); border-color: var(--red); }
+.vbanner.amber { background: rgba(255, 176, 32, 0.1); border-color: var(--amber); }
+.vbanner.green { background: rgba(34, 255, 160, 0.08); border-color: var(--green); }
+.v-label { font-weight: 700; letter-spacing: 0.04em; font-size: 15px; color: #fff; }
+.v-score { color: var(--text-dim); font-size: 13px; }
+.summary { margin: 14px 0 4px; color: var(--text); }
+.flagrow, .claimrow { padding: 9px 0; border-bottom: 1px solid var(--rule-soft); }
+.claimrow { display: flex; gap: 12px; align-items: flex-start; }
+.flagrow code, .scan-result code { color: #ffd98a; background: rgba(255, 176, 32, 0.08); padding: 1px 5px; border-radius: 2px; }
+.pill { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 99px; border: 1px solid; white-space: nowrap; flex: 0 0 auto; }
+.pill.CONTRADICTED, .pill.s-NO_BASIS { color: var(--red); border-color: var(--red); }
+.pill.UNVERIFIED, .pill.s-SHORT_TERM { color: var(--amber); border-color: var(--amber); }
+.pill.SUPPORTED, .pill.s-LONG_TERM { color: var(--green); border-color: var(--green); }
+.pill.s-WAIT { color: var(--cyan); border-color: var(--cyan); }
+.pill.s-LOSS { color: var(--violet); border-color: var(--violet); }
+
+/* ----------------------------------------------------------------- tax shield */
+.bigstat { margin: 14px 0; padding: 14px 16px; background: rgba(37, 217, 255, 0.06); border-left: 4px solid var(--cyan); }
+.bs-n { font-family: var(--display); font-size: 34px; font-weight: 700; color: #fff; line-height: 1.1; }
+.bs-l { color: var(--text-dim); font-size: 13.5px; }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+.tbl th { text-align: left; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); font-weight: 600; }
+.tbl td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+.holdbar { height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; width: 110px; }
+.holdbar span { display: block; height: 100%; background: var(--cyan); }
+.addlot input { flex: 1; min-width: 120px; }
+
+/* ----------------------------------------------------------------- firewall + simulator */
+.fw-result { margin-top: 14px; padding: 14px 16px; border-radius: 3px; border-left: 5px solid; }
+.fw-result.ok { background: rgba(34, 255, 160, 0.08); border-color: var(--green); }
+.fw-result.no { background: rgba(255, 71, 107, 0.1); border-color: var(--red); }
+.fw-badge { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: 0.1em; }
+.fw-result.ok .fw-badge { color: var(--green); } .fw-result.no .fw-badge { color: var(--red); }
+.fw-line { color: var(--text); margin: 4px 0 8px; }
+.fw-viol { padding: 6px 0; border-top: 1px solid var(--rule-soft); }
+.fw-remedy { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+
+.sim { display: grid; grid-template-columns: 1fr minmax(150px, 1.1fr) 1fr; gap: 12px; align-items: start; margin: 14px 0; }
+.sim-col h3 { margin-top: 0; }
+.sim-col.after { border-left: 1px solid var(--rule-soft); padding-left: 12px; }
+.kvr { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--rule-soft); font-size: 13.5px; }
+.kvr span { color: var(--text-dim); } .kvr b.better { color: var(--green); } .kvr b.worse { color: var(--amber); }
+.sim-mid { display: flex; flex-direction: column; gap: 6px; }
+.xfer { padding: 7px 10px; border-radius: 3px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; border-left: 3px solid; background: rgba(255, 255, 255, 0.03); }
+.xfer.SELL { border-color: var(--red); } .xfer.BUY { border-color: var(--green); }
+.xfer span { color: var(--text-dim); }
+.verdict-line { color: var(--cyan); margin: 10px 0; }
+
+.modal-wrap { position: fixed; inset: 0; z-index: 90; background: rgba(2, 3, 8, 0.78); display: grid; place-items: center; padding: 20px; }
+.ok-modal { width: min(420px, 100%); background: #0c1422; border: 1px solid var(--rule); border-radius: 6px; padding: 26px; text-align: center; }
+.check { width: 78px; height: 78px; }
+.check-c { stroke: var(--green); stroke-width: 2.5; stroke-dasharray: 145; stroke-dashoffset: 145; animation: dash 0.6s ease forwards; }
+.check-p { stroke: var(--green); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: dash 0.4s ease 0.55s forwards; }
+@keyframes dash { to { stroke-dashoffset: 0; } }
+
+.chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px; border-radius: 3px; margin: 10px 0; font-size: 13.5px; }
+.chain.ok { background: rgba(34, 255, 160, 0.08); color: var(--green); } .chain.bad { background: rgba(255, 71, 107, 0.12); color: var(--red); }
+
+/* ----------------------------------------------------------------- learn */
+.gloss { border-bottom: 1px solid var(--rule-soft); padding: 8px 0; }
+.gloss summary { cursor: pointer; font-weight: 600; text-transform: capitalize; color: var(--text); }
+.gloss p { margin: 6px 0 2px; color: var(--text-dim); font-size: 14px; }
+.tryit { font-size: 16px; }
+
+/* ----------------------------------------------------------------- assistant dock */
+.dock {
+  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+  display: flex; align-items: center; gap: 12px;
+  width: min(460px, calc(100vw - 32px));
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(10, 16, 28, 0.97); border: 1px solid var(--rule);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+}
+.dock.listening { border-color: var(--red); box-shadow: 0 10px 40px rgba(255, 71, 107, 0.22); }
+.dock.processing { border-color: var(--violet); }
+.dock-mic {
+  flex: 0 0 auto; width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+  border: 1.5px solid var(--cyan); background: rgba(37, 217, 255, 0.1); color: var(--cyan);
+  display: grid; place-items: center;
+}
+.dock.listening .dock-mic { border-color: var(--red); background: rgba(255, 71, 107, 0.2); color: var(--red); animation: micBtnPulse 1.1s ease-in-out infinite; }
+.dock-mic:disabled { opacity: 0.5; cursor: progress; }
+.dock-body { flex: 1; min-width: 0; }
+.dock-line { font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+.dock-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.dock-toggle { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-faint); margin-top: 5px; cursor: pointer; }
+.dock-toggle i { font-style: normal; color: var(--text-faint); }
+.dock-open { font-size: 12px; color: var(--cyan); text-decoration: none; white-space: nowrap; align-self: flex-start; }
+/* Visible only while it is talking, and loud: this is the control that matters most. */
+.dock-stop, .stop-float {
+  background: var(--red); color: #fff; border: 0; border-radius: 8px; cursor: pointer;
+  font-weight: 700; font-size: 14px; padding: 12px 18px; letter-spacing: 0.04em;
+  box-shadow: 0 0 0 0 rgba(255, 71, 107, 0.6); animation: stopPulse 1.4s ease-out infinite;
+}
+@keyframes stopPulse { 70% { box-shadow: 0 0 0 12px rgba(255, 71, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 71, 107, 0); } }
+.stop-float { position: fixed; left: 50%; top: 76px; transform: translateX(-50%); z-index: 45; }
+
+/* ----------------------------------------------------------------- assistant page */
+.assistant-stage { position: relative; height: calc(100vh - 56px); overflow: hidden; }
+.assistant-bottom { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; width: min(880px, calc(100% - 28px)); z-index: 4; }
+.assistant-side { position: absolute; right: 16px; top: 16px; width: 330px; max-height: calc(100% - 230px); overflow-y: auto; z-index: 4; }
+.assistant-side .panel { zoom: 1; }
+.is-assistant .app-body { min-height: 0; }
+
+@media (max-width: 900px) {
+  .topnav { padding: 0 12px; gap: 10px; }
+  .brand-mini span, .nav-right .btn { display: none; }
+  .page { padding: 22px 16px 170px; }
+  .sim { grid-template-columns: 1fr; }
+  .sim-col.after { border-left: 0; padding-left: 0; }
+  .dock { left: 12px; right: 12px; width: auto; bottom: 12px; }
+  .dock-open { display: none; }
+  .assistant-side { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-stop, .stop-float, .dock.listening .dock-mic { animation: none; }
+}
