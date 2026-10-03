@@ -333,8 +333,7 @@ async def ask(body: AskIn) -> dict:
     Re-asking at a different level is how somebody says "I did not follow that" without
     having to rephrase anything.
     """
-    a = explain.answer(body.question, session.pit, session.portfolio,
-                       session.prices, session.policy, convo=convo, level=body.level)
+    a = await _assist(body.question, body.level)
     loc = await _present(a)
     bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"])
     return loc["answer"]
@@ -795,8 +794,7 @@ async def dispatch(text: str) -> dict:
     # Questions are answered, never acted on. `convo` carries the last subject so a
     # follow-up like "and what does it move with" resolves without naming the company
     # again -- which is how people actually talk, and especially how they speak.
-    answer = explain.answer(text, session.pit, session.portfolio,
-                            session.prices, session.policy, convo=convo)
+    answer = await _assist(text)
     bus.emit(EventType.INTENT, verb="ask", ticker=answer.subject,
              args={"question": text}, via="router")
     loc = await _present(answer)
@@ -988,6 +986,15 @@ async def set_language(body: LangIn) -> dict:
     return {"lang": LANG}
 
 
+async def _assist(question: str, level: str = "normal"):
+    """Every question goes through the assistant: tool-backed answers for funds, fees,
+    emergency cash, goals, scams and so on; the original explainer for portfolio questions."""
+    from backend import assistant
+    ctx = assistant.Ctx(pit=session.pit, portfolio=session.portfolio, prices=session.prices,
+                        policy=session.policy, conn=session.conn, convo=convo, lang=LANG, level=level)
+    return await assistant.aanswer(question, ctx)
+
+
 async def _present(answer):
     """The answer as it should be shown and spoken in the current language."""
     global _last_full, _last_lang
@@ -1093,9 +1100,9 @@ async def funds_overlap(a: str, b: str) -> dict:
 
 
 @app.get("/scamcall/scenarios")
-async def scam_scenarios() -> dict:
+async def scam_scenarios(lang: str = "en") -> dict:
     from backend import practice
-    return {"scenarios": practice.scenario_list()}
+    return {"scenarios": practice.scenario_list(lang)}
 
 
 class ScamIn(BaseModel):
@@ -1103,6 +1110,7 @@ class ScamIn(BaseModel):
     node: int = 0
     reply: str | None = None
     pressure: int = 0
+    lang: str = "en"
 
 
 @app.post("/scamcall/step")
@@ -1110,7 +1118,48 @@ async def scam_step(body: ScamIn) -> dict:
     from backend import practice
     if body.scenario not in practice.SCENARIOS:
         raise HTTPException(404, "unknown scenario")
-    return practice.scam_step(body.scenario, body.node, body.reply, body.pressure)
+    return practice.scam_step(body.scenario, body.node, body.reply, body.pressure, body.lang)
+
+
+@app.get("/feedrag")
+async def feedrag(principal: float = 100000, monthly: float = 0, years: int = 20, gross: float = 12.0,
+                  fee: float = 2.0, low: float = 0.2) -> dict:
+    from analysis import tools
+    return tools.fee_drag(max(0, principal), max(0, monthly), years, gross, fee, low)
+
+
+@app.get("/emergency")
+async def emergency(cash: float = 300000, expenses: float = 40000, invest: float = 0, income: float = 0,
+                    haircut: float = 20) -> dict:
+    from analysis import tools
+    return tools.emergency(max(0, cash), expenses, max(0, invest), haircut, max(0, income))
+
+
+@app.get("/digest")
+async def weekly_digest(lang: str = "en") -> dict:
+    import datetime
+    from backend import digest
+    return digest.build(session.pit, session.portfolio, session.prices, session.policy, lang,
+                        datetime.date.today().isocalendar()[1])
+
+
+class MyFundIn(BaseModel):
+    fund_id: str
+    on: bool = True
+
+
+@app.get("/myfunds")
+async def get_my_funds() -> dict:
+    from backend import assistant
+    return {"funds": assistant.my_funds(session.conn)}
+
+
+@app.post("/myfunds")
+async def set_my_funds(body: MyFundIn) -> dict:
+    from backend import assistant, practice
+    if body.fund_id not in practice.FUNDS:
+        raise HTTPException(404, "unknown fund")
+    return {"funds": assistant.set_my_fund(session.conn, body.fund_id, body.on)}
 
 
 @app.get("/goal")

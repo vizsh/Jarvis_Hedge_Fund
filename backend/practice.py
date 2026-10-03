@@ -11,6 +11,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from backend.practice_hi import FLAGS_HI, SCENARIOS_HI, classify_hi
+
 FUNDS: dict[str, dict[str, Any]] = {
     "nifty_index": {"name": "Nifty 50 Index Fund", "kind": "Index", "er": 0.20, "h": {
         "HDFCBANK.NS": 13, "RELIANCE.NS": 9, "ICICIBANK.NS": 8, "INFY.NS": 6, "ITC.NS": 4, "TCS.NS": 4,
@@ -151,37 +153,50 @@ def classify(text: str) -> str:
     return "stall" if t.endswith("?") or len(t.split()) > 2 else "comply"
 
 
-def _f(code: str) -> dict[str, str]:
-    label, why = FLAGS[code]
+def _f(code: str, lang: str = "en") -> dict[str, str]:
+    label, why = (FLAGS_HI if lang == "hi" else FLAGS)[code]
     return {"code": code, "label": label, "why": why}
 
 
-def scam_step(scenario: str, node: int, reply: str | None, pressure: int = 0) -> dict[str, Any]:
+def scam_step(scenario: str, node: int, reply: str | None, pressure: int = 0,
+              lang: str = "en") -> dict[str, Any]:
     sc = SCENARIOS[scenario]
+    hi = SCENARIOS_HI[scenario] if lang == "hi" else None
     nodes = sc["nodes"]
+    view = hi["nodes"] if hi else nodes
     if reply is None:                                       # opening line
         n = nodes[0]
-        return {"status": "continue", "node": 0, "line": n["line"], "flags": [_f(c) for c in n["flags"]],
-                "hints": n["hints"], "pressure": 25}
+        return {"status": "continue", "node": 0, "line": view[0]["line"],
+                "flags": [_f(c, lang) for c in n["flags"]], "hints": view[0]["hints"], "pressure": 25}
     node = max(0, min(node, len(nodes) - 1))
     cur = nodes[node]
-    kind = classify(reply)
+    kind = classify_hi(reply) if lang == "hi" else classify(reply)
     if kind == "refuse" or (kind == "verify" and cur["danger"]):
         return {"status": "won", "kind": kind, "pressure": 0,
-                "feedback": "You stopped it. Hanging up and calling the number on your card or the official site is exactly right."}
+                "feedback": ("आपने ठगी रोक दी। फ़ोन काटकर कार्ड पर छपे या आधिकारिक नंबर पर ख़ुद फ़ोन करना बिल्कुल सही है।"
+                             if lang == "hi" else
+                             "You stopped it. Hanging up and calling the number on your card or the official site is exactly right.")}
     if kind == "comply" and cur["danger"]:
         return {"status": "lost", "kind": kind, "pressure": 100, "loss": sc["loss"],
-                "feedback": f"A real scammer would now have access to Rs {sc['loss']:,}. The moment they asked for a code, an app or a transfer, the call should have ended."}
+                "feedback": (f"असली ठग के पास अब {sc['loss']:,} रुपये तक पहुँच होती। जैसे ही कोड, ऐप या ट्रांसफ़र माँगा गया, कॉल वहीं ख़त्म हो जानी चाहिए थी।"
+                             if lang == "hi" else
+                             f"A real scammer would now have access to Rs {sc['loss']:,}. The moment they asked for a code, an app or a transfer, the call should have ended.")}
     p = min(95, pressure + (30 if kind == "comply" else 12))
     nxt = node + 1
     if nxt >= len(nodes):                                   # kept asking questions to the end
         return {"status": "won", "kind": kind, "pressure": p,
-                "feedback": "You never handed anything over. Questioning is good, but ending the call earlier is safer."}
+                "feedback": ("आपने कुछ नहीं दिया। सवाल पूछना अच्छा है, पर कॉल जल्दी काट देना और भी सुरक्षित है।"
+                             if lang == "hi" else
+                             "You never handed anything over. Questioning is good, but ending the call earlier is safer.")}
     n = nodes[nxt]
-    return {"status": "continue", "kind": kind, "node": nxt, "line": n["line"],
-            "flags": [_f(c) for c in n["flags"]], "hints": n["hints"], "pressure": p}
+    return {"status": "continue", "kind": kind, "node": nxt, "line": view[nxt]["line"],
+            "flags": [_f(c, lang) for c in n["flags"]], "hints": view[nxt]["hints"], "pressure": p}
 
 
-def scenario_list() -> list[dict[str, Any]]:
-    return [{"id": k, "title": v["title"], "caller": v["caller"], "number": v["number"],
-             "intro": v["intro"], "loss": v["loss"], "steps": len(v["nodes"])} for k, v in SCENARIOS.items()]
+def scenario_list(lang: str = "en") -> list[dict[str, Any]]:
+    out = []
+    for k, v in SCENARIOS.items():
+        h = SCENARIOS_HI[k] if lang == "hi" else v
+        out.append({"id": k, "title": h["title"], "caller": h["caller"], "number": h["number"],
+                    "intro": h["intro"], "loss": v["loss"], "steps": len(v["nodes"])})
+    return out

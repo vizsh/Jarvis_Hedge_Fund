@@ -79,6 +79,35 @@ GLOSSARY: dict[str, str] = {
                   "weak evidence and for everyone agreeing with each other.",
     "paper trading": "Practice trades. Nothing is bought or sold, and no real money "
                      "moves.",
+    "mutual fund": "A pool of money from many investors that a fund manager invests in a basket "
+                   "of shares or bonds. You own units, and the fund charges a yearly fee.",
+    "systematic investment plan": "A SIP: you put a fixed amount into a fund every month. It spreads your buying across good and bad months.",
+    "sip": "A systematic investment plan: you put a fixed amount into a fund every month. "
+           "It spreads your buying across good and bad months.",
+    "expense ratio": "The yearly fee a fund takes, as a percentage of your money. It comes out "
+                     "of the fund's value, so you never see a bill. 2% a year on Rs 1 lakh is "
+                     "Rs 2,000 every year, and it compounds against you.",
+    "index fund": "A fund that simply copies an index such as the Nifty 50. With no manager "
+                  "picking stocks, its fee is usually very low.",
+    "etf": "A fund that trades on the stock exchange like a share and usually copies an index.",
+    "elss": "A mutual fund that invests mainly in shares and has a three-year lock-in. Under "
+            "the old tax regime, money put in up to the limit earns a tax deduction.",
+    "overlap": "How much of two funds' holdings are the same shares. High overlap means you "
+               "pay two fees for almost one portfolio.",
+    "emergency fund": "Money kept somewhere easy to reach to cover living costs if your income "
+                      "stops. Six months of spending is the usual target.",
+    "otp": "A one-time password that approves a payment or a login. It exists to approve money "
+           "leaving YOUR account, so never read it out to anyone.",
+    "digital arrest": "A scam where fraudsters posing as police keep you on a video call and "
+                      "demand money. No agency arrests anyone over a call.",
+    "kyc": "Know Your Customer: the identity check banks and brokers do once. A real bank never "
+           "asks for your OTP or PIN to update it over a call.",
+    "compounding": "Earning returns on your earlier returns. Over long periods it makes small "
+                   "differences in return or fee very large.",
+    "sebi": "The Securities and Exchange Board of India, the market regulator. Genuine advisers "
+            "and brokers are registered with it, and you can check a name on its website.",
+    "nifty": "The Nifty 50: an index of 50 large Indian companies, often used as the yardstick "
+             "for the market.",
 }
 
 
@@ -111,6 +140,14 @@ class Answer:
     follow_ups: list[str] = field(default_factory=list)
     level: str = "normal"                # normal | simple | maths
     subject: str | None = None           # the ticker this answer was about, if any
+    # Structure for the newer, tool-backed answers. All optional: the original explainer
+    # answers leave them empty and render exactly as before.
+    facts: list[dict[str, Any]] = field(default_factory=list)      # [{"label","value","tone"}]
+    table: dict[str, Any] | None = None                            # {"columns": [...], "rows": [[...]]}
+    visual: dict[str, Any] | None = None                           # {"page","label","params"}
+    lang: str = "en"                     # "hi" when the text is already written in Hindi
+    follow_ups_hi: list[str] = field(default_factory=list)
+    speech: str | None = None            # a fixed spoken version (e.g. the weekly digest)
 
     def spoken(self) -> str:
         """What JARVIS says by default: the short version.
@@ -120,6 +157,8 @@ class Answer:
         the voice gives the headline (cut before any trailing qualification) and, only
         when that is very short, one supporting fact. "Tell me more" reads the rest.
         """
+        if self.speech:
+            return self.speech
         parts = [_brief(self.headline, 30)]
         if len(parts[0].split()) < 14 and self.bullets:
             parts.append(_brief(self.bullets[0], 22))
@@ -136,7 +175,9 @@ class Answer:
         return {"headline": self.headline, "bullets": self.bullets,
                 "action": self.action, "detail": self.detail, "kind": self.kind,
                 "data": self.data, "follow_ups": self.follow_ups,
-                "level": self.level, "subject": self.subject}
+                "level": self.level, "subject": self.subject, "facts": self.facts,
+                "table": self.table, "visual": self.visual, "lang": self.lang,
+                "follow_ups_hi": self.follow_ups_hi}
 
 
 # --------------------------------------------------------------------------- router
@@ -174,11 +215,16 @@ QUESTIONS: list[tuple[re.Pattern, str]] = [
 ]
 
 
-def classify(text: str) -> str:
+def classify_strict(text: str) -> str | None:
+    """Like classify, but None when no rule matched instead of guessing a summary."""
     for rx, kind in QUESTIONS:
         if rx.search(text):
             return kind
-    return "xray"
+    return None
+
+
+def classify(text: str) -> str:
+    return classify_strict(text) or "xray"
 
 
 # --------------------------------------------------------------- conversation memory
@@ -333,7 +379,7 @@ def with_maths(answer: Answer) -> Answer:
 def define(text: str) -> Answer | None:
     low = text.lower()
     for term in sorted(GLOSSARY, key=len, reverse=True):
-        if term in low:
+        if re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", low):
             return Answer(headline=GLOSSARY[term], kind="define",
                           detail=f"Term: {term}")
     return None
@@ -342,8 +388,10 @@ def define(text: str) -> Answer | None:
 # --------------------------------------------------------------------------- answers
 def answer(text: str, pit: PointInTimeStore, portfolio: Portfolio,
            prices: dict[str, float], policy: Policy,
-           convo: Conversation | None = None, level: str = "normal") -> Answer:
-    """One question in, one plain-language answer out.
+           convo: Conversation | None = None, level: str = "normal",
+           kind: str | None = None) -> Answer:
+    """One question in, one plain-language answer out. `kind` overrides the router when the
+    caller has already decided what is being asked.
 
     `convo` lets a follow-up refer back ("what does it move with") without naming its
     subject again. `level` is the explain-back dial: the same answer, said shorter or
@@ -352,7 +400,7 @@ def answer(text: str, pit: PointInTimeStore, portfolio: Portfolio,
     # Resolve pronouns BEFORE classifying: "and what about it" classifies very
     # differently once "it" has become "Infosys".
     resolved = convo.resolve(text) if convo else text
-    kind = classify(resolved)
+    kind = kind or classify(resolved)
 
     if kind == "simplify" and convo and convo.last_kind:
         # "explain that simpler" is not a new question, it is the same one at a

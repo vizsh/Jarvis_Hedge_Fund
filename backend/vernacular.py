@@ -151,6 +151,12 @@ async def localize_answer(answer: Any, lang: str) -> dict[str, Any]:
     spoken_en, full_en = answer.spoken(), answer.spoken_full()
     if lang != "hi":
         return {"answer": d, "spoken": spoken_en, "full": full_en, "translated": False}
+    if getattr(answer, "lang", "en") == "hi":
+        # Written in Hindi by the tool that produced it (numbers computed in Python): no
+        # second pass through a translator that could only make it worse.
+        spoken = answer.speech or _brief_hi(answer.headline, list(answer.bullets))
+        full = " ".join(p for p in [answer.headline, *answer.bullets, answer.action] if p)
+        return {"answer": d, "spoken": spoken, "full": full, "translated": True}
 
     # Fixed order: speech line first (what is heard), then what is shown.
     bullets = list(answer.bullets[:3])
