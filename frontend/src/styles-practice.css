@@ -110,3 +110,7 @@
 .micmsg { padding: 7px 10px; border-radius: 8px; background: rgba(0,229,255,.1); font-size: 13px; }
 .micmsg.warn { background: rgba(255,176,32,.12); color: #ffcf70; }
 .voicetog.hf { margin: 0; }
+
+.fd-inline { padding: 10px; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); }
+.fdwrap.one { grid-template-columns: 1fr !important; }
+.fd-inline .sliders { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }

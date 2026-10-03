@@ -6,6 +6,7 @@ import { answerText, type AnswerData } from "../lib/chat";
 import { useLang } from "../lib/lang";
 import { go } from "../lib/router";
 import { speak, stop as stopSpeech } from "../lib/speak";
+import { FeeDrag } from "../pages/PracticeMore";
 
 /** One structured answer: headline, key figures, a table when there is one, the steps, what to
  *  do next, how it was worked out, and tappable follow-ups. Used by the chat thread and the
@@ -16,6 +17,9 @@ export function AnswerCard({ a, onAsk, compact = false }: {
   const lang = useLang((s) => s.lang);
   const hi = lang === "hi";
   const [copied, setCopied] = useState(false);
+  const [inline, setInline] = useState(false);
+  // The fee answer can be played with right here, with the figures it was computed from.
+  const canInline = a.kind === "fee_drag" && a.visual?.page === "practice";
   const chips = a.follow_ups ?? [];
 
   const open = () => {
@@ -54,6 +58,8 @@ export function AnswerCard({ a, onAsk, compact = false }: {
 
       {a.action && <div className="aaction"><span aria-hidden>→</span> {a.action}</div>}
 
+      {canInline && inline && <FeeDrag init={a.visual!.params} compact />}
+
       {a.detail && (
         <details className="adetail">
           <summary>{hi ? "यह कैसे निकाला गया" : "How this was worked out"}</summary>
@@ -61,7 +67,9 @@ export function AnswerCard({ a, onAsk, compact = false }: {
         </details>)}
 
       <div className="atools">
-        {a.visual && <button className="abtn primary" onClick={open}>{a.visual.label} ↗</button>}
+        {canInline && <button className="abtn primary" aria-expanded={inline} onClick={() => setInline((v) => !v)}>
+          {inline ? (hi ? "स्लाइडर बंद करें ▴" : "Hide the slider ▴") : (hi ? "यहीं स्लाइडर चलाइए ▾" : "Try the slider here ▾")}</button>}
+        {a.visual && <button className={`abtn ${canInline ? "" : "primary"}`} onClick={open}>{canInline ? (hi ? "पूरे पेज पर खोलें ↗" : "Open full page ↗") : `${a.visual.label} ↗`}</button>}
         <button className="abtn" onClick={() => speak(answerText(a), a.lang === "hi" ? "hi" : "en", true)}
                 title={hi ? "ज़ोर से पढ़ें" : "Read this aloud"}>🔊 {hi ? "सुनें" : "Read aloud"}</button>
         <button className="abtn" onClick={() => stopSpeech()} title={hi ? "आवाज़ रोकें" : "Stop the voice"}>■</button>

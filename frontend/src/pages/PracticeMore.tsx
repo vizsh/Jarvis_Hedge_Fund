@@ -10,7 +10,10 @@ const inr = (v: number) => {
   if (a >= 1e5) return `${s}₹${(a / 1e5).toFixed(2)} lakh`;
   return `${s}₹${Math.round(a).toLocaleString("en-IN")}`;
 };
+let overrides: Record<string, string | number> | undefined;
 const num = (key: string, d: number) => {
+  const o = overrides?.[key];
+  if (o !== undefined && !Number.isNaN(Number(o))) return Number(o);
   const v = hashParams().get(key);
   return v !== null && v !== "" && !Number.isNaN(Number(v)) ? Number(v) : d;
 };
@@ -24,8 +27,9 @@ function Slider({ label, value, set, min, max, step, fmt }: {
 }
 
 /* ------------------------------------------------------------ fee drag */
-export function FeeDrag() {
+export function FeeDrag({ init, compact = false }: { init?: Record<string, string | number>; compact?: boolean }) {
   const hi = useLang((s) => s.lang) === "hi";
+  overrides = init;                       // chat answers pass the figures they computed
   const [lump, setLump] = useState(num("lump", 100000));
   const [monthly, setMonthly] = useState(num("monthly", 0));
   const [years, setYears] = useState(num("years", 20));
@@ -81,10 +85,10 @@ export function FeeDrag() {
   const p = at !== null && g ? g.pts[at] : null;
 
   return (
-    <section className="card wide">
-      <h2>{hi ? "फ़ीस का असर" : "Fee drag"}</h2>
-      <p className="muted">{hi ? "छोटी सालाना फ़ीस सालों में बड़ी रक़म खा जाती है। स्लाइडर हिलाइए और देखिए।"
-                                : "A small yearly fee quietly eats a big share of your growth. Move the sliders and watch."}</p>
+    <section className={compact ? "fd-inline" : "card wide"}>
+      {!compact && <h2>{hi ? "फ़ीस का असर" : "Fee drag"}</h2>}
+      {!compact && <p className="muted">{hi ? "छोटी सालाना फ़ीस सालों में बड़ी रक़म खा जाती है। स्लाइडर हिलाइए और देखिए।"
+                                : "A small yearly fee quietly eats a big share of your growth. Move the sliders and watch."}</p>}
       <div className="sliders">
         <Slider label={hi ? "एक बार का निवेश" : "Lump sum"} value={lump} set={setLump} min={0} max={5000000} step={50000} fmt={inr} />
         <Slider label={hi ? "मासिक SIP" : "Monthly SIP"} value={monthly} set={setMonthly} min={0} max={100000} step={1000} fmt={inr} />
@@ -95,7 +99,7 @@ export function FeeDrag() {
       </div>
 
       {g && d && (
-        <div className="fdwrap">
+        <div className={compact ? "fdwrap one" : "fdwrap"}>
           <div>
             <svg viewBox={`0 0 ${W} ${H}`} className="panicchart fdchart" onPointerMove={move} onPointerLeave={() => setAt(null)}
                  role="img" aria-label="Growth with and without fees">
