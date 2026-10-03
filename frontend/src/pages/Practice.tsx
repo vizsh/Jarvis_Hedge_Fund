@@ -36,6 +36,7 @@ function CountUp({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
 const ROW = 30, SHOW = 12;
 
 function Ring({ pct, tone }: { pct: number; tone: string }) {
+  const hi = useLang((s) => s.lang) === "hi";
   const R = 52, C = 2 * Math.PI * R;
   const [p, setP] = useState(0);
   useEffect(() => { const t = setTimeout(() => setP(pct), 60); return () => clearTimeout(t); }, [pct]);
@@ -45,12 +46,13 @@ function Ring({ pct, tone }: { pct: number; tone: string }) {
       <circle cx="65" cy="65" r={R} className={`ring-fg ${tone}`} strokeDasharray={C}
               strokeDashoffset={C * (1 - Math.min(100, p) / 100)} transform="rotate(-90 65 65)" />
       <text x="65" y="64" textAnchor="middle" className="ring-num"><CountUp to={pct} decimals={0} suffix="%" /></text>
-      <text x="65" y="84" textAnchor="middle" className="ring-sub">same stocks</text>
+      <text x="65" y="84" textAnchor="middle" className="ring-sub">{hi ? "एक जैसे शेयर" : "same stocks"}</text>
     </svg>
   );
 }
 
 function OverlapChecker() {
+  const hi = useLang((s) => s.lang) === "hi";
   const [funds, setFunds] = useState<any[]>([]);
   const [pick, setPick] = useState<string[]>(() => {
     const q = hashParams(); const a = q.get("a"), b = q.get("b");
@@ -86,9 +88,9 @@ function OverlapChecker() {
 
   return (
     <section className="card wide">
-      <h2>Fund overlap checker</h2>
-      <p className="muted">Two "different" funds can quietly hold the same stocks, so you pay two managers for one portfolio.
-        Pick any two funds and watch the shared holdings light up.</p>
+      <h2>{hi ? "फ़ंड ओवरलैप जाँच" : "Fund overlap checker"}</h2>
+      <p className="muted">{hi ? "अलग नाम वाले दो फ़ंड चुपचाप एक ही शेयर रख सकते हैं, और आप एक ही पोर्टफ़ोलियो के लिए दो मैनेजरों को फ़ीस देते हैं। कोई भी दो फ़ंड चुनिए और साझा शेयर चमकते देखिए।"
+        : "Two \"different\" funds can quietly hold the same stocks, so you pay two managers for one portfolio. Pick any two funds and watch the shared holdings light up."}</p>
       <div className="fundpick">
         {funds.map((f) => {
           const n = pick.indexOf(f.id);
@@ -96,9 +98,9 @@ function OverlapChecker() {
             <button key={f.id} className={`fundcard ${n >= 0 ? "sel" : ""}`} onClick={() => toggle(f.id)}>
               {n >= 0 && <span className="slot">{n === 0 ? "A" : "B"}</span>}
               <span role="button" tabIndex={0} className={`ownstar ${mine.includes(f.id) ? "on" : ""}`}
-                    title="I own this fund (the assistant remembers it)"
+                    title={hi ? "यह फ़ंड मेरे पास है (सहायक याद रखेगा)" : "I own this fund (the assistant remembers it)"}
                     onClick={(e) => { e.stopPropagation(); void own(f.id); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); void own(f.id); } }}>{mine.includes(f.id) ? "★ I own this" : "☆ I own this"}</span>
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); void own(f.id); } }}>{mine.includes(f.id) ? (hi ? "★ मेरे पास है" : "★ I own this") : (hi ? "☆ मेरे पास है" : "☆ I own this")}</span>
               <b>{f.name.replace("Sample ", "")}</b>
               <span className="tiny muted">{f.kind} · fee {f.er}%</span>
             </button>);
@@ -109,7 +111,7 @@ function OverlapChecker() {
         <div className="ovl">
           <div className="ovl-grid">
             <div className="ovl-col">
-              <div className="ovl-title">{d.a.name.replace("Sample ", "")} <span className="tiny muted">fee {d.a.er}%</span></div>
+              <div className="ovl-title">{d.a.name.replace("Sample ", "")} <span className="tiny muted">{hi ? "फ़ीस" : "fee"} {d.a.er}%</span></div>
               {rows.A.map((h: any) => {
                 const shared = d.shared.some((s: any) => s.ticker === h.ticker);
                 return <div key={h.ticker} style={{ height: ROW }} onMouseEnter={() => setHot(h.ticker)} onMouseLeave={() => setHot(null)}
@@ -127,7 +129,7 @@ function OverlapChecker() {
               })}
             </svg>
             <div className="ovl-col">
-              <div className="ovl-title">{d.b.name.replace("Sample ", "")} <span className="tiny muted">fee {d.b.er}%</span></div>
+              <div className="ovl-title">{d.b.name.replace("Sample ", "")} <span className="tiny muted">{hi ? "फ़ीस" : "fee"} {d.b.er}%</span></div>
               {rows.B.map((h: any) => {
                 const shared = d.shared.some((s: any) => s.ticker === h.ticker);
                 return <div key={h.ticker} style={{ height: ROW }} onMouseEnter={() => setHot(h.ticker)} onMouseLeave={() => setHot(null)}
@@ -140,18 +142,18 @@ function OverlapChecker() {
           <div className="ovl-side">
             <Ring pct={d.overlap_pct} tone={d.verdict} />
             <div className={`vbanner ${d.verdict}`}>
-              {d.verdict === "red" ? "Mostly the same portfolio" : d.verdict === "amber" ? "Noticeable overlap" : "Genuinely different"}
-              <div className="small">{d.shared_stocks} stocks in common</div>
+              {d.verdict === "red" ? (hi ? "लगभग एक ही पोर्टफ़ोलियो" : "Mostly the same portfolio") : d.verdict === "amber" ? (hi ? "ध्यान देने लायक़ ओवरलैप" : "Noticeable overlap") : (hi ? "सचमुच अलग-अलग" : "Genuinely different")}
+              <div className="small">{hi ? `${d.shared_stocks} शेयर साझा` : `${d.shared_stocks} stocks in common`}</div>
             </div>
             {d.verdict !== "green" && (
-              <div className="statbox"><b>{inr(d.wasted_fee_per_lakh)}</b><span>a year per ₹1 lakh goes to paying for the same stocks twice</span></div>)}
+              <div className="statbox"><b>{inr(d.wasted_fee_per_lakh)}</b><span>{hi ? "हर 1 लाख रुपये पर साल में उन्हीं शेयरों के लिए दो बार फ़ीस जाती है" : "a year per ₹1 lakh goes to paying for the same stocks twice"}</span></div>)}
             {d.own_in_a > 0 && (
               <div className="statbox"><b>{d.own_in_a}% / {d.own_in_b}%</b>
-                <span>of what you hold directly ({d.own_names.join(", ")}) is already inside these funds</span></div>)}
+                <span>{hi ? `आपके सीधे शेयरों (${d.own_names.join(", ")}) का इतना हिस्सा इन फ़ंडों में पहले से है` : `of what you hold directly (${d.own_names.join(", ")}) is already inside these funds`}</span></div>)}
           </div>
         </div>
       )}
-      <p className="tiny muted">Holdings shown are illustrative samples typical of each fund type, not live factsheets. Overlap = the smaller weight of every stock both funds hold.</p>
+      <p className="tiny muted">{hi ? "दिखाई गई होल्डिंग्स हर तरह के फ़ंड के नमूने हैं, असली फ़ैक्टशीट नहीं। ओवरलैप = दोनों फ़ंडों के साझा हर शेयर का छोटा वज़न।" : "Holdings shown are illustrative samples typical of each fund type, not live factsheets. Overlap = the smaller weight of every stock both funds hold."}</p>
     </section>
   );
 }
@@ -376,8 +378,9 @@ export function ScamCall({ init, compact = false }: { init?: Record<string, stri
 }
 
 export default function Practice() {
+  const hi = useLang((s) => s.lang) === "hi";
   return (
-    <Page title="Practice" lead="Learn by doing: compare funds before you buy two of the same, and rehearse a scam call before a real one arrives.">
+    <Page title="Practice" lead={hi ? "करके सीखिए: एक जैसे दो फ़ंड ख़रीदने से पहले तुलना कीजिए, और असली ठग कॉल आने से पहले अभ्यास कीजिए।" : "Learn by doing: compare funds before you buy two of the same, and rehearse a scam call before a real one arrives."}>
       <div className="grid"><OverlapChecker /></div>
       <div className="grid"><FeeDrag /></div>
       <div className="grid"><EmergencyMeter /></div>

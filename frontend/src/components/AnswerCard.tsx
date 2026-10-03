@@ -14,7 +14,7 @@ import { ScamCall } from "../pages/Practice";
  *  do next, how it was worked out, and tappable follow-ups. Used by the chat thread and the
  *  Learn page so a question looks the same wherever it is asked. */
 export function AnswerCard({ a, onAsk, compact = false }: {
-  a: AnswerData; onAsk: (q: string) => void; compact?: boolean;
+  a: AnswerData; onAsk: (q: string, shown?: string) => void; compact?: boolean;
 }) {
   const lang = useLang((s) => s.lang);
   const hi = lang === "hi";
@@ -86,7 +86,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
       {chips.length > 0 && (
         <div className="achips">
           {chips.map((q, i) => (
-            <button key={q} className="achip" onClick={() => onAsk(q)}>{(hi && a.follow_ups_hi?.[i]) || q}</button>))}
+            <button key={q} className="achip" onClick={() => onAsk(q, (hi && a.follow_ups_hi?.[i]) || undefined)}>{(hi && a.follow_ups_hi?.[i]) || q}</button>))}
         </div>)}
     </div>
   );

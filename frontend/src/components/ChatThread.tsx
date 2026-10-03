@@ -5,13 +5,14 @@ import { useLang } from "../lib/lang";
 import { send } from "../lib/socket";
 import { AnswerCard } from "./AnswerCard";
 
-const STARTERS = [
-  "Which of my mutual funds overlap?",
-  "What does a 2% fee cost over 20 years?",
-  "How long will 3 lakh last if I spend 40000 a month?",
-  "Will 10000 a month reach 50 lakh in 15 years?",
-  "Someone asked for my OTP on a call",
-  "Give me my weekly digest",
+// [what is asked (the router understands English), what is shown in Hindi mode]
+const STARTERS: [string, string][] = [
+  ["Which of my mutual funds overlap?", "मेरे कौन से म्यूचुअल फ़ंड आपस में मिलते हैं?"],
+  ["What does a 2% fee cost over 20 years?", "2% फ़ीस बीस साल में कितनी पड़ती है?"],
+  ["How long will 3 lakh last if I spend 40000 a month?", "3 लाख रुपये 40000 महीने के ख़र्च पर कितना चलेंगे?"],
+  ["Will 10000 a month reach 50 lakh in 15 years?", "10000 महीने की SIP से 15 साल में 50 लाख बनेंगे?"],
+  ["Someone asked for my OTP on a call", "किसी ने फ़ोन पर मेरा OTP माँगा"],
+  ["Give me my weekly digest", "मेरा साप्ताहिक सार सुनाइए"],
 ];
 
 /** Switch between hearing the answer and only reading it. The text is always shown. */
@@ -37,7 +38,7 @@ export function ChatThread() {
 
   useEffect(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, [messages.length]);
 
-  const submit = (q: string) => { const v = q.trim(); if (v) send(v); };
+  const submit = (q: string, shown?: string) => { const v = q.trim(); if (v) send(v, shown); };
 
   return (
     <aside className="chat" aria-label="Conversation">
@@ -53,7 +54,7 @@ export function ChatThread() {
             <p>{hi ? "कुछ भी पूछिए। मैं हर आँकड़ा कैलकुलेटर से निकालता हूँ, अंदाज़े से नहीं।"
                    : "Ask anything about your money. Every figure comes from a calculator, not a guess."}</p>
             <div className="achips">
-              {STARTERS.map((q) => <button key={q} className="achip" onClick={() => submit(q)}>{q}</button>)}
+              {STARTERS.map(([q, h]) => <button key={q} className="achip" onClick={() => submit(q, hi ? h : undefined)}>{hi ? h : q}</button>)}
             </div>
           </div>)}
 

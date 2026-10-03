@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { useLang } from "../lib/lang";
 import { hashParams } from "../lib/router";
+
+const EPISODE_HI: Record<string, string> = {
+  covid: "कोविड की गिरावट", rate_shock_2022: "2022 की ब्याज दरों की मार", adani_2023: "जनवरी 2023 की बिकवाली",
+};
 
 const inr = (v: number) => `₹${Math.round(Math.abs(v)).toLocaleString("en-IN")}`;
 const post = (url: string, body: unknown) =>
@@ -12,6 +17,7 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
   const [key, setKey] = useState(() => String(init?.episode ?? hashParams().get("episode") ?? "") || "covid");
   const [d, setD] = useState<any>(null);
   const [day, setDay] = useState(0);
+  const hi = useLang((s) => s.lang) === "hi";
 
   useEffect(() => {
     fetch(`/panic?key=${key}`).then((r) => r.json()).then((x) => {
@@ -31,7 +37,7 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
   }, [d]);
 
   if (!d?.points?.length || !geo) return (
-    <section className="card"><h2>Panic-sell replay</h2><p className="muted">Load a portfolio to replay a crash.</p></section>);
+    <section className="card"><h2>{hi ? "घबराकर बेचने का रीप्ले" : "Panic-sell replay"}</h2><p className="muted">{hi ? "गिरावट दोहराने के लिए पहले पोर्टफ़ोलियो लोड कीजिए।" : "Load a portfolio to replay a crash."}</p></section>);
 
   const sellVal = d.points[day].value;
   const hold = d.end_value;
@@ -41,11 +47,11 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
 
   return (
     <section className={compact ? "fd-inline" : "card"}>
-      {!compact && <h2>Panic-sell replay</h2>}
-      {!compact && <p className="muted">Real prices from a real crash, applied to your holdings. Drag to choose the day you would have sold.</p>}
+      {!compact && <h2>{hi ? "घबराकर बेचने का रीप्ले" : "Panic-sell replay"}</h2>}
+      {!compact && <p className="muted">{hi ? "असली गिरावट के असली भाव, आपके अपने शेयरों पर। खिसकाकर चुनिए कि किस दिन बेचते।" : "Real prices from a real crash, applied to your holdings. Drag to choose the day you would have sold."}</p>}
       <div className="chips">
         {Object.entries(d.episodes as Record<string, string>).map(([k, l]) => (
-          <button key={k} className={`btn sm ${k === key ? "go" : "ghost"}`} onClick={() => setKey(k)}>{l}</button>))}
+          <button key={k} className={`btn sm ${k === key ? "go" : "ghost"}`} onClick={() => setKey(k)}>{hi ? EPISODE_HI[k] ?? l : l}</button>))}
       </div>
       <svg viewBox={`0 0 ${geo.W} ${geo.H}`} className="panicchart" role="img" aria-label="Portfolio value through the crash">
         <polyline points={hline} fill="none" stroke="var(--cyan)" strokeWidth="2" />
@@ -53,21 +59,21 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
         <circle cx={geo.x(day)} cy={geo.y(sellVal)} r="6" fill="var(--red)" />
         <circle cx={geo.x(d.trough_index)} cy={geo.y(d.trough_value)} r="4" fill="none" stroke="var(--amber, #ffb020)" strokeWidth="2" />
       </svg>
-      <input type="range" min={0} max={d.points.length - 1} value={day} aria-label="Day you sell"
+      <input type="range" min={0} max={d.points.length - 1} value={day} aria-label={hi ? "बेचने का दिन" : "Day you sell"}
              onChange={(e) => setDay(Number(e.target.value))} style={{ width: "100%" }} />
-      <div className="tiny muted">Sell on {d.points[day].date} · lowest point was {d.points[d.trough_index].date} (ring)</div>
+      <div className="tiny muted">{hi ? `बेचने का दिन ${d.points[day].date} · सबसे निचला बिंदु ${d.points[d.trough_index].date} (गोला)` : `Sell on ${d.points[day].date} · lowest point was ${d.points[d.trough_index].date} (ring)`}</div>
       <div className="sim">
-        <div><div className="muted small">If you sold</div><b className="big neg">{inr(sellVal)}</b><div className="small">locked in, no recovery</div></div>
+        <div><div className="muted small">{hi ? "बेच देते तो" : "If you sold"}</div><b className="big neg">{inr(sellVal)}</b><div className="small">{hi ? "नुक़सान पक्का, कोई वापसी नहीं" : "locked in, no recovery"}</div></div>
         <div className={`vbanner ${diff >= 0 ? "red" : "green"}`}>
           {diff >= 0
-            ? `Selling cost you ${inr(diff)} versus waiting`
-            : `Selling would have saved ${inr(diff)} here`}
-          <div className="small">over the following months of this episode</div>
+            ? (hi ? `बेचने से रुके रहने की तुलना में ${inr(diff)} का नुक़सान हुआ` : `Selling cost you ${inr(diff)} versus waiting`)
+            : (hi ? `इस बार बेचने से ${inr(-diff)} बचते` : `Selling would have saved ${inr(-diff)} here`)}
+          <div className="small">{hi ? "इस दौर के आगे के महीनों में" : "over the following months of this episode"}</div>
         </div>
-        <div><div className="muted small">If you held to {d.points[d.points.length - 1].date}</div><b className="big pos">{inr(hold)}</b>
-          <div className="small">started at {inr(d.start_value)}</div></div>
+        <div><div className="muted small">{hi ? `${d.points[d.points.length - 1].date} तक रुके रहते तो` : `If you held to ${d.points[d.points.length - 1].date}`}</div><b className="big pos">{inr(hold)}</b>
+          <div className="small">{hi ? `शुरुआत ${inr(d.start_value)} से` : `started at ${inr(d.start_value)}`}</div></div>
       </div>
-      <p className="tiny muted">History is not a promise: some crashes keep falling. The 2022 episode shows that holding is not always the winner.</p>
+      <p className="tiny muted">{hi ? "इतिहास वादा नहीं है: कुछ गिरावटें चलती रहती हैं। 2022 का दौर दिखाता है कि रुके रहना हमेशा जीतता नहीं।" : "History is not a promise: some crashes keep falling. The 2022 episode shows that holding is not always the winner."}</p>
     </section>
   );
 }
@@ -133,6 +139,7 @@ export function GoalFan({ init, compact = false }: { init?: Record<string, strin
   const [target, setTarget] = useState(() => pick("target", 3000000));
   const [haircut, setHaircut] = useState(0);
   const [d, setD] = useState<any>(null);
+  const hi = useLang((s) => s.lang) === "hi";
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -161,31 +168,31 @@ export function GoalFan({ init, compact = false }: { init?: Record<string, strin
 
   return (
     <section className={compact ? "fd-inline" : "card"}>
-      {!compact && <h2>Will I get there?</h2>}
-      {!compact && <p className="muted">Your holdings plus a monthly SIP, shown as a range of outcomes built from how this portfolio actually behaved.</p>}
+      {!compact && <h2>{hi ? "क्या मैं वहाँ पहुँचूँगा?" : "Will I get there?"}</h2>}
+      {!compact && <p className="muted">{hi ? "आपके शेयर और हर महीने की SIP, नतीजों की एक रेंज के रूप में, जो इस पोर्टफ़ोलियो के असल चाल से बनी है।" : "Your holdings plus a monthly SIP, shown as a range of outcomes built from how this portfolio actually behaved."}</p>}
       <div className="sliders">
-        {slider("Monthly SIP", monthly, setMonthly, 0, 100000, 1000, inr)}
-        {slider("Years", years, setYears, 1, 30, 1, (n) => `${n}`)}
-        {slider("Goal", target, setTarget, 500000, 20000000, 100000, inr)}
-        {slider("If returns are worse by", haircut, setHaircut, 0, 40, 5, (n) => `${n}%`)}
+        {slider(hi ? "मासिक SIP" : "Monthly SIP", monthly, setMonthly, 0, 100000, 1000, inr)}
+        {slider(hi ? "साल" : "Years", years, setYears, 1, 30, 1, (n) => `${n}`)}
+        {slider(hi ? "लक्ष्य" : "Goal", target, setTarget, 500000, 20000000, 100000, inr)}
+        {slider(hi ? "रिटर्न इतने कम हों तो" : "If returns are worse by", haircut, setHaircut, 0, 40, 5, (n) => `${n}%`)}
       </div>
       {g && d && (
         <>
-          <svg viewBox={`0 0 ${W} ${H}`} className="panicchart" role="img" aria-label="Range of outcomes">
+          <svg viewBox={`0 0 ${W} ${H}`} className="panicchart" role="img" aria-label={hi ? "नतीजों की रेंज" : "Range of outcomes"}>
             <polygon points={g.band} fill="var(--cyan)" opacity="0.18" />
             <polyline points={g.mid} fill="none" stroke="var(--cyan)" strokeWidth="2" />
             <line x1="0" x2={W} y1={g.ty} y2={g.ty} stroke="var(--amber, #ffb020)" strokeDasharray="6 4" />
           </svg>
           <div className="sim">
-            <div><div className="muted small">Bad case (1 in 10)</div><b className="big">{inr(g.last.p10)}</b></div>
+            <div><div className="muted small">{hi ? "बुरा हाल (10 में से 1)" : "Bad case (1 in 10)"}</div><b className="big">{inr(g.last.p10)}</b></div>
             <div className={`vbanner ${d.prob_target >= 0.7 ? "green" : d.prob_target >= 0.4 ? "amber" : "red"}`}>
-              {Math.round(d.prob_target * 100)}% of paths reach {inr(target)}
-              <div className="small">you put in {inr(d.invested)} · typical result {inr(g.last.p50)}</div>
+              {hi ? `${Math.round(d.prob_target * 100)}% सिमुलेशनों में ${inr(target)} तक पहुँचते हैं` : `${Math.round(d.prob_target * 100)}% of paths reach ${inr(target)}`}
+              <div className="small">{hi ? `आप कुल ${inr(d.invested)} लगाते हैं · सामान्य नतीजा ${inr(g.last.p50)}` : `you put in ${inr(d.invested)} · typical result ${inr(g.last.p50)}`}</div>
             </div>
-            <div><div className="muted small">Good case (1 in 10)</div><b className="big">{inr(g.last.p90)}</b></div>
+            <div><div className="muted small">{hi ? "अच्छा हाल (10 में से 1)" : "Good case (1 in 10)"}</div><b className="big">{inr(g.last.p90)}</b></div>
           </div>
-          <p className="tiny muted">Built from {d.history_years} years of history, mostly a rising market, so the real
-            future can be worse — use the slider above to test that. A range of possibilities, not a forecast.</p>
+          <p className="tiny muted">{hi ? `${d.history_years} साल के इतिहास से बना, जिसमें बाज़ार ज़्यादातर चढ़ा है, इसलिए असली भविष्य इससे बुरा हो सकता है। ऊपर के स्लाइडर से आज़माइए। यह संभावनाओं की रेंज है, पूर्वानुमान नहीं।`
+            : `Built from ${d.history_years} years of history, mostly a rising market, so the real future can be worse — use the slider above to test that. A range of possibilities, not a forecast.`}</p>
         </>
       )}
     </section>

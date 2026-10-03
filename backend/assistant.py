@@ -26,6 +26,7 @@ from analysis import tools
 from backend import digest as digest_mod
 from backend import explain, ledger as ledger_mod, practice
 from backend.explain import Answer
+from backend.glossary_hi import CLAIM_STATUS_HI, FLAG_LABEL_HI, GLOSSARY_HI
 from core import universe
 
 
@@ -979,8 +980,8 @@ def h_tip_scan(text: str, ctx: Ctx) -> Answer:
     verdict = {"red": t("High risk of a scam", "ठगी का ऊँचा जोखिम"), "amber": t("Some warning signs", "कुछ चेतावनी के संकेत"),
                "green": t("No scam tactics found", "ठगी की कोई चाल नहीं मिली")}.get(band, r.get("verdict", ""))
     a = Answer(headline=t(f"{verdict}: risk score {r['score']} out of 100.", f"{verdict}: जोखिम स्कोर सौ में से {r['score']}।"),
-               bullets=[t("Tactic found: " + f["label"] + f" ({f['quote']}).", "चाल मिली: " + f["label"] + f" ({f['quote']})।") for f in r["flags"][:3]] +
-                       [t(f"Claim tested: {c['text']} is {c['status']}.", f"दावा जाँचा: {c['text']} → {c['status']}।") for c in r["claims"][:2]],
+               bullets=[t("Tactic found: " + f["label"] + f" ({f['quote']}).", "चाल मिली: " + FLAG_LABEL_HI.get(f["code"], f["label"]) + f" ({f['quote']})।") for f in r["flags"][:3]] +
+                       [t(f"Claim tested: {c['text']} is {c['status']}.", f"दावा जाँचा: {c['text']} → {CLAIM_STATUS_HI.get(c['status'], c['status'])}।") for c in r["claims"][:2]],
                action=t("Do not act on it. Check the company on the exchange site, and never pay anyone to join a tips group.", "इस पर कार्रवाई मत कीजिए। कंपनी की जाँच एक्सचेंज की साइट पर कीजिए, और टिप ग्रुप में जुड़ने के लिए पैसे कभी मत दीजिए।"),
                facts=[_fact(t("Risk score", "जोखिम स्कोर"), f"{r['score']}/100", {"red": "bad", "amber": "warn", "green": "good"}.get(band, ""))],
                visual={"page": "protect", "label": t("Open the tip scanner", "टिप स्कैनर खोलें"), "params": {}})
@@ -1076,6 +1077,14 @@ async def llm_intent(text: str) -> tuple[str | None, float]:
 LLM_MIN = 0.75
 
 
+def _glossary_term(text: str) -> str | None:
+    low = text.lower()
+    for term in sorted(explain.GLOSSARY, key=len, reverse=True):
+        if re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", low):
+            return term
+    return None
+
+
 # =================================================================== entry point
 def _run(intent: str, how: str, resolved: str, ctx: Ctx) -> Answer:
     convo = ctx.convo
@@ -1087,6 +1096,12 @@ def _run(intent: str, how: str, resolved: str, ctx: Ctx) -> Answer:
         out.data["routed_by"] = how
         _drop_echo(out, resolved)
         return out
+    if intent == "define" and ctx.lang == "hi":
+        term = _glossary_term(resolved)
+        if term and term in GLOSSARY_HI:
+            a = Answer(headline=GLOSSARY_HI[term], kind="define", detail=None)
+            a.data = {"term": term, "intent": "define", "routed_by": how}
+            return _done(a, ctx, _chips("xray", "overlap", "fee"), "define")
     out = explain.answer(resolved, ctx.pit, ctx.portfolio, ctx.prices, ctx.policy, convo=convo,
                          level=ctx.level, kind=intent if intent in LEGACY else None)
     out.data["intent"] = intent

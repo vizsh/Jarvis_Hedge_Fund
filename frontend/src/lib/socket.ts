@@ -92,9 +92,10 @@ export function connect(): void {
   ws.onerror = () => ws.close();                // close THIS one, never the current one
 }
 
-export function send(text: string): void {
+/** `shown`: what the chat bubble displays when it differs from what is asked (a Hindi label for an English question). */
+export function send(text: string, shown?: string): void {
   allowSpeech();          // asking is an explicit request to be answered
-  useChat.getState().push({ who: "you", text });
+  useChat.getState().push({ who: "you", text: shown ?? text });
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "command", text }));
   }

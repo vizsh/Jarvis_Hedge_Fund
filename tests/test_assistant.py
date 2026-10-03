@@ -350,3 +350,18 @@ def test_fourth_set_has_no_confident_wrong_answers_and_hinglish_is_asked_not_gue
 def test_scam_answer_picks_the_matching_rehearsal(session):
     assert ask(session, "someone called asking for my otp").visual["params"]["scenario"] == "kyc"
     assert ask(session, "a man on a video call says i am under digital arrest").visual["params"]["scenario"] == "police"
+
+
+def test_every_glossary_term_has_hindi_and_hindi_mode_uses_it(session):
+    from backend.glossary_hi import GLOSSARY_HI
+    assert set(explain.GLOSSARY) <= set(GLOSSARY_HI)
+    for term in ("expense ratio", "mutual fund", "beta", "digital arrest"):
+        a = ask(session, f"what is {term}", "hi")
+        assert a.lang == "hi" and a.headline == GLOSSARY_HI[term]
+        assert V.looks_hindi(a.headline)
+
+
+def test_tip_scan_labels_are_hindi_in_hindi_mode(session):
+    a = ask(session, "is this telegram tip legit: SURE SHOT! TCS profit up 300%, target 9000, guaranteed returns, join my VIP group today", "hi")
+    text = " ".join(a.bullets)
+    assert "पक्के मुनाफ़े का वादा" in text and "Promises" not in text
