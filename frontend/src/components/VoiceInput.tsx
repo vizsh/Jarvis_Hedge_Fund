@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import * as socket from "../lib/socket";
 import { useVoice } from "../lib/voice";
+import { hiError, useT } from "../lib/i18n";
 
 /** A microphone, drawn as an icon rather than labelled "HOLD".
  *
@@ -24,14 +25,15 @@ const sentence = (s: string, n = 64) => (s.length > n ? s.slice(0, n - 1) + "…
 
 /** The microphone button in the command panel. Tap to start, tap again to send. */
 export function MicButton() {
+  const { t } = useT();
   const status = useVoice((s) => s.status);
   const toggle = useVoice((s) => s.toggle);
 
   const label =
-    status === "listening" ? "STOP"
-    : status === "processing" ? "WAIT"
+    status === "listening" ? t("STOP", "रोकें")
+    : status === "processing" ? t("WAIT", "रुकिए")
     : status === "starting" ? "…"
-    : "SPEAK";
+    : t("SPEAK", "बोलिए");
 
   return (
     <button
@@ -41,8 +43,8 @@ export function MicButton() {
       onClick={toggle}
       disabled={status === "processing"}
       aria-pressed={status === "listening"}
-      aria-label={status === "listening" ? "Stop listening and send" : "Speak to JARVIS"}
-      title="Tap to speak, then pause or tap again to send. Esc cancels."
+      aria-label={status === "listening" ? t("Stop listening and send", "सुनना बंद करके भेजें") : t("Speak to JARVIS", "जार्विस से बोलिए")}
+      title={t("Tap to speak, then pause or tap again to send. Esc cancels.", "बोलने के लिए दबाइए, फिर रुकिए या दोबारा दबाकर भेजिए। Esc रद्द करता है।")}
     >
       <MicIcon size={15} />
       <span>{label}</span>
@@ -59,6 +61,7 @@ export function MicButton() {
  *  this replaces was a microphone you could not tell was listening.
  */
 export function OrbMic() {
+  const { hi, t } = useT();
   const status = useVoice((s) => s.status);
   const speaking = useVoice((s) => s.speaking);
   const heard = useVoice((s) => s.heard);
@@ -94,22 +97,22 @@ export function OrbMic() {
   let caption: string;
   let sub: string | null = null;
   if (status === "starting") {
-    caption = "ALLOW THE MICROPHONE";
-    sub = "Choose Allow if your browser asks";
+    caption = t("ALLOW THE MICROPHONE", "माइक की अनुमति दीजिए");
+    sub = t("Choose Allow if your browser asks", "ब्राउज़र पूछे तो अनुमति चुनिए");
   } else if (status === "listening") {
-    caption = speaking ? "HEARING YOU" : "LISTENING — SPEAK NOW";
-    sub = speaking ? "Pause when you are done, or tap to send" : "Tap again to cancel, or just start talking";
+    caption = speaking ? t("HEARING YOU", "सुन रहा हूँ") : t("LISTENING — SPEAK NOW", "सुन रहा हूँ — अब बोलिए");
+    sub = speaking ? t("Pause when you are done, or tap to send", "बोल चुकें तो रुकिए, या भेजने के लिए दबाइए") : t("Tap again to cancel, or just start talking", "रद्द करने के लिए फिर दबाइए, या बोलना शुरू कीजिए");
   } else if (status === "processing") {
-    caption = "TRANSCRIBING";
-    sub = "Running on this machine — nothing leaves it";
+    caption = t("TRANSCRIBING", "लिख रहा हूँ");
+    sub = t("Running on this machine — nothing leaves it", "यहीं इसी मशीन पर चल रहा है — कुछ बाहर नहीं जाता");
   } else if (error) {
-    caption = "TAP TO TRY AGAIN";
-    sub = error;
+    caption = t("TAP TO TRY AGAIN", "फिर कोशिश के लिए दबाइए");
+    sub = hiError(error, hi);
   } else if (recentlyHeard) {
-    caption = "I HEARD";
+    caption = t("I HEARD", "मैंने सुना");
     sub = `“${sentence(heard)}”`;
   } else {
-    caption = "TAP THE ORB TO SPEAK";
+    caption = t("TAP THE ORB TO SPEAK", "बोलने के लिए ऑर्ब दबाइए");
   }
 
   return (
@@ -119,9 +122,9 @@ export function OrbMic() {
         type="button"
         className="orbmic-btn"
         onClick={toggle}
-        aria-label="Speak to JARVIS"
+        aria-label={t("Speak to JARVIS", "जार्विस से बोलिए")}
         aria-pressed={status === "listening"}
-        title="Tap to speak. Pause, or tap again, to send."
+        title={t("Tap to speak. Pause, or tap again, to send.", "बोलने के लिए दबाइए। रुकिए, या भेजने के लिए फिर दबाइए।")}
       >
         <span className="orbmic-ring r1" ref={ring} />
         <span className="orbmic-ring r2" />

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "./Panels";
 import { useGuide, type Action, type Flow } from "../lib/guide";
 import { useStore } from "../lib/store";
+import { JOBS_HI, useT } from "../lib/i18n";
 
 const rupees = (v: number) => {
   const a = Math.abs(v);
@@ -95,6 +96,7 @@ export function ActionQueue() {
  *  my health, fix the thing you flagged, get ready for tax season. Each tile runs a
  *  sequence that opens the right panels itself, so nobody has to be told where to look. */
 export function JobsLauncher({ compact = false }: { compact?: boolean }) {
+  const { hi, t } = useT();
   const [flows, setFlows] = useState<Flow[]>([]);
   const startFlow = useGuide((s) => s.startFlow);
 
@@ -107,22 +109,22 @@ export function JobsLauncher({ compact = false }: { compact?: boolean }) {
   const shown = compact ? flows.slice(0, 5) : flows;
 
   return (
-    <Panel title="What do you want to do?" className="jobs">
+    <Panel title={t("What do you want to do?", "आप क्या करना चाहते हैं?")} className="jobs">
       <div className="jobs-grid">
         {shown.map((f) => (
           <div className="job" key={f.id} onClick={() => void startFlow(f.id)}>
             <div className={`job-icon i-${f.icon}`} />
             <div className="job-body">
-              <div className="job-title">{f.title}</div>
-              <div className="job-sub">{f.subtitle}</div>
+              <div className="job-title">{hi ? JOBS_HI[f.id]?.title ?? f.title : f.title}</div>
+              <div className="job-sub">{hi ? JOBS_HI[f.id]?.subtitle ?? f.subtitle : f.subtitle}</div>
             </div>
-            <div className="job-time">{f.minutes}m</div>
+            <div className="job-time">{f.minutes}{t("m", " मि")}</div>
           </div>
         ))}
       </div>
       <div className="jobs-foot">
-        Each one walks you through it and opens the panels for you. Press
-        <kbd>Ctrl</kbd>+<kbd>K</kbd> to search everything.
+        {t("Each one walks you through it and opens the panels for you. Press", "हर एक आपको क़दम-दर-क़दम समझाता है और पैनल खोल देता है। सब कुछ खोजने के लिए")}
+        <kbd>Ctrl</kbd>+<kbd>K</kbd> {t("to search everything.", "दबाइए।")}
       </div>
     </Panel>
   );

@@ -8,6 +8,7 @@ import { interrupt, isSpeaking, onVoice } from "../lib/speak";
 import { useGuide } from "../lib/guide";
 import { Waveform } from "./Waveform";
 import { MicButton } from "./VoiceInput";
+import { hiError, useT } from "../lib/i18n";
 import { installVoiceKeys, useVoice } from "../lib/voice";
 
 
@@ -138,16 +139,18 @@ export function ForceStop() {
 }
 
 /* ------------------------------------------------------------------ command */
-const SUGGESTIONS = [
-  "Which of my mutual funds overlap?",
-  "What does a 2% fee cost over 20 years?",
-  "How long will 3 lakh last if I spend 40000 a month?",
-  "Give me my weekly digest",
-  "analyse TCS",
-  "buy 30 shares of Persistent",
+// [what is sent (the router understands English), what is shown in Hindi]
+const SUGGESTIONS: [string, string][] = [
+  ["Which of my mutual funds overlap?", "मेरे कौन से म्यूचुअल फ़ंड मिलते हैं?"],
+  ["What does a 2% fee cost over 20 years?", "2% फ़ीस 20 साल में कितनी पड़ती है?"],
+  ["How long will 3 lakh last if I spend 40000 a month?", "3 लाख कितने महीने चलेंगे?"],
+  ["Give me my weekly digest", "मेरा साप्ताहिक सार"],
+  ["analyse TCS", "TCS का विश्लेषण"],
+  ["buy 30 shares of Persistent", "30 Persistent शेयर ख़रीदें"],
 ];
 
 export function CommandBar() {
+  const { hi, t } = useT();
   const [text, setText] = useState("");
   const [, tick] = useState(0);
   const speech = useStore((s) => s.speech);
@@ -160,10 +163,10 @@ export function CommandBar() {
   const clearError = useVoice((s) => s.clearError);
   const input = useRef<HTMLInputElement>(null);
 
-  const submit = (value: string) => {
+  const submit = (value: string, shown?: string) => {
     const v = value.trim();
     if (!v) return;
-    send(v);
+    send(v, shown);
     setText("");
   };
 
@@ -192,11 +195,11 @@ export function CommandBar() {
   const recentlyHeard = !!shownHeard && Date.now() - heardAt < 12000;
 
   const status_line =
-    status === "starting" ? "Allow the microphone if your browser asks…"
+    status === "starting" ? t("Allow the microphone if your browser asks…", "ब्राउज़र पूछे तो माइक की अनुमति दीजिए…")
     : status === "listening"
-      ? (speaking ? "Hearing you… pause when you are done." : "Listening — speak now.")
-    : status === "processing" ? "Transcribing locally…"
-    : speech || "Standing by. Tap the mic or click the orb to speak, or press / to type.";
+      ? (speaking ? t("Hearing you… pause when you are done.", "सुन रहा हूँ… बोल चुकें तो रुकिए।") : t("Listening — speak now.", "सुन रहा हूँ — अब बोलिए।"))
+    : status === "processing" ? t("Transcribing locally…", "यहीं मशीन पर लिख रहा हूँ…")
+    : speech || t("Standing by. Tap the mic or click the orb to speak, or press / to type.", "तैयार हूँ। बोलने के लिए माइक या ऑर्ब दबाइए, या लिखने के लिए / दबाइए।");
 
   return (
     <div className={`command ${status}`}>
@@ -206,11 +209,11 @@ export function CommandBar() {
       </div>
       <Waveform active={status === "listening"} />
       {error && status === "idle" && (
-        <div className="mic-error" onClick={clearError}>{error}</div>
+        <div className="mic-error" onClick={clearError}>{hiError(error, hi)}</div>
       )}
       {!error && recentlyHeard && status !== "listening" && (
         <div className="heard-card">
-          <span className="heard-label">I heard</span>
+          <span className="heard-label">{t("I heard", "मैंने सुना")}</span>
           <span className="heard-text">&ldquo;{shownHeard}&rdquo;</span>
         </div>
       )}
@@ -220,18 +223,18 @@ export function CommandBar() {
           id="command-input"
           ref={input}
           value={text}
-          placeholder="Ask about funds, fees, savings, goals or scams — or: analyse TCS"
+          placeholder={t("Ask about funds, fees, savings, goals or scams — or: analyse TCS", "फ़ंड, फ़ीस, बचत, लक्ष्य या ठगी के बारे में पूछिए — या: TCS का विश्लेषण")}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(text); }}
         />
         <MicButton />
-        <button className="btn go" onClick={() => submit(text)}>Send</button>
+        <button className="btn go" onClick={() => submit(text)}>{t("Send", "भेजें")}</button>
       </div>
 
       <div className="cmd-foot">
         <div className="marks">
-          {SUGGESTIONS.map((s) => (
-            <div className="mark" key={s} onClick={() => submit(s)}>{s}</div>
+          {SUGGESTIONS.map(([q, h]) => (
+            <div className="mark" key={q} onClick={() => submit(q, hi ? h : undefined)}>{hi ? h : q}</div>
           ))}
         </div>
         <VoiceBar />
