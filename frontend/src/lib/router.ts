@@ -6,6 +6,7 @@ export const ROUTES = [
   { path: "/", label: "Home" },
   { path: "/portfolio", label: "Portfolio" },
   { path: "/protect", label: "Protect" },
+  { path: "/rural", label: "Rural" },
   { path: "/learn", label: "Learn" },
   { path: "/practice", label: "Practice" },
   { path: "/govern", label: "Govern" },
@@ -28,7 +29,7 @@ export function useRoute(): string {
 export function go(path: string): void { location.hash = "#" + path; }
 
 export const HI_LABEL: Record<string, string> = {
-  Home: "होम", Portfolio: "पोर्टफोलियो", Protect: "सुरक्षा", Learn: "सीखें", Practice: "अभ्यास",
+  Home: "होम", Portfolio: "पोर्टफोलियो", Protect: "सुरक्षा", Rural: "ग्रामीण", Learn: "सीखें", Practice: "अभ्यास",
   Govern: "नियम", Research: "शोध", Assistant: "सहायक",
 };
 

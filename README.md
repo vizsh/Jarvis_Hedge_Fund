@@ -46,6 +46,7 @@ JARVIS makes each of those *visible and interactive*: you drag a slider, replay 
 |---|---|---|
 | **Assistant** | Voice and text chat; structured answer cards; inline interactive visuals; saved funds; nine guided jobs | [ASSISTANT](docs/ASSISTANT.md) |
 | **Protect** | **Scam recovery coach**, stock-tip scanner, tax shield, panic-sell replay, standing "tell me if" rules | [FEATURES](docs/FEATURES.md#protect) |
+| **Rural** | Moneylender interest checker, "is this offer real?", government-scheme finder, document readiness, harvest/wage income planner | [RURAL](docs/RURAL.md) |
 | **Learn / Practice** | Goal chart, fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam call rehearsal, glossary, drill-downs | [FEATURES](docs/FEATURES.md#learn-and-practice) |
 | **Govern** | Risk firewall, rebalance simulator, tamper-evident audit ledger and tamper test | [FEATURES](docs/FEATURES.md#govern) |
 | **Research** | **Search and analyse any listed stock**, four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
@@ -117,7 +118,7 @@ Open <http://localhost:8000>. Pick **EN** or **हिन्दी** at the top r
 Developer mode (hot reload): `npm run dev --prefix frontend` serves the UI at `:5173`.
 
 ```bash
-python -m pytest tests/ -q          # 348 tests
+python -m pytest tests/ -q          # 385 tests
 ```
 
 Detailed setup, environment variables and troubleshooting: [docs/SETUP.md](docs/SETUP.md).
@@ -139,7 +140,7 @@ ingest/     data adapters with point-in-time safety tiers
 frontend/   React + Vite + Three.js (pages, components, stores)
 config/     policy profiles, universe, demo script
 docs/       the documentation set (see below)
-tests/      348 tests incl. blind routing-evaluation sets
+tests/      385 tests incl. blind routing-evaluation sets
 tools/      ingest, voice download, demos, dry run, calibration backfill
 ```
 

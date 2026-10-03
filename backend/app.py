@@ -1262,6 +1262,79 @@ async def recovery_draft(body: DraftIn) -> dict:
                            body.fraud_contact, body.bank, body.name)
 
 
+class LoanIn(BaseModel):
+    principal: float
+    rate: float
+    unit: str = "per100_month"
+    months: int = 12
+    mode: str = "interest_only"
+    lang: str = "en"
+
+
+@app.get("/rural/schemes")
+async def rural_schemes(lang: str = "en") -> dict:
+    from backend import rural
+    return {"schemes": [{"id": x["id"], "name": x["hi"] if lang == "hi" else x["en"]} for x in rural.SCHEMES]}
+
+
+@app.post("/rural/loan")
+async def rural_loan(b: LoanIn) -> dict:
+    from backend import rural
+    return rural.loan_cost(b.principal, b.rate, b.unit, b.months, b.mode, b.lang)
+
+
+class OfferIn(BaseModel):
+    text: str = ""
+    put: float | None = None
+    get: float | None = None
+    months: float | None = None
+    lang: str = "en"
+
+
+@app.post("/rural/scheme")
+async def rural_scheme(b: OfferIn) -> dict:
+    from backend import rural
+    return rural.scheme_check(b.text, b.put, b.get, b.months, b.lang)
+
+
+class ProfileIn(BaseModel):
+    profile: dict = {}
+    lang: str = "en"
+
+
+@app.post("/rural/entitlements")
+async def rural_entitlements(b: ProfileIn) -> dict:
+    from backend import rural
+    return rural.entitlements(b.profile, b.lang)
+
+
+class ReadyIn(BaseModel):
+    schemes: list[str] = []
+    have: list[str] = []
+    lang: str = "en"
+
+
+@app.post("/rural/readiness")
+async def rural_readiness(b: ReadyIn) -> dict:
+    from backend import rural
+    return rural.readiness(b.schemes, b.have, b.lang)
+
+
+class PlanIn(BaseModel):
+    income: list[dict] = []
+    monthly_cost: float = 0
+    one_offs: list[dict] = []
+    savings: float = 0
+    borrow_rate: float = 36
+    lang: str = "en"
+
+
+@app.post("/rural/income")
+async def rural_income(b: PlanIn) -> dict:
+    from backend import rural
+    return rural.income_plan(b.income, b.monthly_cost, b.one_offs, b.savings, b.borrow_rate, b.lang)
+
+
 @app.get("/stocks/search")
 async def stocks_search(q: str = "", limit: int = 8) -> dict:
     """Type-ahead over every listed NSE company (plus yfinance as a fallback)."""

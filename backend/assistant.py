@@ -120,6 +120,11 @@ _RULES: list[tuple[str, re.Pattern]] = [
                   r"\bsunday (summary|update|brief)\b")),
     ("ledger", _r(r"\b(transaction|trade|order) history\b.{0,30}\b(edit|alter|chang|tamper|modif)\w*|\b(change|alter|edit|modify|rewrite|tamper|fake|backdate)\w*\b.{0,30}\b(past|old|previous|earlier|my)\b.{0,15}\b(trades?|entries|records?|ledger|history)\b|\b(ledger|audit (trail|log)|tamper\w*|hash[- ]?chain|trade history|trade log|trail of (my )?trades|"
                   r"record of (my )?(trades|decisions)|records? (been )?(changed|altered|edited))\b")),
+    ("moneylender", _r(r"@@b(money ?lender|sahukar|sahukaar|saahukar|arhtiya|arthiya|adhatiya|loan shark|local lender|private lender)@@b|@@b(byaj|vyaj|sood)@@b|@@b(rupees?|rs|₹)@@s*@@d*@@s*(per|a|for every|on every|in every)@@s+(hundred|100)@@b|@@b(per|a|on every)@@s+(hundred|100)@@s+(rupees?|rs)@@b|@@b(sainkda|saikda|sekda)@@b|@@breal (rate|interest)@@b.{0,25}@@b(loan|lender|borrow)@@b|@@bhow much (interest|byaj) (am i|do i|will i)@@b|@@bcost of (my |this )?(loan|borrowing)@@b|@@binterest (rate )?of (@@d+) ?(rupees?|rs)@@b".replace("@@", chr(92)))),
+    ("scheme_check", _r(r"@@b(double|triple|multiply) (my|the|your) money@@b|@@bmoney (will )?(double|triple)@@b|@@b(chit ?fund|ponzi|pyramid|mlm|network marketing|kameti|committee scheme)@@b|@@b(guaranteed|assured|fixed) (monthly|daily|weekly|high) (returns?|income|profit)@@b|@@b(is|are) (this|that|the) (scheme|offer|company|plan|app|business|investment|girvi|group)@@b.{0,25}@@b(real|genuine|legit|legitimate|fake|safe|a scam|true|trustworthy)@@b|@@b(scheme|offer|plan|company)@@b.{0,40}@@b(genuine|legit|fake|scam|fraud)@@b|@@bpay@@b.{0,25}@@bget@@b.{0,40}@@b(months?|weeks?|days?|years?)@@b|@@bjoining fee@@b|@@bbring (your )?(friends|members|people)@@b|@@brefer@@b.{0,15}@@bearn@@b|@@bmoney back in@@b.{0,15}@@b(months?|weeks?|days?)@@b".replace("@@", chr(92)))),
+    ("entitlements", _r(r"@@b(government|govt|sarkari|central|state) (schemes?|yojana|benefits?|subsid@@w+)@@b|@@bschemes?@@b.{0,35}@@b(eligible|entitled|qualify|for me|can i get|available|am i missing|i can)@@b|@@bwhat (benefits|schemes|subsid@@w+|help|yojanas?)@@b.{0,30}@@b(can i|do i|am i|for)@@b|@@b(eligible|entitled) (for|to)@@b|@@bpm[- ]?kisan@@b|@@bayushman@@b|@@bujjwala@@b|@@bm?gnrega@@b|@@bnrega@@b|@@bpm[- ]?awas@@b|@@bpension (scheme|yojana)@@b|@@bam i (missing|not getting)@@b|@@bmoney (i am|i.m|we are) owed@@b|@@bbenefits? (i|we) (can|should|could) (get|claim)@@b".replace("@@", chr(92)))),
+    ("docs_ready", _r(r"@@b(documents?|papers?|dastavez|kagaz|paperwork)@@b.{0,35}@@b(need|needed|required|ready|missing|checklist|do i have)@@b|@@baadhaar@@b.{0,35}@@b(link@@w*|seed@@w*|not (linked|working))@@b.{0,40}@@b(bank|account|dbt|subsid@@w*|pension|payment)@@b|@@b(bank|account)@@b.{0,35}@@b(link@@w*|seed@@w*)@@w*@@b.{0,20}@@baadhaar@@b|@@b(link|seed)@@w*@@b.{0,25}@@baadhaar@@b.{0,20}@@b(to|with)@@b.{0,12}@@b(bank|account)@@b|@@b(payment|subsidy|money|instal?lment|pension|scholarship)@@b.{0,25}@@b(not (come|came|arrive@@w*|receiv@@w*|credited)|stuck|stopped|rejected|failed|has not|hasn.t)@@b|@@bwhy (did|has|have|is|was) (my )?(payment|subsidy|money|instal?lment|pension)@@b|@@bdbt@@b|@@bready to apply@@b".replace("@@", chr(92)))),
+    ("income_plan", _r(r"@@b(harvest|crop|seasonal?|lumpy|irregular|daily[- ]wage|wage work|casual work)@@b.{0,55}@@b(income|money|earn@@w*|plan|budget|save|saving|manage)@@b|@@b(income|money|pay|payment) (comes|arrives|is received) (only )?(once|in lumps|after (the )?harvest|seasonally|twice)@@b|@@bmanage.{0,30}@@bbetween (harvests?|seasons?|crops?)@@b|@@bplan (my )?(year|season|harvest)@@b|@@blean (months?|season|period)@@b|@@brun(ning)? out of money (before|until)@@b|@@bmoney (finishes|ends|runs out) (before|until)@@b".replace("@@", chr(92)))),
     ("my_funds_remove", _r(r"\b(remove|delete|drop|forget|clear)\b.{0,40}\b(funds?|mutual)\b|\bno longer (own|hold)\b.{0,40}\bfund|"
                            r"\b(sold|exited|redeemed)\b.{0,30}\b(my )?\w*\s?fund\b")),
     ("my_funds_add", _r(r"\b(i|we)\s+(?:\w+\s+){0,2}?(own|hold|have|invest(ed)? in|bought|am invested in|put money in|started)\b.{0,100}\b(funds?|mutual|index|bluechip|flexi|large cap)|"
@@ -435,7 +440,7 @@ _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "li
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
                 "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
-                "correlation": "xray", "should_buy": "xray", "define": "help", "simplify": "xray"}
+                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
 
 
 def suggestions(text: str, n: int = 3) -> list[tuple[str, str]]:
@@ -1176,12 +1181,143 @@ def h_buy_advice(text: str, ctx: Ctx) -> Answer:
     return _done(a, ctx, [(f"Analyse {name}", f"{name} का विश्लेषण"), _FU["xray"] if "xray" in _FU else _FU["digest"]], "should_buy")
 
 
+
+# ---- rural / low-income tools (backend/rural.py) ---------------------------------------
+def _open_rural(tool: str, label_en: str, label_hi: str, ctx: Ctx, params: dict | None = None) -> dict:
+    return {"page": "rural", "label": _t(ctx.lang)(label_en, label_hi), "params": {"tool": tool, **(params or {})}}
+
+
+def _loan_args(text: str) -> tuple[float | None, str, float | None, int | None]:
+    """(rate, unit, principal, months) from a sentence like '5 rupees per hundred a month on 50000 for 10 months'."""
+    low = text.lower()
+    q = tools.quantities(text)
+    rate, unit = None, "per100_month"
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|₹)?\s*(?:per|a|for every|on every|in every)\s*(?:hundred|100)\b", low) or \
+        re.search(r"(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|₹)?\s*(?:sainkda|saikda|sekda)\b", low)
+    if m:
+        rate = float(m.group(1))
+    elif q["pct"]:
+        rate = q["pct"][0]["v"]
+        yearly = re.search(r"(per|a|every|each)\s*(year|annum)|yearly|annual|p\.?a\b", low)
+        unit = "pct_year" if yearly else "pct_month"
+    money = [x["v"] for x in q["money"] if x["v"] >= 500]
+    principal = max(money) if money else None
+    months = None
+    if q["months"]:
+        months = int(q["months"][0]["v"])
+    elif q["years"]:
+        months = int(q["years"][0]["v"] * 12)
+    return rate, unit, principal, months
+
+
+def h_moneylender(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    rate, unit, principal, months = _loan_args(text)
+    if rate is None:
+        a = Answer(headline=t("Tell me the interest the lender charges and I will show what it really costs.",
+                              "साहूकार कितना ब्याज लेता है यह बताइए, मैं दिखाऊँगा कि असल में कितना पड़ता है।"),
+                   bullets=[t("For example: 5 rupees per hundred a month on 50000 for 10 months.", "जैसे: 50000 रुपये पर 5 रुपये सैकड़ा महीना, 10 महीने के लिए।")],
+                   visual=_open_rural("loan", "Open the loan checker", "ऋण जाँचक खोलें", ctx))
+        return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["schemes"]], "moneylender")
+    principal = principal or 10000.0
+    months = months or 12
+    compound = bool(re.search(r"compound|byaj pe byaj|interest on interest|ब्याज पर ब्याज", text.lower()))
+    r = rural.loan_cost(principal, rate, unit, months, "bullet_compound" if compound else "interest_only", ctx.lang)
+    inr_ = tools.inr_hi if ctx.lang == "hi" else tools.inr
+    best = next(x for x in r["alternatives"] if x["id"] == "shg")
+    bullets = [t(f"On {inr_(principal)} for {months} months you pay {inr_(r['interest'])} interest, {inr_(r['total'])} in all.",
+                 f"{inr_(principal)} पर {months} महीने में {inr_(r['interest'])} ब्याज लगता है, कुल {inr_(r['total'])}।"),
+               r["verdict"],
+               t(f"At a normal rate the same loan would cost about {inr_(best['interest'])}: you would save about {inr_(best['saves'])}. Ask about {best['name']}.",
+                 f"सामान्य दर पर यही ऋण लगभग {inr_(best['interest'])} का पड़ता: आप लगभग {inr_(best['saves'])} बचाते। {best['name']} के बारे में पूछिए।")]
+    if r["double_months"]:
+        bullets.append(t(f"At this rate a debt can double in about {r['double_months']:.0f} months if nothing is repaid.", f"इस दर पर कुछ न चुकाने पर क़र्ज़ लगभग {r['double_months']:.0f} महीने में दोगुना हो सकता है।"))
+    a = Answer(headline=r["headline"], bullets=bullets, action=r["legal"],
+               detail=t("Yearly rate = monthly rate x 12 (or compounded if interest is added to the loan). Interest = amount x monthly rate x months.",
+                        "सालाना दर = मासिक दर x 12 (या ब्याज मूल में जुड़ता हो तो चक्रवृद्धि)। ब्याज = रक़म x मासिक दर x महीने।"),
+               facts=[_fact(t("Per year", "साल में"), f"{r['yearly_pct']:.0f}%", {"red": "bad", "amber": "warn", "green": "good"}[r["band"]]),
+                      _fact(t("Interest", "ब्याज"), inr_(r["interest"]), "bad" if r["band"] == "red" else ""),
+                      _fact(t("You repay", "आप चुकाते हैं"), inr_(r["total"]))],
+               table={"columns": [t("Where from", "कहाँ से"), t("Rate a year", "साल की दर"), t("Interest", "ब्याज")],
+                      "rows": [[t("This lender", "यह साहूकार"), f"{r['yearly_pct']:.0f}%", inr_(r["interest"])]] +
+                              [[x["name"], f"~{x['yearly_pct']:.0f}%", inr_(x["interest"])] for x in r["alternatives"]]},
+               visual=_open_rural("loan", "Open the loan checker", "ऋण जाँचक खोलें", ctx,
+                                  {"principal": principal, "rate": rate, "unit": unit, "months": months}))
+    a.data = {"loan": r}
+    return _done(a, ctx, [_RURAL_FU["schemes"], _RURAL_FU["income"]], "moneylender")
+
+
+def h_scheme_check(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    q = tools.quantities(text)
+    money = [x["v"] for x in q["money"] if x["v"] >= 100]
+    months = (q["months"][0]["v"] if q["months"] else q["years"][0]["v"] * 12 if q["years"] else None)
+    put, get = (money[0], money[1]) if len(money) >= 2 else (None, None)
+    r = rural.scheme_check(text, put, get, months, ctx.lang)
+    bullets = [f["text"] for f in r["flags"][:4]] or [r["rule"]]
+    if r["implied_yearly_pct"] is not None:
+        bullets.append(t(f"For comparison a bank fixed deposit pays about 7% a year.", "तुलना के लिए बैंक एफ़डी लगभग 7% साल देती है।"))
+    bullets.append(t("Check it here: ", "यहाँ जाँचिए: ") + r["verify"][0])
+    a = Answer(headline=r["verdict"], bullets=bullets, action=r["rule"],
+               detail=t("Each warning sign you describe adds to a score; none of this proves a scheme is honest or a fraud, it shows how many known fraud patterns it matches.",
+                        "आपके बताए हर चेतावनी-संकेत से स्कोर बढ़ता है; इससे यह साबित नहीं होता कि योजना सही है या ठगी, बस यह दिखता है कि वह कितने जाने-पहचाने ठगी के पैटर्न से मिलती है।"),
+               facts=[_fact(t("Risk score", "जोखिम स्कोर"), f"{r['score']}/100", {"red": "bad", "amber": "warn", "green": "good"}[r["level"]]),
+                      _fact(t("Warning signs", "चेतावनी-संकेत"), str(len([f for f in r["flags"]])))],
+               visual=_open_rural("scheme", "Open the offer checker", "ऑफ़र जाँचक खोलें", ctx, {"text": text[:600]}))
+    a.data = {"scheme": r}
+    return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["schemes"]], "scheme_check")
+
+
+def h_entitlements(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    a = Answer(headline=t("Answer a few questions and I will list the government schemes you may be missing.",
+                          "कुछ सवालों के जवाब दीजिए, मैं सरकारी योजनाओं की सूची दूँगा जो शायद आपसे छूट रही हैं।"),
+               bullets=[t("Examples: PM-KISAN (₹6,000 a year), crop and life insurance for ₹20-₹436 a year, free health cover up to ₹5 lakh, pensions, 100 days of work.",
+                          "जैसे: पीएम-किसान (साल में ₹6,000), ₹20-₹436 सालाना में फ़सल और जीवन बीमा, ₹5 लाख तक मुफ़्त इलाज, पेंशन, 100 दिन का काम।"),
+                        t("Nobody may charge you a fee to apply.", "आवेदन के लिए किसी को पैसे देने की ज़रूरत नहीं।")],
+               action=t(f"Rules change: confirm at the place shown. List last reviewed {rural.CHECKED}.", f"नियम बदलते रहते हैं: दिखाई जगह पर पक्का कीजिए। सूची की आख़िरी समीक्षा {rural.CHECKED}।"),
+               visual=_open_rural("schemes", "Find my schemes", "मेरी योजनाएँ खोजें", ctx))
+    return _done(a, ctx, [_RURAL_FU["docs"], _RURAL_FU["loan"]], "entitlements")
+
+
+def h_docs_ready(text: str, ctx: Ctx) -> Answer:
+    t = _t(ctx.lang)
+    a = Answer(headline=t("Most payments stop for three simple reasons. Check these first.", "ज़्यादातर भुगतान तीन सीधी वजहों से रुकते हैं। पहले इन्हें जाँचिए।"),
+               bullets=[t("1. Aadhaar is not linked (seeded) to your bank account for benefit transfers.", "1. आपका आधार बैंक खाते से (लाभ हस्तांतरण के लिए) जुड़ा नहीं है।"),
+                        t("2. Your name is spelled differently on Aadhaar and in the bank.", "2. आधार और बैंक में आपके नाम की वर्तनी अलग है।"),
+                        t("3. The account is dormant or closed.", "3. खाता निष्क्रिय या बंद है।")],
+               action=t("Check the link on myaadhaar.uidai.gov.in → Bank Seeding Status, or ask the bank for a written acknowledgement.",
+                        "myaadhaar.uidai.gov.in → Bank Seeding Status पर जाँचिए, या बैंक से लिखित पावती माँगिए।"),
+               visual=_open_rural("docs", "Check my documents", "मेरे काग़ज़ जाँचें", ctx))
+    return _done(a, ctx, [_RURAL_FU["schemes"], _RURAL_FU["loan"]], "docs_ready")
+
+
+def h_income_plan(text: str, ctx: Ctx) -> Answer:
+    t = _t(ctx.lang)
+    a = Answer(headline=t("Tell me when your money comes in and what you spend, and I will plan the lean months.", "बताइए पैसा कब आता है और ख़र्च कितना है, मैं कमज़ोर महीनों की योजना बनाऊँगा।"),
+               bullets=[t("It shows which months you run short, how much to keep aside from each harvest or lump, and what a loan would cost if you do not.",
+                          "यह दिखाता है कि किन महीनों में कमी पड़ती है, हर फ़सल या एकमुश्त आमदनी में से कितना अलग रखना है, और न रखने पर क़र्ज़ कितना महँगा पड़ेगा।")],
+               visual=_open_rural("income", "Plan my year", "मेरा साल बनाएँ", ctx))
+    return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["schemes"]], "income_plan")
+
+
+_RURAL_FU = {
+    "loan": ("What does 5 rupees per hundred a month really cost?", "5 रुपये सैकड़ा महीने का असल में कितना पड़ता है?"),
+    "schemes": ("Which government schemes can I get?", "मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं?"),
+    "docs": ("Why has my payment not come?", "मेरा पैसा क्यों नहीं आया?"),
+    "income": ("Plan my money around the harvest", "फ़सल के हिसाब से मेरे पैसे की योजना बनाइए"),
+}
+
+
 HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "help": h_help, "chitchat": h_chitchat, "clarify": h_clarify, "out_of_scope": h_out_of_scope, "predict": h_predict,
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "should_buy": h_buy_advice, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1221,6 +1357,11 @@ INTENT_DOC = {
     "diversification": "is the portfolio spread out enough",
     "correlation": "which holdings move together",
     "should_buy": "should the user buy / add a specific stock",
+    "moneylender": "what a moneylender / private loan interest really costs per year",
+    "scheme_check": "is a double-your-money / chit fund / pay-and-earn offer a scam",
+    "entitlements": "which government schemes / benefits the user may qualify for",
+    "docs_ready": "documents needed / why a government payment has not arrived",
+    "income_plan": "plan money around harvest / seasonal / irregular income",
     "define": "definition of a finance term",
     "out_of_scope": "unrelated to money or investing",
     "none": "none of these / too unclear",

@@ -13,6 +13,7 @@ import { DrillDown } from "./components/DrillDown";
 import { ReportView } from "./components/Report";
 import { PortfolioBuilder } from "./components/Portfolio";
 import Protect from "./pages/Protect";
+import Rural from "./pages/Rural";
 import Govern from "./pages/Govern";
 import Practice from "./pages/Practice";
 import { Assistant, Home, Learn, Portfolio, Research } from "./pages/Pages";
@@ -49,6 +50,7 @@ export default function App() {
   const page =
     route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect />
+    : route === "/rural" ? <Rural key={location.hash} />
     : route === "/learn" ? <Learn />
     : route === "/practice" ? <Practice />
     : route === "/govern" ? <Govern />

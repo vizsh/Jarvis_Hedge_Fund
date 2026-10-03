@@ -1,7 +1,7 @@
 # Testing
 
 ```bash
-python -m pytest tests/ -q       # 348 tests, ~40 s
+python -m pytest tests/ -q       # 385 tests, ~40 s
 ```
 
 ## What is tested

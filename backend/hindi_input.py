@@ -272,7 +272,39 @@ def _b_own(t: str, q: Q, raw: str) -> str:
     return "I own " + " and ".join(names) if names else "Which mutual funds do you have?"
 
 
+
+def _b_loan(t: str, q: Q, raw: str) -> str:
+    saikda = bool(re.search(r"सैकड", t))
+    if saikda:                       # "सैकड़ा" (per hundred) is not the number 100 or a duration
+        t = re.sub(r"सैकड\S*", " ", t)
+        q = quantities(t)
+    money = [x for x in q if x["kind"] == "money"]
+    months = next((x["v"] for x in q if x["kind"] == "months"), None)
+    years = next((x["v"] for x in q if x["kind"] == "years"), None)
+    pct = next((x["v"] for x in q if x["kind"] == "pct"), None)
+    small = [x for x in money if x["v"] < 100]
+    big = [x for x in money if x["v"] >= 500]
+    if small and (saikda or not pct):
+        rate = f"{_fmt(small[0]['v'])} rupees per hundred a month"
+    elif pct is not None:
+        rate = f"{_fmt(pct)} percent a month"
+    else:
+        return "What does the moneylender interest really cost?"
+    out = f"What does {rate} cost"
+    if big:
+        out += f" on {_m(max(x['v'] for x in big))}"
+    n = int(months) if months else (int(years * 12) if years else None)
+    if n:
+        out += f" for {n} months"
+    return out + "?"
+
+
 BUILD: dict[str, Callable[[str, Q, str], str]] = {
+    "moneylender": _b_loan,
+    "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
+    "entitlements": lambda *a: "Which government schemes can I get?",
+    "docs_ready": lambda *a: "Why has my payment not come? Which documents do I need?",
+    "income_plan": lambda *a: "Plan my money around the harvest income",
     "fee_drag": _b_fee, "emergency": _b_emergency, "goal": _b_goal, "panic": _b_panic, "scam_recovery": _b_recovery,
     "scam_help": _b_scam_help, "stress": _b_stress, "define": _b_define, "fund_overlap": _b_overlap, "should_buy": _b_buy,
     "analyse": _b_analyse, "my_funds_add": _b_own,
@@ -291,6 +323,11 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("moneylender", r"(साहूकार|आढ़तिया|आढ़ती|सैकड़ा|सैकड़े|सूद|ब्याज.{0,25}(महीने|रुपये|रुपए|कितना|कितनी)|(कर्ज|क़र्ज़|कर्जा|उधार).{0,25}(ब्याज|सैकड़ा))"),
+    ("scheme_check", r"((पैसा|पैसे|रुपये|रकम|निवेश|पूंजी).{0,20}(दोगुना|दुगना|दुगुना|दोगुने|तिगुना|डबल)|चिट ?फंड|कमेटी|पोंजी|पिरामिड|(गारंटी|पक्का).{0,25}(मुनाफा|कमाई|रिटर्न)|पैसा.{0,15}(डबल|दोगुना)|(स्कीम|योजना|कंपनी|ऐप).{0,30}(असली|नकली|ठगी|सही है|भरोसे)|सदस्य बनाइ|दोस्तों को जोड़)"),
+    ("entitlements", r"(सरकारी (योजना|मदद|लाभ)|योजनाओं?|योजनाएं|पीएम किसान|आयुष्मान|उज्ज्वला|मनरेगा|पेंशन योजना|आवास योजना|मुझे क्या.{0,20}मिल|हक का पैसा)"),
+    ("docs_ready", r"((कागज|दस्तावेज).{0,30}(चाहिए|जरूरी|कौन|पूरे|तैयार)|आधार.{0,25}(लिंक|जुड़|सीड)|(पैसा|किस्त|सब्सिडी|पेंशन|रकम).{0,25}(नहीं आया|नहीं आई|अटक|रुक|नहीं मिला)|डीबीटी)"),
+    ("income_plan", r"((फसल|कटाई|मौसमी|दिहाड़ी|मजदूरी|खेती).{0,45}(आमदनी|कमाई|पैसा|बचत|खर्च|हिसाब|योजना)|(आमदनी|पैसा).{0,25}(साल में (एक|दो) बार|फसल के बाद|कटाई के बाद)|पैसा.{0,20}(खत्म|ख़त्म).{0,20}(पहले|तक))"),
     ("more", r"(और बताइए|विस्तार से|पूरा बताइए|पूरा पढ़ि|और विस्तार)"),
     ("simplify", r"(आसान|सरल|सीधी भाषा).{0,20}(समझा|बता|कहि)|और सरल"),
     ("digest", r"(साप्ताहिक|हफ्ते का|इस हफ्ते|सप्ताह|डाइजेस्ट|हफ्ते भर|(हफ्ते|सप्ताह).{0,12}(रिपोर्ट|सार|सारांश|अपडेट))"),
@@ -418,6 +455,8 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",
     "emergency": "इमरजेंसी पैसा कितने महीने चलेगा", "goal": "लक्ष्य पूरा होगा या नहीं", "panic": "घबराकर बेचने का असर", "digest": "साप्ताहिक सार",
