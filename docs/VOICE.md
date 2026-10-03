@@ -60,7 +60,7 @@ stateDiagram-v2
 - **Push-to-talk:** tap the orb (or the mic button, or hold `SPACE`). The browser records with `MediaRecorder`; a **timer-based voice-activity detector** ends the utterance on a pause. (It uses a timer, not `requestAnimationFrame`, which browsers throttle in background tabs.)
 - **Vocabulary priming:** `initial_prompt` carries the product's words (tickers, "Mphasis", "NSE") and `snap_to_grammar` repairs near-misses ("by" -> "buy").
 - **Safety floors:** a transcript under 0.45 confidence is shown but **not dispatched** if it parses as a command (a misheard "sell" is not recoverable); for plain questions the floor is 0.30.
-- **Hindi speech:** transcribed as Hindi, then `to_english` (fuzzy match to known Hindi questions, else the local model, then missing numbers are re-appended) before routing.
+- **Hindi speech:** transcribed as Hindi and understood by `hindi_input` (figures and intent read in code; no free translation) - see [LANGUAGE.md](LANGUAGE.md#2b-understanding-hindi-questions-voice-or-keyboard).
 - **Raw mode:** `POST /stt?raw=true` returns just the transcript, with no translation and no dispatch. The scam-call rehearsal uses it so a Hindi reply is scored *as Hindi*.
 - **Measured:** about 0.85-1.4 s per command on CPU int8.
 

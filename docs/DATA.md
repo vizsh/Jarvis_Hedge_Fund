@@ -12,6 +12,7 @@
 | `claims`, `decisions` | | research-desk output and verdicts (for calibration and replay) |
 | `ledger` | | desk-decision audit trail |
 | `paper_ledger` | grows | hash-chained paper trades (created at runtime) |
+| `extra_universe` | grows | stocks the user searched for and fetched on demand (kept apart from the base universe so sector maps and screens do not silently change) |
 | `lots`, `portfolios`, `watches`, `my_funds` | grow | your cost basis, saved portfolios, standing rules, saved funds |
 
 ## 2. Sources and point-in-time safety tiers

@@ -173,6 +173,8 @@ Every booked trade stores the hash of the previous one, so editing history break
 
 ## Research
 
+**Analyse any listed stock.** Type part of a name or symbol in the search box (for example `irct`, `tata mot`, `avenue`) and pick from the suggestions; each is tagged *data ready* or *will fetch*. The company list is the NSE equity list (about 2,000 companies, cached locally, refreshed every 14 days) with yfinance search as a fallback. Choosing a company we hold no data for first fetches its prices, fundamentals and headlines (`ingest/ondemand.py`, ~10 s), registers it, then runs the desks. The same works from the assistant: *"analyse Tata Motors"* looks the company up instead of silently analysing TCS.
+
 Four AI analysts (Fundamental, Quant, Narrative, ...) and a forced dissenter (Red Team) study a company. Claims must cite real evidence ids or are dropped; agreement among correlated analysts is flagged as **groupthink** and conviction is halved. A **time machine** rewinds the clock so analysts only see what was known on that date. A calibration record scores every desk, and no desk beats a coin flip. Full story: [GOVERNANCE_ENGINE.md](GOVERNANCE_ENGINE.md).
 
 ---

@@ -42,7 +42,19 @@ flowchart LR
 | Tip-scanner labels, claim statuses | `FLAG_LABEL_HI`, `CLAIM_STATUS_HI` |
 | Microphone errors | `hiError()` maps the common ones |
 | Voice | Hindi Kokoro voices; numbers spoken as words (`1.5 लाख रुपये`) |
-| Spoken input | Whisper multilingual + `to_english` |
+| Spoken and typed Hindi input | `backend/hindi_input.py`: figures read in code, intent from Hindi rules (or the closed-list model), a fixed English question built from them; see below |
+
+## 2b. Understanding Hindi questions (voice or keyboard)
+
+An earlier version asked a model to translate Hindi freely; it invented words nobody said ("ICICI Prudential...", "Airtel portfolio"). Now `hindi_input.convert()`:
+
+1. **Reads numbers in code**: digits, Devanagari digits and spoken Hindi (`तीन लाख`, `चालीस हज़ार`, `डेढ़ करोड़`, `सवा लाख`, `साढ़े तीन लाख`, `दो सौ बीस`), with units (percent / years / months / money, and monthly-vs-lump).
+2. **Snaps loose spellings** the recogniser produces (`लाक`->`लाख`, `हाजार`->`हजार`, `प्रतिषत`, `अटीपी`->`ओटीपी`) using a variant table, a consonant-skeleton match and a high-cutoff fuzzy match against the words the rules know.
+3. **Finds the intent** with ~30 Hindi rules; only if none fits may the local model pick *one intent from a closed list* (it cannot add a fund, company or figure; state-changing intents are excluded).
+4. **Builds a fixed English question** from that intent and the figures (`How long will 3 lakh last if I spend 40000 a month?`), answered exactly like typed English, in Hindi.
+5. If nothing fits, the Hindi text is passed on unchanged and the assistant asks "did you mean..." in Hindi.
+
+Measured with `tests/hindi_eval.py` (rules only, no model): tuning set 41/41; a blind set written afterwards 23/31 on its first run (74%) before fixes, 31/31 after; a second blind set 25/30 on its first run (83%), 30/30 after. The honest estimate for unseen phrasing is therefore roughly 75-85% without the model, with no confidently wrong answers in the tests. Loosely spelled transcripts from real Whisper output are covered by `HI_HEARD`. Not yet measured on human voices.
 
 ## 3. Per-screen language (and why it matters)
 
@@ -77,7 +89,8 @@ Tests assert every fixed sentence in the scanner, stress and drill-down code has
 
 ## 6. Limits
 
-- Typed Hinglish (Roman-script Hindi) is understood only by the optional local model stage; offline it asks for clarification.
+- Typed Hinglish (Roman-script Hindi) is understood only by the optional local model stage (the Hindi-input rules read Devanagari); offline it asks for clarification.
+- Hindi trade commands (`खरीदो`) are deliberately read as questions, never as orders.
 - The tip scanner's rules match English words, so tips must be pasted in English.
 - A backend sentence that matches no rule and fails the model guard stays in English.
 - Standalone pages other than Learn, Protect, Govern, Practice and the Assistant (for example parts of Portfolio and Research) are not fully Hindi yet.

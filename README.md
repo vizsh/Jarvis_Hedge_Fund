@@ -2,7 +2,7 @@
 
 **A free, local, bilingual (English / हिन्दी) assistant that helps ordinary Indian savers protect their money, understand it, and keep it honest.**
 
-[![tests](https://img.shields.io/badge/tests-309%20passing-brightgreen)](docs/TESTING.md)
+[![tests](https://img.shields.io/badge/tests-348%20passing-brightgreen)](docs/TESTING.md)
 ![local first](https://img.shields.io/badge/runs-100%25%20local-blue)
 ![languages](https://img.shields.io/badge/languages-English%20%7C%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-orange)
 ![paper trading](https://img.shields.io/badge/money-paper%20only-lightgrey)
@@ -48,9 +48,9 @@ JARVIS makes each of those *visible and interactive*: you drag a slider, replay 
 | **Protect** | **Scam recovery coach**, stock-tip scanner, tax shield, panic-sell replay, standing "tell me if" rules | [FEATURES](docs/FEATURES.md#protect) |
 | **Learn / Practice** | Goal chart, fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam call rehearsal, glossary, drill-downs | [FEATURES](docs/FEATURES.md#learn-and-practice) |
 | **Govern** | Risk firewall, rebalance simulator, tamper-evident audit ledger and tamper test | [FEATURES](docs/FEATURES.md#govern) |
-| **Research** | Four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
+| **Research** | **Search and analyse any listed stock**, four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
 | **Voice** | Local neural voices (Kokoro, Piper), instant Stop, local Whisper speech-to-text | [VOICE](docs/VOICE.md) |
-| **Bilingual** | English and Hindi chosen per screen; hand-written Hindi with numbers placed by code | [LANGUAGE](docs/LANGUAGE.md) |
+| **Bilingual** | English and Hindi chosen per screen, including **speaking and typing Hindi**; hand-written Hindi with numbers placed by code | [LANGUAGE](docs/LANGUAGE.md) |
 
 ## Architecture at a glance
 
@@ -117,7 +117,7 @@ Open <http://localhost:8000>. Pick **EN** or **हिन्दी** at the top r
 Developer mode (hot reload): `npm run dev --prefix frontend` serves the UI at `:5173`.
 
 ```bash
-python -m pytest tests/ -q          # 309 tests
+python -m pytest tests/ -q          # 348 tests
 ```
 
 Detailed setup, environment variables and troubleshooting: [docs/SETUP.md](docs/SETUP.md).
@@ -139,7 +139,7 @@ ingest/     data adapters with point-in-time safety tiers
 frontend/   React + Vite + Three.js (pages, components, stores)
 config/     policy profiles, universe, demo script
 docs/       the documentation set (see below)
-tests/      309 tests incl. blind routing-evaluation sets
+tests/      348 tests incl. blind routing-evaluation sets
 tools/      ingest, voice download, demos, dry run, calibration backfill
 ```
 

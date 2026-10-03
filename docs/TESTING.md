@@ -1,7 +1,7 @@
 # Testing
 
 ```bash
-python -m pytest tests/ -q       # 309 tests, ~30 s
+python -m pytest tests/ -q       # 348 tests, ~40 s
 ```
 
 ## What is tested
@@ -20,6 +20,8 @@ python -m pytest tests/ -q       # 309 tests, ~30 s
 | `test_voice.py` | 12 | STT grammar repair, confidence floors |
 | `test_calibration.py` | 11 | Brier / hit-rate scoring |
 | `test_snapshot.py`, `test_pit.py`, `test_mixed_calendar.py` | 22 | point-in-time safety, no lookahead |
+| `test_hindi_input.py` | 23 | Hindi numbers read exactly, units told apart, routing accuracy on tune / blind / blind2 / real-transcript sets with zero confident-wrong answers, nothing invented, model fallback is closed-list and confidence-gated, end-to-end Hindi answers |
+| `test_stocks.py` | 15 | type-ahead search, typo tolerance, unknown company is looked up (not turned into TCS), on-demand fetch registers only if prices arrived |
 | `test_recovery.py` | 11 | every situation has a complete plan in both languages; first steps are the urgent ones; drafts contain only what the person gave and mark gaps; the situation is read from a sentence; the chatbot returns the plan |
 | `test_practice.py` | 5 | scam classifier (English and Hindi, incl. transcriber misspellings and codes spoken as words), overlap symmetry |
 | `test_demos.py` | 4 | ledger tamper detection, goal fan ordering |

@@ -1,3 +1,4 @@
+import { StockSearch } from "../components/StockSearch";
 import { useT } from "../lib/i18n";
 import { ChatThread } from "../components/ChatThread";
 import { GoalFan } from "./Demos";
@@ -124,14 +125,7 @@ export function Research() {
   return (
     <Page title="Research desk" lead="Four AI analysts and a forced dissenter study a company. Their claims must cite real evidence, or they are thrown away.">
       <section className="card">
-        <div className="row">
-          <input id="research-ticker" value={q} onChange={(e) => setQ(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) send(`analyse ${q}`); }}
-                 placeholder="Company, e.g. Infosys" style={{ flex: 1, minWidth: 160 }} />
-          <button className="btn go" disabled={!q.trim() || orb === "thinking"} onClick={() => send(`analyse ${q}`)}>
-            {orb === "thinking" ? "Analysing… (about 30 seconds)" : "Run the analysts"}
-          </button>
-        </div>
+        <StockSearch />
         <p className="faint small">Runs entirely on this machine. The track record of each desk is shown below —
           including the ones that do worse than a coin flip.</p>
       </section>

@@ -34,6 +34,7 @@ from analysis import xray as xray_mod
 from backend import actions as actions_mod
 from backend import ledger as ledger_mod
 from backend import tts as tts_mod
+from backend import hindi_input
 from backend import vernacular as vernacular_mod
 from analysis import scanner as scanner_mod
 from analysis import shield as shield_mod
@@ -348,7 +349,10 @@ async def ask(body: AskIn) -> dict:
     having to rephrase anything.
     """
     _req_lang.set(body.lang if body.lang in vernacular_mod.LANGS else None)
-    a = await _assist(body.question, body.level)
+    question = body.question
+    if hindi_input.has_devanagari(question):
+        question = (await hindi_input.convert(question))[0] or question
+    a = await _assist(question, body.level)
     loc = await _present(a)
     bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"], cid=body.cid)
     return loc["answer"]
@@ -817,6 +821,13 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
     _req_lang.set(lang if lang in vernacular_mod.LANGS else None)
+    if hindi_input.has_devanagari(text):
+        # Hindi in, by voice or keyboard: figures and intent are read in code (no free translation,
+        # which used to invent words). Anything it cannot place is passed on as is, and the
+        # assistant asks in Hindi.
+        english, _how = await hindi_input.convert(text)
+        if english:
+            text = english
     if _MORE.match(text or "") and _last_full:
         # "tell me more": read the long version of the last answer. Answers are spoken
         # short by default; this is how the person asks for the rest.
@@ -907,9 +918,8 @@ async def speech_to_text(request: Request, lang: str = "en", raw: bool = False, 
                 "confidence": result.confidence, "reason": None if text else "no speech"}
 
     if lang != "en" and result.text.strip():
-        # Spoken Hindi: keep what was said, and act on its English meaning.
+        # Spoken Hindi: keep exactly what was heard; dispatch() reads its meaning (hindi_input).
         result.raw = result.text
-        result.text = await vernacular_mod.to_english(result.text)
     bus.emit(EventType.TRANSCRIPT, text=result.text, final=True, raw=result.raw,
              confidence=result.confidence, ms=result.duration_ms,
              repaired=result.repaired, model=result.model)
@@ -1241,6 +1251,27 @@ async def recovery_draft(body: DraftIn) -> dict:
     from backend import recovery
     return recovery.drafts(body.type, body.lang, body.amount, body.when, body.txn_id,
                            body.fraud_contact, body.bank, body.name)
+
+
+@app.get("/stocks/search")
+async def stocks_search(q: str = "", limit: int = 8) -> dict:
+    """Type-ahead over every listed NSE company (plus yfinance as a fallback)."""
+    from analysis import stocksearch
+    return {"results": await asyncio.to_thread(stocksearch.search, q, min(20, max(1, limit)))}
+
+
+class StockIn(BaseModel):
+    symbol: str
+    name: str | None = None
+
+
+@app.post("/stocks/add")
+async def stocks_add(body: StockIn) -> dict:
+    """Fetch a searched-for stock's history so the research desks can analyse it."""
+    from ingest import ondemand
+    if body.symbol in universe.tickers() or body.symbol in universe.extras():
+        return {"ok": True, "symbol": body.symbol, "already": True}
+    return await asyncio.to_thread(ondemand.add_stock, body.symbol, body.name)
 
 
 @app.get("/goal")

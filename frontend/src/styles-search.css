@@ -1,0 +1,14 @@
+.stocksearch .row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.ss-field { position: relative; flex: 1; min-width: 220px; }
+.ss-field input { width: 100%; }
+.ss-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; max-height: 320px; overflow-y: auto; border-radius: 10px; background: #0d1520; border: 1px solid rgba(0, 229, 255, .35); box-shadow: 0 14px 40px rgba(0, 0, 0, .55); }
+.ss-list li { display: grid; grid-template-columns: 92px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 13.5px; }
+.ss-list li.on { background: rgba(0, 229, 255, .14); }
+.ss-sym { font-weight: 800; letter-spacing: .02em; }
+.ss-name { color: #c9d9e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-ex { font-size: 11px; color: #7e93a8; }
+.ss-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.ss-tag.ready { background: rgba(34, 255, 160, .14); color: #22ffa0; }
+.ss-tag.fetch { background: rgba(255, 176, 32, .14); color: #ffc24d; }
+.ss-status { margin-top: 8px; font-size: 13px; color: #8fd6e6; }
+@media (max-width: 600px) { .ss-list li { grid-template-columns: 70px 1fr auto; } .ss-ex { display: none; } }

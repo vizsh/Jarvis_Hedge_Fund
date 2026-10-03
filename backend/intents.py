@@ -62,6 +62,20 @@ _NOT_TICKERS = {"JARVIS", "NAV", "NSE", "BSE", "SEBI", "RBI", "AI", "LLM",
 _CANDIDATE = re.compile(r"\b[A-Z]{3,12}\b")
 
 
+_TARGET = re.compile(r"\b(?:analy[sz]e|research|investigate|study|examine|review|look at|check out|deep dive (?:on|into))\s+(.+?)\s*[.?!]?$", re.I)
+_FILLER = re.compile(r"\b(the|stock|shares?|company|for me|please|of|on|about)\b", re.I)
+
+
+def target_phrase(text: str) -> str | None:
+    """What a person asked to analyse, when it is not a company we already hold data for
+    ("analyse zomato"). Without this the request fell through to the default ticker."""
+    m = _TARGET.search(text.strip())
+    if not m:
+        return None
+    phrase = re.sub(r"\s+", " ", _FILLER.sub(" ", m.group(1))).strip(" ,.")
+    return phrase if len(phrase) >= 2 else None
+
+
 def unresolved_symbol(text: str) -> str | None:
     """A ticker-shaped token that resolves to nothing.
 
@@ -91,7 +105,7 @@ def resolve_ticker(text: str) -> str | None:
     from core import universe  # local import: universe imports nothing from here
 
     low = text.lower()
-    if m := re.search(r"\b([A-Z]{2,12}\.NS|AAPL|MSFT|NVDA)\b", text):
+    if m := re.search(r"\b([A-Z0-9&-]{2,15}\.(?:NS|BO)|AAPL|MSFT|NVDA)\b", text):
         return m.group(1)
 
     # longest alias first so "hdfc bank" beats "hdfc"
@@ -109,6 +123,11 @@ def resolve_ticker(text: str) -> str | None:
             continue
         if re.search(rf"\b{re.escape(label.lower())}\b", low):
             return ticker
+    # Stocks the user added on demand (searched and fetched) are researchable by name or symbol too.
+    for ticker, e in sorted(universe.extras().items(), key=lambda kv: -len(kv[1]["name"])):
+        for label in (e["name"], ticker.replace(".NS", "")):
+            if len(label) >= 3 and re.search(rf"\b{re.escape(label.lower())}\b", low):
+                return ticker
     return None
 
 
@@ -169,6 +188,8 @@ def parse_pattern(text: str) -> Intent | None:
             if verb in ("investigate", "propose") and not intent.ticker:
                 if (unknown := unresolved_symbol(text)):
                     intent.args["unresolved"] = unknown
+                elif verb == "investigate" and (phrase := target_phrase(text)):
+                    intent.args["unresolved"] = phrase
             if verb == "rewind":
                 intent.args["date"] = parse_date(text)
             elif verb == "propose":

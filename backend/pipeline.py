@@ -73,6 +73,23 @@ def say(bus: EventBus, text: str) -> None:
 # ---------------------------------------------------------------------------------
 # investigate
 # ---------------------------------------------------------------------------------
+async def fetch_unknown(session: Session, bus: EventBus, phrase: str) -> str | None:
+    """A company we hold no data for: find it by name, fetch its history, then it can be researched."""
+    import asyncio
+    from analysis import stocksearch
+    from ingest import ondemand
+    hit = await asyncio.to_thread(stocksearch.best, phrase)
+    if not hit:
+        return None
+    if not hit["covered"]:
+        say(bus, f"Fetching prices, filings and news for {hit['name']}. This takes a few seconds.")
+        emit_telemetry(session, bus, orb="thinking")
+        got = await asyncio.to_thread(ondemand.add_stock, hit["symbol"], hit["name"])
+        if not got.get("ok"):
+            return None
+    return hit["symbol"]
+
+
 async def do_investigate(session: Session, bus: EventBus, ticker: str) -> None:
     emit_telemetry(session, bus, orb="thinking")
     bus.emit(EventType.GRAPH_RESET)
@@ -427,11 +444,14 @@ async def handle(session: Session, bus: EventBus, intent: Intent) -> None:
     try:
         if intent.verb == "investigate":
             if (unknown := intent.args.get("unresolved")):
-                bus.emit(EventType.ERROR, where="investigate",
-                         message=f"{unknown} is not in the universe.")
-                say(bus, f"{unknown} is not in the covered universe, so I have nothing "
-                         f"to analyse. Add it to config/universe.yaml and re-ingest.")
-                emit_telemetry(session, bus, orb="idle")
+                found = await fetch_unknown(session, bus, unknown)
+                if found:
+                    await do_investigate(session, bus, found)
+                else:
+                    bus.emit(EventType.ERROR, where="investigate", message=f"{unknown} was not found.")
+                    say(bus, f"I could not find a listed company called {unknown}. "
+                             f"Try the exact name or the NSE symbol.")
+                    emit_telemetry(session, bus, orb="idle")
             else:
                 await do_investigate(session, bus, intent.ticker or DEFAULT_TICKER)
         elif intent.verb == "rewind":

@@ -19,6 +19,13 @@ Base URL `http://localhost:8000`. JSON unless noted. Interactive OpenAPI docs ar
 | GET | `/glossary?lang=` | terms and definitions. |
 | GET | `/palette?q=` | command-palette search over every capability. |
 
+## Research stocks
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/stocks/search?q=&limit=` | type-ahead over NSE-listed companies (and yfinance fallback); each hit says `covered` or needs fetching. |
+| POST | `/stocks/add` | `{symbol, name}` -> fetch prices / fundamentals / news into the snapshot and register the stock. |
+
 ## Practice and protection tools
 
 | Method | Path | Purpose |

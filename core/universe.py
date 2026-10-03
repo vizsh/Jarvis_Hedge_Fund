@@ -89,7 +89,10 @@ def benchmark_label() -> str:
 
 
 def name(ticker: str) -> str:
-    return NAMES.get(ticker) or ticker.replace(".NS", "").replace("^", "")
+    if ticker in NAMES:
+        return NAMES[ticker]
+    ex = extras().get(ticker) if "_EXTRA" in globals() else None
+    return (ex or {}).get("name") or ticker.replace(".NS", "").replace("^", "")
 
 
 def sector(ticker: str) -> str:
@@ -134,3 +137,41 @@ def catalogue() -> list[dict]:
     return [{"ticker": t, "name": name(t), "sector": sector(t),
              "sector_label": sector_label(sector(t))}
             for t in tickers()]
+
+
+# ------------------------------------------------------------------ stocks added on demand
+# The base universe (config/universe.yaml) is what the portfolio, risk and screening code is built
+# around. A stock the user searches for is stored separately: it can be researched and priced, but it
+# does not silently change the sector maps or the screens.
+_EXTRA: dict[str, dict] | None = None
+
+
+def _extra_conn():
+    import sqlite3
+    from core.db import DB_PATH
+    c = sqlite3.connect(DB_PATH)
+    c.execute("CREATE TABLE IF NOT EXISTS extra_universe (ticker TEXT PRIMARY KEY, name TEXT, sector TEXT, added_at TEXT)")
+    return c
+
+
+def extras() -> dict[str, dict]:
+    global _EXTRA
+    if _EXTRA is None:
+        try:
+            c = _extra_conn()
+            _EXTRA = {r[0]: {"ticker": r[0], "name": r[1], "sector": r[2], "added_at": r[3]}
+                      for r in c.execute("SELECT ticker, name, sector, added_at FROM extra_universe")}
+            c.close()
+        except Exception:  # noqa: BLE001 - no database yet (fresh checkout): nothing extra
+            _EXTRA = {}
+    return _EXTRA
+
+
+def register_extra(ticker: str, display_name: str, sector_text: str = "UNKNOWN") -> None:
+    from datetime import datetime, timezone
+    c = _extra_conn()
+    c.execute("INSERT OR REPLACE INTO extra_universe VALUES (?,?,?,?)",
+              (ticker, display_name, sector_text, datetime.now(timezone.utc).isoformat(timespec="seconds")))
+    c.commit()
+    c.close()
+    extras()[ticker] = {"ticker": ticker, "name": display_name, "sector": sector_text, "added_at": ""}
