@@ -59,7 +59,7 @@ ADVISORY = re.compile(
     r"^\s*(should|shall|can|could|would|ought|is\s+it\s+worth|do\s+you\s+think|"
     r"what\s+do\s+you\s+think|any\s+thoughts|worth)\b|"
     r"\b(tell\s+me|let\s+me\s+know|advise\s+me|help\s+me\s+decide|suggest)\b.{0,30}\b(if|whether)\b|"
-    r"\b(should|can|could|may)\s+i\b|\bis\s+it\s+(ok|okay|safe|wise|good|fine|worth)\b|"
+    r"\b(should|can|could|may)\s+i\b|\bis\s+(?:it|[\w.&]+(?:\s+[\w.&]+)?)\s+(ok|okay|safe|wise|good|fine|worth)\b|"
     r"\bworth\s+(buying|investing)\b", re.I)
 
 
