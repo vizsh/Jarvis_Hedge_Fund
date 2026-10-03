@@ -1117,3 +1117,8 @@
 @media (prefers-reduced-motion: reduce) {
   .orbmic .orbmic-ring, .orbmic .mic-icon, .btn.mic.listening { animation: none !important; }
 }
+
+.heard-draft { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--accent, #4fd1c5); border-radius: 10px; background: rgba(79,209,197,.08); display: grid; gap: 6px; }
+.heard-draft input { width: 100%; font-size: 16px; padding: 6px 8px; background: transparent; color: inherit; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; }
+.heard-under { font-size: 13px; opacity: .9; }
+.heard-actions { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -56,11 +56,12 @@ stateDiagram-v2
 
 ## 3. Listening (speech to text)
 
-- **Engine:** `faster-whisper`, local. English uses the `small.en` model by default (`JARVIS_STT_MODEL`); Hindi uses multilingual `small` with the task `transcribe` and no initial prompt.
+- **Engine:** `faster-whisper`, local. English uses the `small.en` model by default (`JARVIS_STT_MODEL`); Hindi uses multilingual **`large-v3-turbo`** (GPU float16 when the `nvidia-cublas-cu12`/`nvidia-cudnn-cu12` pip packages are present, otherwise CPU; `small` as a last fallback), with a Hindi prompt, hotwords, and digit tokens suppressed so numbers come back as words (it once wrote तीन लाख as "3,000,000").
 - **Push-to-talk:** tap the orb (or the mic button, or hold `SPACE`). The browser records with `MediaRecorder`; a **timer-based voice-activity detector** ends the utterance on a pause. (It uses a timer, not `requestAnimationFrame`, which browsers throttle in background tabs.)
 - **Vocabulary priming:** `initial_prompt` carries the product's words (tickers, "Mphasis", "NSE") and `snap_to_grammar` repairs near-misses ("by" -> "buy").
 - **Safety floors:** a transcript under 0.45 confidence is shown but **not dispatched** if it parses as a command (a misheard "sell" is not recoverable); for plain questions the floor is 0.30.
 - **Hindi speech:** transcribed as Hindi and understood by `hindi_input` (figures and intent read in code; no free translation) - see [LANGUAGE.md](LANGUAGE.md#2b-understanding-hindi-questions-voice-or-keyboard).
+- **Confirm before answering (Hindi):** `POST /stt?understand=true` returns the transcript, what it was understood as, and the figures read, and answers nothing. The UI shows an editable "मैंने सुना" card with "मैं समझा: ..." and the figures; **Yes, answer / Speak again / Cancel**. A mishearing is corrected there instead of being answered. Measured with synthesized speech: 5/5 sentences understood correctly on the GPU.
 - **Raw mode:** `POST /stt?raw=true` returns just the transcript, with no translation and no dispatch. The scam-call rehearsal uses it so a Hindi reply is scored *as Hindi*.
 - **Measured:** about 0.85-1.4 s per command on CPU int8.
 
@@ -79,6 +80,7 @@ Talking over the assistant to interrupt it is implemented but **off by default**
 | `JARVIS_VOICE_EN` | `kokoro:bm_george` | default English voice |
 | `JARVIS_VOICE_HI` | `kokoro:hm_psi` | default Hindi voice |
 | `JARVIS_STT_MODEL` | `small.en` | Whisper model for English |
+| `JARVIS_STT_HI_MODEL` | `large-v3-turbo` | Whisper model for Hindi |
 
 ## 7. Known limits
 

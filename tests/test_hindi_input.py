@@ -110,3 +110,16 @@ def test_end_to_end_typed_hindi_gets_a_hindi_answer_with_the_right_figures(sessi
     assert out2["kind"] == "emergency" and "7.5" in out2["headline"]
     gibberish = asyncio.run(app_mod.ask(app_mod.AskIn(question="आज मौसम कैसा रहेगा", lang="hi")))
     assert gibberish["kind"] in ("clarify", "out_of_scope") and V.looks_hindi(gibberish["headline"])
+
+
+def test_describe_says_what_was_understood_in_hindi():
+    import asyncio
+    text = "तीन लाख रुपये हैं और चालीस हज़ार महीने का खर्च है कितने महीने चलेंगे"
+    english, _ = asyncio.run(H.convert(text, use_model=False))
+    d = H.describe(text, english)
+    assert d["intent"] == "emergency" and d["label"]
+    assert any("लाख" in f for f in d["figures"]) and any("हर महीने" in f for f in d["figures"])
+
+
+def test_describe_nothing_when_not_understood():
+    assert H.describe("कुछ भी", None)["label"] is None

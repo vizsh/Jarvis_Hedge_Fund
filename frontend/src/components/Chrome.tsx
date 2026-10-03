@@ -149,6 +149,36 @@ const SUGGESTIONS: [string, string][] = [
   ["buy 30 shares of Persistent", "30 Persistent शेयर ख़रीदें"],
 ];
 
+/** Hindi speech is shown back before anything is answered: the words heard (editable), what they
+ *  were understood as, and the figures that were read. A mishearing is fixed here, not answered. */
+function HeardDraft() {
+  const { t } = useT();
+  const draft = useVoice((s) => s.draft);
+  const clear = useVoice((s) => s.clearDraft);
+  const toggle = useVoice((s) => s.toggle);
+  const [txt, setTxt] = useState("");
+  useEffect(() => { setTxt(draft?.transcript ?? ""); }, [draft]);
+  if (!draft) return null;
+  const go = () => { const v = txt.trim(); if (v) { clear(); send(v); } };
+  return (
+    <div className="heard-draft">
+      <span className="heard-label">{t("I heard", "मैंने सुना")}</span>
+      <input value={txt} onChange={(e) => setTxt(e.target.value)} lang="hi"
+        onKeyDown={(e) => { if (e.key === "Enter") go(); if (e.key === "Escape") clear(); }} autoFocus />
+      <div className="heard-under">
+        {draft.label
+          ? <><b>{t("Understood as", "मैं समझा")}:</b> {draft.label}{draft.figures?.length ? " · " + draft.figures.join(" · ") : ""}</>
+          : <span>{t("I am not sure what this means — edit the words or speak again.", "मुझे पक्का समझ नहीं आया — शब्द ठीक कीजिए या फिर बोलिए।")}</span>}
+      </div>
+      <div className="heard-actions">
+        <button className="btn go" onClick={go}>{t("Yes, answer", "हाँ, जवाब दीजिए")}</button>
+        <button className="btn" onClick={() => { clear(); toggle(); }}>{t("Speak again", "फिर बोलिए")}</button>
+        <button className="btn" onClick={clear}>{t("Cancel", "रद्द")}</button>
+      </div>
+    </div>
+  );
+}
+
 export function CommandBar() {
   const { hi, t } = useT();
   const [text, setText] = useState("");
@@ -208,6 +238,7 @@ export function CommandBar() {
         <span>{status_line}</span>
       </div>
       <Waveform active={status === "listening"} />
+      <HeardDraft />
       {error && status === "idle" && (
         <div className="mic-error" onClick={clearError}>{hiError(error, hi)}</div>
       )}

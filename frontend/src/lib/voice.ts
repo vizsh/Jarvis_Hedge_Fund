@@ -21,6 +21,7 @@
 
 import { create } from "zustand";
 
+import { useLang } from "./lang";
 import * as socket from "./socket";
 import { allowSpeech, interrupt } from "./speak";
 
@@ -36,6 +37,8 @@ interface VoiceState {
   heardAt: number;          // when, so the UI can fade it
   error: string | null;     // why the last attempt failed, in words
   speaking: boolean;        // has speech actually been detected in this recording
+  draft: socket.HeardResult | null;   // Hindi speech waiting for the person to confirm it
+  clearDraft: () => void;
 
   toggle: () => void;
   start: () => Promise<void>;
@@ -105,7 +108,12 @@ export const useVoice = create<VoiceState>((set, get) => ({
     if (get().status !== "listening") return;
     window.clearInterval(speakingPoll);
     set({ status: "processing", speaking: false });
-    const result = await socket.stopMic();
+    const hindi = useLang.getState().lang !== "en";
+    const result = await socket.stopMic(false, hindi);
+    if (result?.confirm && result.ok) {
+      set({ draft: result, error: null, status: "idle", heard: "" });
+      return;
+    }
     if (result?.transcript) {
       set({ heard: result.transcript, heardAt: Date.now() });
     }
@@ -124,6 +132,7 @@ export const useVoice = create<VoiceState>((set, get) => ({
     set({ status: "idle", speaking: false });
   },
 
+  clearDraft: () => set({ draft: null }),
   clearError: () => set({ error: null }),
 }));
 

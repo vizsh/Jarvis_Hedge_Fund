@@ -182,11 +182,74 @@ def snap_to_grammar(text: str) -> tuple[str, bool]:
 
 
 # --- transcription ------------------------------------------------------------------
+HI_MODEL = os.environ.get("JARVIS_STT_HI_MODEL", "large-v3-turbo")
+HI_FALLBACK = "small"
+
+# A Hindi prompt that is ordinary spoken Hindi with the product's words and numbers written as
+# WORDS. Whisper continues in the style of its prompt, so this nudges it to say "तीन लाख" rather
+# than guess a digit string (it once wrote "3,000,000" for तीन लाख, a tenfold error).
+HI_PROMPT = ("मेरा पोर्टफोलियो कैसा चल रहा है। तीन लाख रुपये हैं और चालीस हज़ार रुपये महीने का खर्च है। "
+             "दस हज़ार की एसआईपी, म्यूचुअल फंड, ओटीपी, केवाईसी, एक्सपेंस रेशियो, दो प्रतिशत फीस, बीस साल।")
+HI_HOTWORDS = "ओटीपी म्यूचुअल फंड एसआईपी पोर्टफोलियो फीस प्रतिशत लाख हज़ार करोड़ केवाईसी ठगी निफ्टी"
+
+
+def _cuda_ready() -> bool:
+    """CUDA for Whisper needs cuBLAS/cuDNN. They ship as pip packages (nvidia-cublas-cu12,
+    nvidia-cudnn-cu12); put their folders on the DLL search path, then check it really loads."""
+    try:
+        import ctypes
+        import glob
+        import site
+
+        import ctranslate2
+        if ctranslate2.get_cuda_device_count() < 1:
+            return False
+        for sp in site.getsitepackages():
+            for d in glob.glob(os.path.join(sp, "nvidia", "*", "bin")):
+                os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+                if hasattr(os, "add_dll_directory"):
+                    os.add_dll_directory(d)
+        ctypes.CDLL("cublas64_12.dll")
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _digit_token_ids(model) -> list[int]:
+    """Token ids that are plain digits. Suppressing them forces numbers to be written as words,
+    which the Hindi understanding code reads exactly."""
+    try:
+        vocab = model.hf_tokenizer.get_vocab()
+    except Exception:  # noqa: BLE001
+        return []
+    return [i for tok, i in vocab.items() if re.fullmatch(r"[\u0120 ]*[0-9]+", tok)]
+
+
 @lru_cache(maxsize=1)
 def _model_multilingual():
-    """Multilingual Whisper, loaded only when someone speaks Hindi. small.en cannot."""
+    """The Hindi model. A bigger one than English needs: small mangles Hindi words ("पोर्टफोलियो" ->
+    "पोट भूल्यो"); large-v3-turbo does not. On the GPU when cuBLAS is available (about a second
+    per sentence), otherwise on the CPU (slower, same accuracy)."""
     from faster_whisper import WhisperModel
-    return WhisperModel("small", device="cpu", compute_type=COMPUTE)
+    device = "cuda" if _cuda_ready() else "cpu"
+    compute = "float16" if device == "cuda" else COMPUTE
+    for name in (HI_MODEL, HI_FALLBACK):
+        try:
+            m = WhisperModel(name, device=device, compute_type=compute)
+            m._jarvis_name = f"{name} ({device})"
+            m._jarvis_no_digits = _digit_token_ids(m)
+            return m
+        except Exception:  # noqa: BLE001
+            if device == "cuda":                       # GPU libraries missing: same model on the CPU
+                device, compute = "cpu", COMPUTE
+                try:
+                    m = WhisperModel(name, device=device, compute_type=compute)
+                    m._jarvis_name = f"{name} ({device})"
+                    m._jarvis_no_digits = _digit_token_ids(m)
+                    return m
+                except Exception:  # noqa: BLE001
+                    pass
+    raise RuntimeError("no Hindi speech model could be loaded")
 
 
 def transcribe(audio: bytes, language: str = "en") -> Transcript:
@@ -223,7 +286,8 @@ def transcribe(audio: bytes, language: str = "en") -> Transcript:
             # is exactly how push-to-talk gets used.
             "speech_pad_ms": 400,
         },
-        initial_prompt=None if hindi else INITIAL_PROMPT,
+        initial_prompt=HI_PROMPT if hindi else INITIAL_PROMPT,
+        **({"hotwords": HI_HOTWORDS, "suppress_tokens": [-1, *getattr(model, "_jarvis_no_digits", [])]} if hindi else {}),
         condition_on_previous_text=False,  # each command is independent
         # A held key with no speech should come back empty, not hallucinate a
         # sentence from the room tone.
@@ -247,9 +311,10 @@ def transcribe(audio: bytes, language: str = "en") -> Transcript:
     return Transcript(
         text=text, raw=raw, confidence=round(confidence, 3),
         duration_ms=int((time.perf_counter() - t0) * 1000),
-        model="small (multilingual)" if hindi else MODEL_SIZE, repaired=repaired,
+        model=getattr(model, "_jarvis_name", "hindi") if hindi else MODEL_SIZE, repaired=repaired,
     )
 
 
 def info() -> dict[str, Any]:
-    return {"available": available(), "model": MODEL_SIZE, "loaded": _model.cache_info().currsize > 0}
+    return {"available": available(), "model": MODEL_SIZE, "loaded": _model.cache_info().currsize > 0,
+            "hindi_model": HI_MODEL, "hindi_loaded": _model_multilingual.cache_info().currsize > 0}

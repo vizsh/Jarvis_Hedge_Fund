@@ -887,7 +887,8 @@ async def command(cmd: Command) -> dict:
 
 
 @app.post("/stt")
-async def speech_to_text(request: Request, lang: str = "en", raw: bool = False, cid: str | None = None) -> dict:
+async def speech_to_text(request: Request, lang: str = "en", raw: bool = False, cid: str | None = None,
+                         understand: bool = False) -> dict:
     """Push-to-talk audio in, dispatched command out.
 
     The browser posts whatever MediaRecorder produced; faster-whisper decodes it
@@ -920,6 +921,14 @@ async def speech_to_text(request: Request, lang: str = "en", raw: bool = False, 
     if lang != "en" and result.text.strip():
         # Spoken Hindi: keep exactly what was heard; dispatch() reads its meaning (hindi_input).
         result.raw = result.text
+    if understand:
+        # Say what was heard and understood BEFORE answering, so a mishearing can be corrected
+        # instead of silently answered. The client sends it on (edited or not) when confirmed.
+        text = result.text.strip()
+        english, how = (await hindi_input.convert(text)) if hindi_input.has_devanagari(text) else (None, "english")
+        info = hindi_input.describe(text, english) if english else {"intent": None, "label": None, "figures": []}
+        return {"ok": bool(text), "confirm": True, "transcript": text, "understood": english, "how": how,
+                "confidence": result.confidence, "model": result.model, **info}
     bus.emit(EventType.TRANSCRIPT, text=result.text, final=True, raw=result.raw,
              confidence=result.confidence, ms=result.duration_ms,
              repaired=result.repaired, model=result.model)

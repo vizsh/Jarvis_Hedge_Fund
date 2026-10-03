@@ -355,6 +355,22 @@ def _skel(w: str) -> str:
     return "".join(c for c in w.translate(_FOLD) if c in _CONS or c in "".join(_FOLD.values()))
 
 
+LATIN = {"mutual fund": "म्यूचुअल फंड", "mutual funds": "म्यूचुअल फंड", "expense ratio": "एक्सपेंस रेशियो", "digital arrest": "डिजिटल अरेस्ट",
+         "otp": "ओटीपी", "sip": "एसआईपी", "kyc": "केवाईसी", "fund": "फंड", "funds": "फंड", "portfolio": "पोर्टफोलियो", "fee": "फीस", "fees": "फीस",
+         "nifty": "निफ्टी", "sensex": "सेंसेक्स", "scam": "स्कैम", "fraud": "फ्रॉड", "upi": "यूपीआई", "anydesk": "एनीडेस्क", "etf": "ईटीएफ",
+         "sebi": "सेबी", "market": "बाजार", "stock": "शेयर", "share": "शेयर", "shares": "शेयर", "cvv": "सीवीवी", "pin": "पिन", "link": "लिंक",
+         "call": "कॉल", "app": "ऐप"}
+
+
+def _latin_words_to_hindi(text: str) -> str:
+    """Whisper leaves some words in Latin letters ("mutual fund", "OTP", "SIP"): give them the Devanagari
+    spelling the rules know. Company and fund NAMES are untouched elsewhere (they are read from the raw text)."""
+    out = text
+    for k in sorted(LATIN, key=len, reverse=True):
+        out = re.sub(rf"(?<![A-Za-z]){re.escape(k)}(?![A-Za-z])", LATIN[k], out, flags=re.I)
+    return out
+
+
 def fix_spelling(text: str) -> str:
     """Snap each unknown word to the closest known one (high bar, so ordinary words are left alone).
     Only words of 4+ letters are corrected: short words are too easily confused."""
@@ -378,7 +394,7 @@ def fix_spelling(text: str) -> str:
         k = _skel(w)
         hit = by_skel.get(k) if len(k) >= 3 else None
         return next(iter(hit)) if hit and len(hit) == 1 else w
-    return _WORD.sub(one, norm(text))
+    return _WORD.sub(one, norm(_latin_words_to_hindi(text)))
 
 
 def intent_of(text: str) -> str | None:
@@ -399,6 +415,39 @@ def build(intent: str, text: str) -> str | None:
 
 MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "fund_overlap", "fee_drag", "emergency", "goal", "panic",
             "digest", "scam_help", "scam_recovery", "tip_scan", "predict", "ledger", "help", "define", "fund_list", "simplify"}
+
+
+INTENT_HI = {
+    "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
+    "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",
+    "emergency": "इमरजेंसी पैसा कितने महीने चलेगा", "goal": "लक्ष्य पूरा होगा या नहीं", "panic": "घबराकर बेचने का असर", "digest": "साप्ताहिक सार",
+    "scam_help": "ठगी की कॉल/संदेश की जाँच", "scam_recovery": "ठगी के बाद क्या करें", "tip_scan": "स्टॉक टिप की जाँच", "predict": "भविष्यवाणी (नहीं कर सकता)",
+    "ledger": "रिकॉर्ड की सुरक्षा", "help": "मैं क्या कर सकता हूँ", "define": "शब्द का मतलब", "should_buy": "शेयर ख़रीदने का सवाल", "analyse": "कंपनी का विश्लेषण",
+    "my_funds_add": "आपके फंड सहेजना", "simplify": "और सरल में समझाना", "more": "पूरा जवाब", "chitchat": "नमस्ते",
+}
+
+
+def describe(text: str, english: str | None) -> dict[str, Any]:
+    """What was understood, in Hindi, with the figures that were read -- shown to the person to confirm
+    BEFORE anything is answered."""
+    if not english:
+        return {"intent": None, "label": None, "figures": []}
+    from analysis import tools
+    from backend import assistant
+    intent = "analyse" if english.lower().startswith("analyse") else assistant.detect(english)[0]
+    fixed = fix_spelling(text)
+    figs: list[str] = []
+    for q in quantities(fixed):
+        v = q["v"]
+        if q["kind"] == "pct":
+            figs.append(f"{_fmt(v)}%")
+        elif q["kind"] == "years":
+            figs.append(f"{_fmt(v)} साल")
+        elif q["kind"] == "months":
+            figs.append(f"{_fmt(v)} महीने")
+        elif q["kind"] == "money":
+            figs.append(tools.inr_hi(v) + (" हर महीने" if q["monthly"] else ""))
+    return {"intent": intent, "label": INTENT_HI.get(intent), "figures": figs}
 
 
 async def convert(text: str, use_model: bool = True) -> tuple[str | None, str]:
