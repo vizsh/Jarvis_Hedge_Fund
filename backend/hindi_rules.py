@@ -177,3 +177,43 @@ def exact(sentence: str) -> str | None:
             except Exception:  # noqa: BLE001
                 return None
     return None
+
+
+# Sentences from the Protect / Govern / Learn pages (scanner, tax shield, risk firewall ...).
+from backend import hindi_page_rules as _page   # noqa: E402  (needs R and SECTORS defined above)
+
+RULES.extend(_page.RULES)
+
+
+def exact(sentence: str) -> str | None:   # noqa: F811 - extends the lookup with the fixed-sentence table
+    """Hindi for one English sentence, or None if it is not one the product templates."""
+    s = sentence.strip()
+    hit = _page.STATIC.get(s) or _page.STATIC.get(s.rstrip("."))
+    if hit:
+        return hit
+    for rx, fn in RULES:
+        m = rx.match(s)
+        if m:
+            try:
+                return fn(m)
+            except Exception:  # noqa: BLE001
+                return None
+    return None
+
+
+def exact_whole(text: str) -> str | None:
+    """Hindi for a fixed multi-sentence text: the fixed table, or a rule written for the whole
+    text. A rule that only matched by letting one of its captures swallow a sentence boundary
+    (". ") is rejected -- that would be a one-sentence rule misreading several sentences."""
+    t = text.strip()
+    hit = _page.STATIC.get(t)
+    if hit:
+        return hit
+    for rx, fn in RULES:
+        m = rx.match(t)
+        if m and not any(g and ". " in g for g in m.groups()):
+            try:
+                return fn(m)
+            except Exception:  # noqa: BLE001
+                return None
+    return None

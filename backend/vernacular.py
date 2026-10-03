@@ -86,14 +86,15 @@ async def translate_many(texts: list[str], lang: str = "hi") -> list[str]:
     if lang != "hi" or not texts:
         return list(texts)
     # Whole-sentence exact rules first: this covers almost everything the explainer says.
-    from backend.hindi_rules import exact
+    from backend.hindi_rules import exact, exact_whole
     result: list[str | None] = []
     for t in texts:
         if (hit := _CACHE.get((lang, t))) is not None:
             result.append(hit)
             continue
         sents = [x for x in re.split(r"(?<=[.!?])\s+", t.strip()) if x]
-        done = [exact(x) for x in sents]
+        whole = exact_whole(t)                # a fixed multi-sentence text is matched as a whole first
+        done = [whole] if whole is not None else [exact(x) for x in sents]
         if sents and all(d is not None for d in done):
             hi = " ".join(done)                      # type: ignore[arg-type]
             _CACHE[(lang, t)] = hi

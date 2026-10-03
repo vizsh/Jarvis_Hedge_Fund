@@ -1,3 +1,4 @@
+import { useT } from "../lib/i18n";
 import { ChatThread } from "../components/ChatThread";
 import { GoalFan } from "./Demos";
 import { Canvas } from "@react-three/fiber";
@@ -81,12 +82,13 @@ export function Portfolio() {
 
 /* ------------------------------------------------------------ Learn */
 function Glossary() {
+  const { hi, t } = useT();
   const [terms, setTerms] = useState<Record<string, string>>({});
-  useEffect(() => { fetch("/glossary").then((r) => r.json()).then((d) => setTerms(d.terms ?? {})).catch(() => {}); }, []);
+  useEffect(() => { fetch(`/glossary?lang=${hi ? "hi" : "en"}`).then((r) => r.json()).then((d) => setTerms(d.terms ?? {})).catch(() => {}); }, [hi]);
   return (
     <section className="card">
-      <h2>Plain-English glossary</h2>
-      <p className="muted">The words finance uses to sound complicated, in one sentence each.</p>
+      <h2>{t("Plain-English glossary", "सरल शब्दकोश")}</h2>
+      <p className="muted">{t("The words finance uses to sound complicated, in one sentence each.", "वित्त के वे शब्द जो मुश्किल लगते हैं, एक-एक वाक्य में।")}</p>
       {Object.entries(terms).slice(0, 12).map(([k, v]) => (
         <details key={k} className="gloss"><summary>{k}</summary><p>{v}</p></details>
       ))}
@@ -95,18 +97,17 @@ function Glossary() {
 }
 
 export function Learn() {
+  const { t } = useT();
   return (
-    <Page title="Learn" lead="Ask in your own words, see what a crash would do to you, and find out where every number comes from.">
+    <Page title="Learn" lead={t("Ask in your own words, see what a crash would do to you, and find out where every number comes from.", "अपने शब्दों में पूछिए, देखिए कि गिरावट का आप पर क्या असर होगा, और जानिए कि हर आँकड़ा कहाँ से आता है।")}>
       <div className="grid"><GoalFan /></div>
       <div className="grid g2">
         <AskPanel />
         <div className="stack">
           <section className="card">
-            <h2>Every number is a door</h2>
-            <p className="muted">Click any underlined figure to see what it is made of, the formula, and the exact
-              prices and dates behind it.</p>
-            <p className="tryit">Try it: your technology share is <Num metric="sector" k="IT" value="this number" /> —
-              or your overall <Num metric="score" value="score" />.</p>
+            <h2>{t("Every number is a door", "हर आँकड़ा एक दरवाज़ा है")}</h2>
+            <p className="muted">{t("Click any underlined figure to see what it is made of, the formula, and the exact prices and dates behind it.", "रेखांकित किसी भी आँकड़े को दबाइए और देखिए कि वह किससे बना है, उसका सूत्र क्या है, और उसके पीछे के सही भाव और तारीख़ें क्या हैं।")}</p>
+            <p className="tryit">{t("Try it: your technology share is", "आज़माइए: आपका टेक्नोलॉजी हिस्सा है")} <Num metric="sector" k="IT" value={t("this number", "यह आँकड़ा")} /> {t("— or your overall", "— या आपका कुल")} <Num metric="score" value={t("score", "स्कोर")} />.</p>
           </section>
           <Glossary />
         </div>

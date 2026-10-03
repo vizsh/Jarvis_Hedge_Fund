@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useLang } from "../lib/lang";
+import { useT } from "../lib/i18n";
 import { hashParams } from "../lib/router";
 
 const EPISODE_HI: Record<string, string> = {
@@ -80,6 +81,7 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
 
 /* ------------------------------------------------------------ tamper demo */
 export function TamperDemo() {
+  const { hi, t } = useT();
   const [res, setRes] = useState<any>(null);
   const [rehash, setRehash] = useState(false);
   const [real, setReal] = useState<any>(null);
@@ -99,33 +101,33 @@ export function TamperDemo() {
 
   return (
     <section className="card">
-      <h2>Tamper test</h2>
-      <p className="muted">Try to rewrite history. Each entry carries the fingerprint of the one before it, so one edit shows up down the whole chain.</p>
+      <h2>{t("Tamper test", "छेड़छाड़ परीक्षण")}</h2>
+      <p className="muted">{t("Try to rewrite history. Each entry carries the fingerprint of the one before it, so one edit shows up down the whole chain.", "इतिहास बदलकर देखिए। हर प्रविष्टि पिछली का फ़िंगरप्रिंट रखती है, इसलिए एक बदलाव पूरी कड़ी में दिख जाता है।")}</p>
       <div className="chips">
-        <button className="btn sm go" onClick={start}>{res ? "Edit another entry" : "Tamper with an entry"}</button>
-        <label className="small"><input type="checkbox" checked={rehash} onChange={(e) => setRehash(e.target.checked)} /> forger also recomputes the fingerprint</label>
-        {target !== null && <button className="btn sm ghost" onClick={async () => setReal(await post("/ledger/tamper/real", { id: target }))}>Try a real database edit</button>}
+        <button className="btn sm go" onClick={start}>{res ? t("Edit another entry", "दूसरी प्रविष्टि बदलिए") : t("Tamper with an entry", "किसी प्रविष्टि से छेड़छाड़ कीजिए")}</button>
+        <label className="small"><input type="checkbox" checked={rehash} onChange={(e) => setRehash(e.target.checked)} /> {t("forger also recomputes the fingerprint", "जालसाज़ फ़िंगरप्रिंट भी दोबारा निकाल लेता है")}</label>
+        {target !== null && <button className="btn sm ghost" onClick={async () => setReal(await post("/ledger/tamper/real", { id: target }))}>{t("Try a real database edit", "डेटाबेस में असली बदलाव आज़माइए")}</button>}
       </div>
       {res && (
         <>
           <div className="blocks">
             {res.rows.map((r: any, i: number) => (
               <div key={r.id} className={`blk ${r.ok ? "ok" : "bad"} ${r.edited ? "edited" : ""}`}
-                   onClick={() => run(r.id, rehash)} title="Click to tamper with this one">
+                   onClick={() => run(r.id, rehash)} title={t("Click to tamper with this one", "इससे छेड़छाड़ के लिए दबाइए")}>
                 <div className="small">#{r.id} {r.side} {r.shares} {String(r.ticker).replace(".NS", "")}</div>
-                <div className="small">₹{r.price}{r.edited && " ← edited"}</div>
+                <div className="small">₹{r.price}{r.edited && (hi ? " ← बदला गया" : " ← edited")}</div>
                 <code>{r.shown_hash}</code>
-                {i > 0 && <div className="tiny">{r.prev_ok ? "link ✔" : "link ✖"}</div>}
+                {i > 0 && <div className="tiny">{r.prev_ok ? (hi ? "कड़ी ✔" : "link ✔") : (hi ? "कड़ी ✖" : "link ✖")}</div>}
               </div>))}
           </div>
           <div className={`chain ${res.intact ? "ok" : "bad"}`}>
-            {res.intact ? "Chain intact" : `Tampering detected at entry #${res.broken_at} — everything after it can no longer be trusted`}
+            {res.intact ? t("Chain intact", "कड़ी सुरक्षित") : (hi ? `प्रविष्टि #${res.broken_at} पर छेड़छाड़ पकड़ी गई — उसके बाद का कुछ भी भरोसेमंद नहीं` : `Tampering detected at entry #${res.broken_at} — everything after it can no longer be trusted`)}
           </div>
         </>
       )}
       {real && (
         <div className={`chain ${real.blocked ? "ok" : "bad"}`}>
-          {real.blocked ? `Database refused the edit: “${real.message}”. Nothing changed.` : real.message}
+          {real.blocked ? (hi ? `डेटाबेस ने बदलाव से मना कर दिया: “${real.message}”। कुछ नहीं बदला।` : `Database refused the edit: “${real.message}”. Nothing changed.`) : real.message}
         </div>)}
     </section>
   );

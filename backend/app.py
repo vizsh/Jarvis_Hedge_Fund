@@ -525,8 +525,29 @@ async def sandbox_commit() -> dict:
 
 
 @app.get("/glossary")
-async def glossary() -> dict:
+async def glossary(lang: str = "en") -> dict:
+    if lang == "hi":
+        from backend.glossary_hi import GLOSSARY_HI, TERM_NAME_HI
+        return {"terms": {TERM_NAME_HI.get(k, k): GLOSSARY_HI.get(k, v) for k, v in explain.GLOSSARY.items()}}
     return {"terms": explain.GLOSSARY}
+
+
+class TranslateIn(BaseModel):
+    lines: list[str]
+
+
+@app.post("/translate")
+async def translate_lines(body: TranslateIn) -> dict:
+    """Hindi for backend-written sentences shown on the pages. Exact rules first, then the
+    guarded model fallback; a line that cannot be translated faithfully comes back unchanged."""
+    lines = [str(x)[:600] for x in body.lines[:60]]
+    names = {universe.name(t) for t in universe.tickers()}
+    todo = [i for i, x in enumerate(lines) if x not in names]        # company names stay as written
+    done = await vernacular_mod.translate_many([lines[i] for i in todo], "hi") if todo else []
+    out = list(lines)
+    for i, hi in zip(todo, done):
+        out[i] = hi
+    return {"hindi": out}
 
 
 @app.get("/screen/{kind}")

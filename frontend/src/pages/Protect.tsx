@@ -4,15 +4,19 @@ import { useEffect, useState } from "react";
 import { Page } from "./Page";
 import { WatchlistPanel } from "../components/Watchlist";
 import { useStore } from "../lib/store";
+import { useT } from "../lib/i18n";
+
+const CLAIM_HI: Record<string, string> = { SUPPORTED: "सही निकला", CONTRADICTED: "ग़लत निकला", UNVERIFIED: "जाँचा नहीं जा सका" };
+const STATUS_HI: Record<string, string> = { WAIT: "रुकिए", SHORT_TERM: "कम अवधि", LONG_TERM: "लंबी अवधि", LOSS: "घाटा", NO_BASIS: "भाव दर्ज नहीं" };
 
 const inr = (v: number) => `₹${Math.round(Math.abs(v)).toLocaleString("en-IN")}`;
 
 const SAMPLES = [
-  { label: "A typical scam tip",
+  { label: "A typical scam tip", hi: "ठगी वाली एक आम टिप",
     text: "🚀 SURE SHOT 10x multibagger! TCS profit up 300%, target Rs 9000. Buy now before Monday, insider news. Join my VIP telegram t.me/xyz. 100% guaranteed returns." },
-  { label: "A claim that doesn't match the data",
+  { label: "A claim that doesn't match the data", hi: "डेटा से न मिलने वाला दावा",
     text: "Infosys profit surged 80% last quarter, great time to buy. Target Rs 2500." },
-  { label: "A calm, ordinary note",
+  { label: "A calm, ordinary note", hi: "एक शांत, सामान्य नोट",
     text: "HDFC Bank reported steady results. Reasonable to hold for the long term if you are diversified." },
 ];
 
@@ -51,6 +55,7 @@ function Highlighted({ text, flags }: { text: string; flags: any[] }) {
 }
 
 function TipScanner() {
+  const { hi, t, d } = useT();
   const [text, setText] = useState("");
   const [res, setRes] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -67,19 +72,19 @@ function TipScanner() {
 
   return (
     <section className="card">
-      <h2>Check a stock tip</h2>
-      <p className="muted">Paste something from Telegram, WhatsApp or Instagram. It is checked against
-        dated company data on this machine — no AI opinion involved.</p>
+      <h2>{t("Check a stock tip", "स्टॉक टिप जाँचिए")}</h2>
+      <p className="muted">{t("Paste something from Telegram, WhatsApp or Instagram. It is checked against dated company data on this machine — no AI opinion involved.", "टेलीग्राम, व्हाट्सऐप या इंस्टाग्राम से कुछ चिपकाइए। इसे इसी मशीन पर दर्ज तारीख़ वाले कंपनी डेटा से परखा जाता है — कोई AI राय शामिल नहीं।")}</p>
+      {hi && <p className="faint small">ध्यान दें: टिप का पाठ अंग्रेज़ी में होना चाहिए; जाँचने वाले नियम अंग्रेज़ी शब्दों पर चलते हैं।</p>}
       <textarea id="tip-text" className="tip-box" rows={5} value={text}
-                placeholder="Paste the tip here…" onChange={(e) => setText(e.target.value)} />
+                placeholder={t("Paste the tip here…", "टिप यहाँ चिपकाइए…")} onChange={(e) => setText(e.target.value)} />
       <div className="row">
         <button className="btn go" disabled={busy || !text.trim()} onClick={() => run()}>
-          {busy ? "Checking…" : "Check this tip"}
+          {busy ? t("Checking…", "जाँच रहा हूँ…") : t("Check this tip", "यह टिप जाँचिए")}
         </button>
-        <span className="muted small">or try:</span>
+        <span className="muted small">{t("or try:", "या आज़माइए:")}</span>
         {SAMPLES.map((s) => (
           <button key={s.label} className="chip" onClick={() => { setText(s.text); void run(s.text); }}>
-            {s.label}
+            {hi ? s.hi : s.label}
           </button>
         ))}
       </div>
@@ -89,18 +94,18 @@ function TipScanner() {
           <RiskGauge score={res.score} />
           <Highlighted text={text} flags={res.flags} />
           <div className={`vbanner ${res.tone}`}>
-            <div className="v-label">{res.verdict}</div>
-            <div className="v-score">Risk score <b>{res.score}</b>/100</div>
+            <div className="v-label">{d(res.verdict)}</div>
+            <div className="v-score">{t("Risk score", "जोखिम स्कोर")} <b>{res.score}</b>/100</div>
           </div>
-          <p className="summary">{res.summary}</p>
+          <p className="summary">{d(res.summary)}</p>
 
           {!!res.flags.length && (
             <>
-              <h3>Scam-style tactics found</h3>
+              <h3>{t("Scam-style tactics found", "ठगी जैसी चालें मिलीं")}</h3>
               {res.flags.map((f: any) => (
                 <div className="flagrow" key={f.code}>
-                  <div><b>{f.label}</b> — <code>“{f.quote}”</code></div>
-                  <div className="muted small">{f.why}</div>
+                  <div><b>{d(f.label)}</b> — <code>“{f.quote}”</code></div>
+                  <div className="muted small">{d(f.why)}</div>
                 </div>
               ))}
             </>
@@ -108,14 +113,14 @@ function TipScanner() {
 
           {!!res.claims.length && (
             <>
-              <h3>Claims we could test</h3>
+              <h3>{t("Claims we could test", "जिन दावों को हम परख सके")}</h3>
               {res.claims.map((c: any, i: number) => (
                 <div className="claimrow" key={i}>
-                  <span className={`pill ${c.status}`}>{c.status}</span>
+                  <span className={`pill ${c.status}`}>{hi ? CLAIM_HI[c.status] ?? c.status : c.status}</span>
                   <div>
                     <div><b>“{c.text}”</b></div>
-                    <div className="muted small">{c.evidence}</div>
-                    {c.source && <div className="faint small">Source: {c.source}</div>}
+                    <div className="muted small">{d(c.evidence)}</div>
+                    {c.source && <div className="faint small">{t("Source", "स्रोत")}: {c.source}</div>}
                   </div>
                 </div>
               ))}
@@ -124,12 +129,12 @@ function TipScanner() {
 
           {!!res.companies.length && (
             <>
-              <h3>What our data says about {res.companies.map((c: any) => c.name).join(", ")}</h3>
+              <h3>{t("What our data says about", "हमारा डेटा इनके बारे में क्या कहता है")} {res.companies.map((c: any) => c.name).join(", ")}</h3>
               {res.companies.map((c: any) => c.evidence.map((e: string, i: number) =>
-                <div className="muted small" key={c.ticker + i}>{c.name}: {e}</div>))}
+                <div className="muted small" key={c.ticker + i}>{c.name}: {d(e)}</div>))}
             </>
           )}
-          <p className="faint small">{res.disclaimer}</p>
+          <p className="faint small">{d(res.disclaimer)}</p>
         </div>
       )}
     </section>
@@ -138,6 +143,7 @@ function TipScanner() {
 
 /* ------------------------------------------------------------ tax shield */
 function TaxShield() {
+  const { hi, t, d: dt } = useT();
   const [d, setD] = useState<any>(null);
   const fund = useStore((s) => s.fund);
   const [form, setForm] = useState({ ticker: "", price: "", date: "" });
@@ -150,66 +156,65 @@ function TaxShield() {
     const r = await fetch("/lots", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticker: form.ticker, shares: 0, buy_price: Number(form.price), buy_date: form.date }) });
     const j = await r.json();
-    setMsg(j.ok ? "Saved." : (j.reason ?? "Could not save."));
+    setMsg(j.ok ? t("Saved.", "सहेज लिया।") : (dt(j.reason) || t("Could not save.", "सहेज नहीं सका।")));
     if (j.ok) { setForm({ ticker: "", price: "", date: "" }); void load(); }
   };
 
-  if (!d) return <section className="card"><h2>Tax shield</h2><p className="muted">Loading…</p></section>;
+  if (!d) return <section className="card"><h2>{t("Tax shield", "टैक्स ढाल")}</h2><p className="muted">{t("Loading…", "लोड हो रहा है…")}</p></section>;
   return (
     <section className="card">
-      <h2>Tax shield</h2>
-      <p className="muted">Shares sold within a year are taxed at 20%; after a year, 12.5%. For each holding:
-        what selling today costs, and what waiting would save.</p>
+      <h2>{t("Tax shield", "टैक्स ढाल")}</h2>
+      <p className="muted">{t("Shares sold within a year are taxed at 20%; after a year, 12.5%. For each holding: what selling today costs, and what waiting would save.", "एक साल के भीतर बेचे शेयरों पर 20% टैक्स लगता है; एक साल के बाद 12.5%। हर शेयर के लिए: आज बेचने पर कितना ख़र्च, और रुकने पर कितना बचत।")}</p>
       <div className="bigstat">
         <div className="bs-n">{inr(d.total_saving)}</div>
-        <div className="bs-l">you could save by waiting on holdings close to the one-year mark</div>
+        <div className="bs-l">{t("you could save by waiting on holdings close to the one-year mark", "एक साल के क़रीब वाले शेयरों पर रुकने से आप इतना बचा सकते हैं")}</div>
       </div>
       {d.sample && (
-        <p className="faint small">These purchase dates are examples for the sample portfolio. Cost basis is
-          something only you know, so for your own holdings add it below — it is never guessed.</p>
+        <p className="faint small">{t("These purchase dates are examples for the sample portfolio. Cost basis is something only you know, so for your own holdings add it below — it is never guessed.", "ये ख़रीद तारीख़ें नमूना पोर्टफ़ोलियो के उदाहरण हैं। ख़रीद की लागत सिर्फ़ आप जानते हैं, इसलिए अपने शेयरों की नीचे जोड़िए — उसका अंदाज़ा कभी नहीं लगाया जाता।")}</p>
       )}
       <div className="tablewrap">
         <table className="tbl">
-          <thead><tr><th>Holding</th><th>Held</th><th>Gain</th><th>Tax if sold today</th><th>What to do</th></tr></thead>
+          <thead><tr><th>{t("Holding", "शेयर")}</th><th>{t("Held", "रखा")}</th><th>{t("Gain", "मुनाफ़ा")}</th><th>{t("Tax if sold today", "आज बेचें तो टैक्स")}</th><th>{t("What to do", "क्या करें")}</th></tr></thead>
           <tbody>
             {d.rows.map((r: any) => (
               <tr key={r.ticker}>
-                <td><b>{r.name}</b><div className="faint small">{r.shares} shares</div></td>
+                <td><b>{r.name}</b><div className="faint small">{r.shares} {t("shares", "शेयर")}</div></td>
                 <td>
                   {r.held_days != null ? (
                     <>
                       <div className="holdbar"><span style={{ width: `${Math.min(100, (r.held_days / 365) * 100)}%` }} /></div>
-                      <div className="faint small">{r.held_days} of 365 days</div>
+                      <div className="faint small">{hi ? `365 में से ${r.held_days} दिन` : `${r.held_days} of 365 days`}</div>
                     </>
                   ) : "—"}
                 </td>
                 <td className={r.gain < 0 ? "neg" : ""}>{r.gain != null ? (r.gain < 0 ? "-" : "") + inr(r.gain) : "—"}</td>
                 <td>{r.tax_now != null ? inr(r.tax_now) : "—"}</td>
-                <td><span className={`pill s-${r.status}`}>{r.status.replace("_", " ")}</span>
-                  <div className="small">{r.action}</div></td>
+                <td><span className={`pill s-${r.status}`}>{hi ? STATUS_HI[r.status] ?? r.status : r.status.replace("_", " ")}</span>
+                  <div className="small">{dt(r.action)}</div></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="row addlot">
-        <input id="lot-ticker" placeholder="Company (e.g. Wipro)" value={form.ticker}
+        <input id="lot-ticker" placeholder={t("Company (e.g. Wipro)", "कंपनी (जैसे Wipro)")} value={form.ticker}
                onChange={(e) => setForm({ ...form, ticker: e.target.value })} />
-        <input id="lot-price" type="number" placeholder="Price you paid" value={form.price}
+        <input id="lot-price" type="number" placeholder={t("Price you paid", "आपने जो भाव दिया")} value={form.price}
                onChange={(e) => setForm({ ...form, price: e.target.value })} />
         <input id="lot-date" type="date" value={form.date}
                onChange={(e) => setForm({ ...form, date: e.target.value })} />
-        <button className="btn" disabled={!form.ticker || !form.price || !form.date} onClick={add}>Add purchase</button>
+        <button className="btn" disabled={!form.ticker || !form.price || !form.date} onClick={add}>{t("Add purchase", "ख़रीद जोड़ें")}</button>
         {msg && <span className="muted small">{msg}</span>}
       </div>
-      <p className="faint small">{d.caveat}</p>
+      <p className="faint small">{dt(d.caveat)}</p>
     </section>
   );
 }
 
 export default function Protect() {
+  const { t } = useT();
   return (
-    <Page title="Protect" lead="Catch scams before they cost you, and stop paying tax you didn't need to.">
+    <Page title="Protect" lead={t("Catch scams before they cost you, and stop paying tax you didn't need to.", "ठगी को पैसे ख़र्च कराने से पहले पकड़िए, और जो टैक्स देना ज़रूरी नहीं था, उसे देना बंद कीजिए।")}>
       <div className="grid g2">
         <TipScanner />
         <TaxShield />

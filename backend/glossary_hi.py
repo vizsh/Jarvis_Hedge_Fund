@@ -45,3 +45,13 @@ FLAG_LABEL_HI = {
     "REGISTRATION": "सेबी पंजीकरण का दावा (जाँच लें)",
 }
 CLAIM_STATUS_HI = {"SUPPORTED": "सही निकला", "CONTRADICTED": "ग़लत निकला", "UNVERIFIED": "जाँचा नहीं जा सका"}
+
+TERM_NAME_HI = {
+    "beta": "बीटा", "drawdown": "ड्रॉडाउन (सबसे बड़ी गिरावट)", "volatility": "वोलैटिलिटी (उतार-चढ़ाव)", "sector": "सेक्टर (उद्योग)",
+    "sector cap": "उद्योग की सीमा", "concentration": "संकेंद्रण", "nav": "कुल क़ीमत (NAV)", "cash buffer": "नक़द बफ़र",
+    "hhi": "HHI", "effective holdings": "असल में कितने शेयर", "brier score": "ब्रायर स्कोर", "point in time": "उस तारीख़ की जानकारी",
+    "groupthink": "सब एक-सा सोचना", "conviction": "भरोसा", "paper trading": "अभ्यास वाला सौदा", "mutual fund": "म्यूचुअल फ़ंड",
+    "sip": "SIP", "systematic investment plan": "सिस्टमैटिक इन्वेस्टमेंट प्लान", "expense ratio": "एक्सपेंस रेशियो (सालाना फ़ीस)",
+    "index fund": "इंडेक्स फ़ंड", "etf": "ETF", "elss": "ELSS", "overlap": "ओवरलैप", "emergency fund": "इमरजेंसी फ़ंड",
+    "otp": "OTP", "digital arrest": "डिजिटल अरेस्ट", "kyc": "KYC", "compounding": "चक्रवृद्धि", "sebi": "सेबी", "nifty": "निफ़्टी",
+}

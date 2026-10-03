@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Panel } from "./Panels";
 import { useStore } from "../lib/store";
+import { useT } from "../lib/i18n";
 
 interface Watch {
   id: string; label: string; metric: string; value: number | null;
@@ -26,6 +27,7 @@ const show = (v: number | null, unit?: string) => {
  *  you already suspect something. A watch is push. You say once what would worry you
  *  and it checks itself every time the book moves. */
 export function WatchlistPanel() {
+  const { t, d } = useT();
   const [data, setData] = useState<{ watches: Watch[]; breached: Watch[];
                                      suggestions?: Suggestion[] } | null>(null);
   const [adding, setAdding] = useState(false);
@@ -54,11 +56,10 @@ export function WatchlistPanel() {
   const breached = data.breached?.length ?? 0;
 
   return (
-    <Panel title="Tell me if…" tone={breached ? "alert" : undefined} className="watchlist">
+    <Panel title={t("Tell me if…", "मुझे बताइए अगर…")} tone={breached ? "alert" : undefined} className="watchlist">
       {!data.watches.length && (
         <div className="wl-empty">
-          No standing rules yet. Set one and I will check it every time your portfolio
-          moves, without you having to ask.
+          {t("No standing rules yet. Set one and I will check it every time your portfolio moves, without you having to ask.", "अभी कोई स्थायी नियम नहीं है। एक बनाइए, मैं हर बार आपका पोर्टफ़ोलियो हिलने पर उसे बिना पूछे जाँचूँगा।")}
         </div>
       )}
 
@@ -66,22 +67,22 @@ export function WatchlistPanel() {
         <div className={`wl-row ${w.state}`} key={w.id}>
           <div className="wl-main">
             <span className={`wl-dot ${w.state}`} />
-            <span className="wl-label">{w.label}</span>
+            <span className="wl-label">{d(w.label)}</span>
           </div>
           <div className="wl-side">
             <span className="wl-value">{show(w.value, w.unit)}</span>
-            <button className="wl-x" title="Remove" onClick={() => drop(w.id)}>✕</button>
+            <button className="wl-x" title={t("Remove", "हटाइए")} onClick={() => drop(w.id)}>✕</button>
           </div>
         </div>
       ))}
 
       {(adding || !data.watches.length) && !!data.suggestions?.length && (
         <div className="wl-suggest">
-          <div className="wl-sug-label">Worth watching, based on where you are today</div>
+          <div className="wl-sug-label">{t("Worth watching, based on where you are today", "आज आप जहाँ हैं, उसके हिसाब से नज़र रखने लायक़")}</div>
           {data.suggestions.map((s, i) => (
             <div className="wl-sug" key={i} onClick={() => void add(s)}>
-              <div className="wl-sug-text">{s.label}</div>
-              <div className="wl-sug-why">{s.because}</div>
+              <div className="wl-sug-text">{d(s.label)}</div>
+              <div className="wl-sug-why">{d(s.because)}</div>
             </div>
           ))}
         </div>
@@ -89,7 +90,7 @@ export function WatchlistPanel() {
 
       {!!data.watches.length && (
         <button className="btn sm ghost wl-add" onClick={() => setAdding(!adding)}>
-          {adding ? "close" : "+ add a rule"}
+          {adding ? t("close", "बंद करें") : t("+ add a rule", "+ नियम जोड़ें")}
         </button>
       )}
 
@@ -103,6 +104,7 @@ export function WatchlistPanel() {
 /** Suggestions only come back when the list is empty, so fetch them explicitly once
  *  somebody asks to add a second rule. */
 function SuggestionLoader({ onPick }: { onPick: (s: Suggestion) => void }) {
+  const { d } = useT();
   const [sugs, setSugs] = useState<Suggestion[]>([]);
 
   useEffect(() => {
@@ -130,8 +132,8 @@ function SuggestionLoader({ onPick }: { onPick: (s: Suggestion) => void }) {
     <div className="wl-suggest">
       {sugs.map((s, i) => (
         <div className="wl-sug" key={i} onClick={() => onPick(s)}>
-          <div className="wl-sug-text">{s.label}</div>
-          <div className="wl-sug-why">{s.because}</div>
+          <div className="wl-sug-text">{d(s.label)}</div>
+          <div className="wl-sug-why">{d(s.because)}</div>
         </div>
       ))}
     </div>

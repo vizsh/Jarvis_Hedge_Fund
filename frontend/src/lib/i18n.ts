@@ -1,10 +1,45 @@
+import { useEffect, useRef, useState } from "react";
+
 import { useLang } from "./lang";
 
 /** Pick the string for the language the person chose. English stays English; Hindi is shown only
  *  when Hindi is selected, so the choice is theirs. */
+const cache = new Map<string, string>();
+
+/** `t(en, hi)` picks a fixed string. `d(text)` is for sentences the backend wrote in English
+ *  (verdicts, explanations, rule labels): in Hindi mode it shows the Hindi from /translate when it
+ *  has arrived (exact rules first, guarded model after; unchanged English if neither is sure). */
 export function useT() {
   const hi = useLang((s) => s.lang) === "hi";
-  return { hi, t: (en: string, hindi: string) => (hi ? hindi : en) };
+  const [, bump] = useState(0);
+  const wanted = useRef(new Set<string>());
+  const d = (text: string | null | undefined): string => {
+    if (!text || !hi) return text ?? "";
+    const c = cache.get(text);
+    if (c !== undefined) return c;
+    wanted.current.add(text);
+    return text;
+  };
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => {
+    if (!wanted.current.size) return;
+    const need = [...wanted.current];
+    wanted.current.clear();
+    (async () => {
+      for (let i = 0; i < need.length; i += 40) {
+        const chunk = need.slice(i, i + 40);
+        try {
+          const r = await fetch("/translate", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ lines: chunk }) });
+          const j = await r.json();
+          chunk.forEach((l, k) => cache.set(l, j.hindi?.[k] ?? l));
+        } catch { chunk.forEach((l) => cache.set(l, l)); }
+      }
+      if (mounted.current) bump((n) => n + 1);
+    })();
+  });
+  return { hi, t: (en: string, hindi: string) => (hi ? hindi : en), d };
 }
 
 // Known microphone / transcription messages (they are produced in English by the voice code).

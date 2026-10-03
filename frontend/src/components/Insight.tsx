@@ -5,6 +5,13 @@ import { pct, rupees } from "./Portfolio";
 import { useStore } from "../lib/store";
 import { Num } from "./DrillDown";
 import { AnswerCard } from "./AnswerCard";
+import { useT } from "../lib/i18n";
+
+const SCENARIO_HI: Record<string, string> = {
+  covid: "कोविड की गिरावट", covid_recovery: "कोविड के बाद की रिकवरी", rate_shock_2022: "2022 की ब्याज दरों की मार",
+  adani_2023: "जनवरी 2023 की बिकवाली", market_10: "बाज़ार 10% गिरे", market_20: "बाज़ार 20% गिरे",
+  it_30: "टेक्नोलॉजी 30% गिरे", banks_25: "बैंक 25% गिरें",
+};
 
 /** Portfolio X-ray. The first screen a new user should see, because "what does what
  *  I already own look like" is the question they actually have. */
@@ -88,6 +95,7 @@ export function XRayPanel({ onOpenBuilder }: { onOpenBuilder: () => void }) {
 /** Stress tests. Historical windows are facts about your holdings; the parametric
  *  ones are labelled as what-ifs, and the UI keeps that distinction visible. */
 export function StressPanel() {
+  const { hi, t, d: dt } = useT();
   const [data, setData] = useState<any>(null);
   const [open, setOpen] = useState<string | null>(null);
   const fund = useStore((s) => s.fund);
@@ -100,13 +108,13 @@ export function StressPanel() {
   const worst = data.worst_case;
 
   return (
-    <Panel title="What if it goes wrong" tone={worst && worst.portfolio_return < -0.25 ? "alert" : undefined}>
+    <Panel title={t("What if it goes wrong", "गड़बड़ हुई तो क्या होगा")} tone={worst && worst.portfolio_return < -0.25 ? "alert" : undefined}>
       {worst && (
         <div className="worst-case">
-          <div className="wc-label">Worst case tested</div>
+          <div className="wc-label">{t("Worst case tested", "जाँचा गया सबसे बुरा हाल")}</div>
           <div className="wc-value">{rupees(Math.abs(worst.value_change))}</div>
           <div className="wc-sub">
-            lost in the {worst.label.toLowerCase()} — {pct(Math.abs(worst.portfolio_return))} of your money
+            {hi ? `${SCENARIO_HI[worst.key] ?? worst.label} में गए — आपके पैसे का ${pct(Math.abs(worst.portfolio_return))}` : `lost in the ${worst.label.toLowerCase()} — ${pct(Math.abs(worst.portfolio_return))} of your money`}
           </div>
         </div>
       )}
@@ -116,32 +124,31 @@ export function StressPanel() {
           <div className="scenario" onClick={() => setOpen(open === s.key ? null : s.key)}>
             <span className={`kind ${s.kind}`} title={
               s.kind === "historical"
-                ? "Real prices from a window that actually happened"
-                : "A what-if: the same fall applied uniformly"}>
-              {s.kind === "historical" ? "REAL" : "WHAT-IF"}
+                ? t("Real prices from a window that actually happened", "असल में हुए दौर के असली भाव")
+                : t("A what-if: the same fall applied uniformly", "एक \"अगर ऐसा हो\": हर जगह एक-सी गिरावट")}>
+              {s.kind === "historical" ? t("REAL", "असली") : t("WHAT-IF", "अगर-तो")}
             </span>
-            <span className="s-label">{s.label}</span>
+            <span className="s-label">{hi ? SCENARIO_HI[s.key] ?? s.label : s.label}</span>
             <span className={`s-ret ${s.portfolio_return < 0 ? "neg" : "pos"}`}>
               {s.portfolio_return > 0 ? "+" : ""}{pct(s.portfolio_return)}
             </span>
           </div>
           {open === s.key && (
             <div className="scenario-detail">
-              <div>{s.blurb}</div>
-              <div className="kv"><span className="k">Your value</span>
+              <div>{dt(s.blurb)}</div>
+              <div className="kv"><span className="k">{t("Your value", "आपकी क़ीमत")}</span>
                 <span className="v">{rupees(s.nav_before)} → {rupees(s.nav_after)}</span></div>
               {s.benchmark_return != null && (
                 <div className="kv"><span className="k">{data.benchmark_label}</span>
                   <span className="v">{pct(s.benchmark_return)}</span></div>
               )}
               {!!s.worst?.length && (
-                <div className="kv"><span className="k">Hardest hit</span>
+                <div className="kv"><span className="k">{t("Hardest hit", "सबसे ज़्यादा चोट")}</span>
                   <span className="v">{s.worst.map((w: any) => w[0]).join(", ")}</span></div>
               )}
               {s.coverage < 0.95 && (
                 <div className="tiny" style={{ marginTop: 5 }}>
-                  Only {pct(s.coverage)} of your money could be priced in this window —
-                  some holdings had not listed yet.
+                  {t(`Only ${pct(s.coverage)} of your money could be priced in this window — some holdings had not listed yet.`, `इस दौर में आपके पैसे का सिर्फ़ ${pct(s.coverage)} का भाव मिल सका — कुछ शेयर तब सूचीबद्ध ही नहीं थे।`)}
                 </div>
               )}
             </div>
@@ -154,16 +161,17 @@ export function StressPanel() {
 
 /** Plain-language Q&A. Suggested questions matter more than the input box: a user who
  *  does not know what to ask will ask nothing. */
-const SUGGESTED = [
-  "How am I doing?",
-  "Which of my mutual funds overlap?",
-  "What does a 2% fee cost over 20 years?",
-  "How long will 3 lakh last if I spend 40000 a month?",
-  "Will 10000 a month reach 50 lakh in 15 years?",
-  "What if the market drops 20%?",
+const SUGGESTED: [string, string][] = [
+  ["How am I doing?", "मेरा पोर्टफ़ोलियो कैसा चल रहा है?"],
+  ["Which of my mutual funds overlap?", "मेरे कौन से म्यूचुअल फ़ंड मिलते हैं?"],
+  ["What does a 2% fee cost over 20 years?", "2% फ़ीस 20 साल में कितनी पड़ती है?"],
+  ["How long will 3 lakh last if I spend 40000 a month?", "3 लाख कितने महीने चलेंगे?"],
+  ["Will 10000 a month reach 50 lakh in 15 years?", "10000 महीने से 15 साल में 50 लाख?"],
+  ["What if the market drops 20%?", "बाज़ार 20% गिरे तो?"],
 ];
 
 export function AskPanel() {
+  const { hi, t } = useT();
   const [answer, setAnswer] = useState<any>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -186,18 +194,18 @@ export function AskPanel() {
   };
 
   return (
-    <Panel title="Ask me anything">
+    <Panel title={t("Ask me anything", "मुझसे कुछ भी पूछिए")}>
       <div className="ask-chips">
         {SUGGESTED.map((s) => (
-          <div className="ask-chip" key={s} onClick={() => ask(s)}>{s}</div>
+          <div className="ask-chip" key={s[0]} onClick={() => ask(s[0])}>{hi ? s[1] : s[0]}</div>
         ))}
       </div>
       <div className="cmdrow" style={{ marginTop: 8 }}>
-        <input className="field" placeholder="Ask in your own words…" value={q}
+        <input className="field" placeholder={t("Ask in your own words…", "अपने शब्दों में पूछिए…")} value={q}
                onChange={(e) => setQ(e.target.value)}
                onKeyDown={(e) => { if (e.key === "Enter") ask(q); }} />
         <button className="btn go" disabled={busy} onClick={() => ask(q)}>
-          {busy ? "…" : "Ask"}
+          {busy ? "…" : t("Ask", "पूछें")}
         </button>
       </div>
 
@@ -207,18 +215,18 @@ export function AskPanel() {
           {/* Explain-back. Three levels of the same truth, the reader picks, rather than
               one level and a hope that it landed. */}
           <div className="a-levels">
-            <span className="a-lv-label">Does that make sense?</span>
+            <span className="a-lv-label">{t("Does that make sense?", "क्या यह समझ आया?")}</span>
             <button className={`a-lv ${answer.level === "simple" ? "on" : ""}`}
                     disabled={busy} onClick={() => ask(asked, "simple")}>
-              Simpler
+              {t("Simpler", "और सरल")}
             </button>
             <button className={`a-lv ${answer.level === "maths" ? "on" : ""}`}
                     disabled={busy} onClick={() => ask(asked, "maths")}>
-              Show the maths
+              {t("Show the maths", "हिसाब दिखाइए")}
             </button>
             {answer.level !== "normal" && (
               <button className="a-lv" disabled={busy} onClick={() => ask(asked, "normal")}>
-                Back
+                {t("Back", "पीछे")}
               </button>
             )}
           </div>

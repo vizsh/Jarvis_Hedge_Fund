@@ -92,3 +92,50 @@ def test_known_hindi_questions_map_back_to_english_without_the_model():
     for en in ("Why is my risk high?", "What should I sell?", "Am I diversified?"):
         hi = H.exact(en)
         assert asyncio.run(V.to_english(hi)) == en
+
+
+def test_page_sentences_have_exact_hindi_with_every_number():
+    cases = ["It uses 3 scam-style tactics: promises guaranteed returns, promises a huge multiple.",
+             "Wait 12 more days to cross 12 months and save ₹1,267.",
+             "IT exposure would rise to 52.1%, above the 35.0% sector cap.",
+             "Reduce from 30 to 12 shares - SECTOR_LIMIT binds, leaving IT at 35.0% and cash at 7.2%.",
+             "Price is +4.2% over the last 3 months (close 3,901.20 on 2026-09-12).",
+             "A uniform 20% fall applied to everything you hold. A what-if, not a forecast.",
+             "Our data shows net income moved +12.3% from the previous period; the tip says +80%.",
+             "Cash would fall to 3.2%, below the 5.0% minimum reserve."]
+    for en in cases:
+        hi = H.exact(en)
+        assert hi and V.looks_hindi(hi), en
+        assert V.numbers_preserved(en, hi), (en, hi)
+
+
+def test_every_scanner_and_stress_fixed_sentence_is_translated():
+    from analysis import scanner, stress
+    fixed = [x for f in scanner.FLAGS for x in (f[1], f[4])]
+    fixed += [s["blurb"] for s in stress.HISTORICAL] + [s["label"] for s in (*stress.HISTORICAL, *stress.HYPOTHETICAL)]
+    for en in fixed:
+        assert H.exact(en), en
+
+
+def test_every_drilldown_sentence_has_exact_hindi(session):
+    from backend import drilldown
+    metrics = ["nav", "sector", "position", "effective_holdings", "score", "beta", "max_drawdown", "cash"]
+    from core import universe
+    names = {universe.name(t) for t in universe.tickers()}          # company names are proper nouns
+    missing = []
+    for m in metrics:
+        d = drilldown.explain_metric(m, session.pit, session.portfolio, session.prices, session.policy)
+        texts = [d["title"], d["formula"], d["why"], d["provenance"]["rule"]]
+        for c in d.get("components", []):
+            texts += [c["label"], c.get("sub") or ""]
+        for t in texts:
+            if t and t not in names and not (H.exact_whole(t) or H.exact(t)):
+                missing.append((m, t))
+    assert not missing, missing[:5]
+
+
+def test_company_names_are_not_transliterated_by_the_translate_endpoint():
+    import asyncio
+    from backend import app as app_mod
+    out = asyncio.run(app_mod.translate_lines(app_mod.TranslateIn(lines=["TCS", "Infosys", "Total value"])))
+    assert out["hindi"][:2] == ["TCS", "Infosys"] and V.looks_hindi(out["hindi"][2])
