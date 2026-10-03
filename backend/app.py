@@ -305,11 +305,20 @@ async def parse_holdings(body: PasteIn) -> dict:
 
 
 @app.get("/xray")
-async def portfolio_xray() -> dict:
+async def portfolio_xray(lang: str = "en") -> dict:
     if not session or not session.portfolio.positions:
         return {"empty": True}
-    return xray_mod.analyse(session.pit, session.portfolio, session.prices,
-                            session.policy).as_dict()
+    out = xray_mod.analyse(session.pit, session.portfolio, session.prices,
+                           session.policy).as_dict()
+    if lang == "hi" and out.get("findings"):
+        # headline/detail in Hindi through the same exact-rule translator the answers use;
+        # a line it cannot translate faithfully stays in English rather than risk a wrong figure
+        fs = out["findings"]
+        hs = await vernacular_mod.translate_many([f["headline"].rstrip(".") + "." for f in fs], "hi")   # the rule table keys on full sentences
+        ds = await vernacular_mod.translate_many([f.get("detail") or "" for f in fs], "hi")
+        for f, h, d in zip(fs, hs, ds):
+            f["headline"], f["detail"] = h.rstrip("।."), d or f.get("detail")
+    return out
 
 
 @app.get("/stress")
@@ -351,14 +360,14 @@ async def next_best_actions(limit: int = 6) -> dict:
 
 
 @app.get("/flows")
-async def list_flows(audience: str | None = None) -> dict:
-    return {"flows": flows_mod.listing(audience)}
+async def list_flows(audience: str | None = None, lang: str = "en") -> dict:
+    return {"flows": flows_mod.listing(audience, lang)}
 
 
 @app.get("/flows/{flow_id}")
-async def get_flow(flow_id: str) -> dict:
+async def get_flow(flow_id: str, lang: str = "en") -> dict:
     flow = flows_mod.get(flow_id)
-    return flow.as_dict() if flow else {"error": f"no flow {flow_id!r}"}
+    return flows_mod.localize(flow.as_dict(), lang) if flow else {"error": f"no flow {flow_id!r}"}
 
 
 @app.get("/palette")

@@ -319,12 +319,39 @@ _register(Flow(
 
 
 # --------------------------------------------------------------------------- lookup
-def listing(audience: str | None = None) -> list[dict[str, Any]]:
+def localize(d: dict[str, Any], lang: str) -> dict[str, Any]:
+    """Overlay the hand-written Hindi wording on a flow (or tile) dict. Anything without a Hindi
+    entry keeps its English, so a flow added later still works before it is translated."""
+    if lang != "hi":
+        return d
+    from backend.flows_hi import FLOWS_HI
+    hi = FLOWS_HI.get(d["id"])
+    if not hi:
+        return d
+    out = dict(d, title=hi["title"], subtitle=hi["subtitle"], lang="hi")
+    if "steps" in d:
+        steps = []
+        for i, st in enumerate(d["steps"]):
+            h = hi["steps"][i] if i < len(hi["steps"]) else {}
+            st = dict(st)
+            if h.get("text"):
+                st["text"] = h["text"]
+            if h.get("note"):
+                st["note"] = h["note"]
+            if h.get("options"):
+                st["options"] = [dict(o, label=ho["label"], consequence=ho["consequence"])
+                                 for o, ho in zip(st["options"], h["options"])]
+            steps.append(st)
+        out["steps"] = steps
+    return out
+
+
+def listing(audience: str | None = None, lang: str = "en") -> list[dict[str, Any]]:
     """Tiles for the launcher, without dragging every step over the wire."""
     flows = FLOWS.values()
     if audience and audience != "everyone":
         flows = [f for f in flows if f.audience in ("everyone", audience)]
-    return [f.as_dict(with_steps=False) for f in flows]
+    return [localize(f.as_dict(with_steps=False), lang) for f in flows]
 
 
 def get(flow_id: str) -> Flow | None:

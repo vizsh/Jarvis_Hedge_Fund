@@ -365,3 +365,23 @@ def test_tip_scan_labels_are_hindi_in_hindi_mode(session):
     a = ask(session, "is this telegram tip legit: SURE SHOT! TCS profit up 300%, target 9000, guaranteed returns, join my VIP group today", "hi")
     text = " ".join(a.bullets)
     assert "पक्के मुनाफ़े का वादा" in text and "Promises" not in text
+
+
+def test_every_flow_has_complete_hindi_that_lines_up_with_english():
+    from backend import flows
+    from backend.flows_hi import FLOWS_HI
+    assert set(flows.FLOWS) == set(FLOWS_HI)
+    for fid, f in flows.FLOWS.items():
+        hi = FLOWS_HI[fid]
+        assert len(hi["steps"]) == len(f.steps), fid
+        loc = flows.localize(f.as_dict(), "hi")
+        for en, h in zip(f.steps, loc["steps"]):
+            assert V.looks_hindi(h["text"]), (fid, h["text"])
+            assert bool(en.note) == bool(h["note"]), (fid, en.text)
+            assert len(en.options) == len(h["options"])
+            assert all(V.looks_hindi(o["label"]) and V.looks_hindi(o["consequence"]) for o in h["options"])
+            assert h["question"] == en.question and h["endpoint"] == en.endpoint     # behaviour is untouched
+        # every figure in the English text is still in the Hindi (tax rates, limits)
+        for en, h in zip(f.steps, loc["steps"]):
+            for n in V._numbers(en.text + " ".join(o["consequence"] for o in en.options)):
+                assert n in V._numbers(h["text"] + " ".join(o["consequence"] for o in h["options"])), (fid, n)

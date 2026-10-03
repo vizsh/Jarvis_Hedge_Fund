@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "./Panels";
 import { useGuide, type Action, type Flow } from "../lib/guide";
 import { useStore } from "../lib/store";
-import { JOBS_HI, useT } from "../lib/i18n";
+import { useT } from "../lib/i18n";
 
 const rupees = (v: number) => {
   const a = Math.abs(v);
@@ -101,9 +101,9 @@ export function JobsLauncher({ compact = false }: { compact?: boolean }) {
   const startFlow = useGuide((s) => s.startFlow);
 
   useEffect(() => {
-    fetch("/flows").then((r) => r.json()).then((d) => setFlows(d.flows ?? []))
+    fetch(`/flows?lang=${hi ? "hi" : "en"}`).then((r) => r.json()).then((d) => setFlows(d.flows ?? []))
       .catch(() => {});
-  }, []);
+  }, [hi]);
 
   if (!flows.length) return null;
   const shown = compact ? flows.slice(0, 5) : flows;
@@ -115,8 +115,8 @@ export function JobsLauncher({ compact = false }: { compact?: boolean }) {
           <div className="job" key={f.id} onClick={() => void startFlow(f.id)}>
             <div className={`job-icon i-${f.icon}`} />
             <div className="job-body">
-              <div className="job-title">{hi ? JOBS_HI[f.id]?.title ?? f.title : f.title}</div>
-              <div className="job-sub">{hi ? JOBS_HI[f.id]?.subtitle ?? f.subtitle : f.subtitle}</div>
+              <div className="job-title">{f.title}</div>
+              <div className="job-sub">{f.subtitle}</div>
             </div>
             <div className="job-time">{f.minutes}{t("m", " मि")}</div>
           </div>

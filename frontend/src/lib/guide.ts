@@ -93,7 +93,7 @@ export const useGuide = create<GuideState>((set, get) => ({
   highlight: null,
 
   startFlow: async (id) => {
-    const res = await fetch(`/flows/${id}`);
+    const res = await fetch(`/flows/${id}?lang=${useLang.getState().lang}`);
     const flow: Flow = await res.json();
     if (!flow?.steps?.length) return;
     // Opening a flow closes everything else. Two overlays at once is never what
@@ -151,11 +151,11 @@ async function runStep(
   // Speaking is the whole point of a guided flow, so a step that wants to be spoken
   // must clear any earlier Stop latch — otherwise the tour runs in silence and looks
   // broken rather than muted.
-  // In Hindi mode the static step wording is English: staying silent is better than
-  // speaking English over Hindi answers. (Question steps still speak Hindi via /ask.)
-  if (guidedVoice && step.speak && step.text && useLang.getState().lang === "en") {
+  // The step wording arrives in the chosen language (see /flows?lang=), so it is spoken in it.
+  const lang = useLang.getState().lang;
+  if (guidedVoice && step.speak && step.text) {
     allowSpeech();
-    speak(step.text);
+    speak(step.text, lang);
   }
 
   if (step.kind === "ask" && step.question) {
@@ -171,7 +171,9 @@ async function runStep(
     }
   } else if (step.endpoint) {
     try {
-      const res = await fetch(step.endpoint);
+      // the x-ray carries finding sentences, so it is asked for in the chosen language
+      const url = step.endpoint.startsWith("/xray") ? `${step.endpoint}${step.endpoint.includes("?") ? "&" : "?"}lang=${lang}` : step.endpoint;
+      const res = await fetch(url);
       set({ stepData: await res.json() });
     } catch {
       set({ stepData: null });

@@ -1,3 +1,4 @@
+import { useT } from "../lib/i18n";
 import { useEffect, useState } from "react";
 
 import { chooseOption, useGuide } from "../lib/guide";
@@ -9,6 +10,7 @@ import { pct, rupees } from "./Portfolio";
  *  somewhere. Each step raises its own panel and fetches its own data, so the app is
  *  doing the navigating. That is the whole difference between guiding and being guided. */
 export function FlowRunner() {
+  const { t } = useT();
   const flow = useGuide((s) => s.flow);
   const index = useGuide((s) => s.step);
   const data = useGuide((s) => s.stepData);
@@ -47,14 +49,14 @@ export function FlowRunner() {
               <span key={i} className={`fp ${i === index ? "on" : i < index ? "done" : ""}`} />
             ))}
           </div>
-          <button className="flow-x" onClick={end} title="Leave (Esc)">✕</button>
+          <button className="flow-x" onClick={end} title={t("Leave (Esc)", "छोड़ें (Esc)")}>✕</button>
         </div>
 
         <div className="flow-body">
           <div className="flow-say">{step.text}</div>
           {step.note && <div className="flow-note">{step.note}</div>}
 
-          {busy && <div className="flow-load">working…</div>}
+          {busy && <div className="flow-load">{t("working…", "काम हो रहा है…")}</div>}
           {!busy && <StepData kind={step.kind} data={data} />}
 
           {step.kind === "choose" && (
@@ -76,14 +78,14 @@ export function FlowRunner() {
           <label className="flow-voice">
             <input type="checkbox" checked={guided}
                    onChange={(e) => setGuided(e.target.checked)} />
-            read aloud
+            {t("read aloud", "ज़ोर से पढ़ें")}
           </label>
           <div className="flow-nav">
             <span className="flow-count">{index + 1} / {flow.steps.length}</span>
-            {index > 0 && <button className="btn sm ghost" onClick={() => void back()}>Back</button>}
+            {index > 0 && <button className="btn sm ghost" onClick={() => void back()}>{t("Back", "पीछे")}</button>}
             {step.kind !== "choose" && (
               <button className="btn go sm" onClick={() => void next()}>
-                {last ? "Done" : "Next"}
+                {last ? t("Done", "हो गया") : t("Next", "आगे")}
               </button>
             )}
           </div>
@@ -95,6 +97,7 @@ export function FlowRunner() {
 
 /** Whatever this beat fetched, rendered in the shape it actually is. */
 function StepData({ kind, data }: { kind: string; data: any }) {
+  const { hi, t } = useT();
   if (!data) return null;
 
   // An answer from the explainer.
@@ -117,7 +120,7 @@ function StepData({ kind, data }: { kind: string; data: any }) {
         <div className="fd-score">
           <span className={`grade g${data.grade}`}>{data.grade}</span>
           <span className="fd-num">{data.score}<i>/100</i></span>
-          <span className="fd-meta">{data.holdings} holdings · {data.sectors} industries</span>
+          <span className="fd-meta">{data.holdings} {t("holdings", "शेयर")} · {data.sectors} {t("industries", "उद्योग")}</span>
         </div>
         {data.findings?.slice(0, 3).map((f: any, i: number) => (
           <div className={`fd-find ${f.severity}`} key={i}>{f.headline}</div>
@@ -132,7 +135,7 @@ function StepData({ kind, data }: { kind: string; data: any }) {
       <div className="flow-data">
         {data.scenarios.slice(0, 5).map((s: any) => (
           <div className="fd-row" key={s.key}>
-            <span>{s.label}</span>
+            <span>{hi ? SCENARIO_HI[s.key] ?? s.label : s.label}</span>
             <span style={{ color: s.portfolio_return < 0 ? "var(--red)" : "var(--green)" }}>
               {pct(s.portfolio_return)}
             </span>
@@ -148,13 +151,13 @@ function StepData({ kind, data }: { kind: string; data: any }) {
       <div className="flow-data">
         {data.trades.slice(0, 6).map((t: any, i: number) => (
           <div className="fd-row" key={i}>
-            <span><b className={t.side === "SELL" ? "sell" : "buy"}>{t.side}</b>{" "}
+            <span><b className={t.side === "SELL" ? "sell" : "buy"}>{hi ? (t.side === "SELL" ? "बेचें" : "ख़रीदें") : t.side}</b>{" "}
               {t.shares} {t.name}</span>
             <span>{rupees(t.value ?? 0)}</span>
           </div>
         ))}
         {data.tax?.total_tax > 0 && (
-          <div className="fd-note">Tax on this plan: {rupees(data.tax.total_tax)}</div>
+          <div className="fd-note">{t("Tax on this plan", "इस योजना पर टैक्स")}: {rupees(data.tax.total_tax)}</div>
         )}
       </div>
     );
@@ -194,11 +197,11 @@ function StepData({ kind, data }: { kind: string; data: any }) {
       <div className="flow-data">
         {(data.missing ?? []).slice(0, 6).map((m: any, i: number) => (
           <div className="fd-row" key={i}>
-            <span>{m.name}</span><span className="tiny">no purchase price</span>
+            <span>{m.name}</span><span className="tiny">{t("no purchase price", "ख़रीद भाव दर्ज नहीं")}</span>
           </div>
         ))}
         {!data.missing?.length && (
-          <div className="fd-note">Every holding has a purchase price on file.</div>
+          <div className="fd-note">{t("Every holding has a purchase price on file.", "हर शेयर का ख़रीद भाव दर्ज है।")}</div>
         )}
       </div>
     );
@@ -209,6 +212,7 @@ function StepData({ kind, data }: { kind: string; data: any }) {
 
 /** The staging step: commit nothing, show what it would do. */
 function ConfirmStep() {
+  const { hi, t } = useT();
   const next = useGuide((s) => s.next);
   const [state, setState] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -227,20 +231,19 @@ function ConfirmStep() {
     <div className="flow-confirm">
       {!state && (
         <button className="btn go" disabled={busy} onClick={() => void stage()}>
-          {busy ? "working…" : "Stage it and show me the difference"}
+          {busy ? t("working…", "काम हो रहा है…") : t("Stage it and show me the difference", "इसे रखिए और फ़र्क़ दिखाइए")}
         </button>
       )}
       {state && !state.staged && (
-        <div className="fc-small">Nothing needed staging — you are already inside
-          every limit.</div>
+        <div className="fc-small">{t("Nothing needed staging — you are already inside every limit.", "रखने को कुछ नहीं था — आप पहले से हर सीमा के भीतर हैं।")}</div>
       )}
       {state?.staged && (
         <>
-          <div className="fc-verdict">{state.verdict}</div>
+          <div className="fc-verdict">{hi ? verdictHi(state.verdict) : state.verdict}</div>
           <div className="fc-deltas">
             {state.deltas.slice(0, 5).map((d: any) => (
               <div className={`fc-delta ${d.direction}`} key={d.key}>
-                <span>{d.label}</span>
+                <span>{hi ? DELTA_HI[d.label] ?? d.label : d.label}</span>
                 <span>{fmt(d.before, d.format)} → {fmt(d.after, d.format)}</span>
               </div>
             ))}
@@ -249,20 +252,38 @@ function ConfirmStep() {
             <button className="btn go sm" onClick={async () => {
               await fetch("/sandbox/commit", { method: "POST" });
               void next();
-            }}>Commit it</button>
+            }}>{t("Commit it", "पक्का करें")}</button>
             <button className="btn sm ghost" onClick={async () => {
               await fetch("/sandbox/discard", { method: "POST" });
               void next();
-            }}>Throw it away</button>
+            }}>{t("Throw it away", "हटा दें")}</button>
           </div>
           <div className="fc-small">
-            Nothing has moved yet. Committing runs each trade through the same risk
-            firewall a spoken order hits.
+            {t("Nothing has moved yet. Committing runs each trade through the same risk firewall a spoken order hits.", "अभी कुछ नहीं हिला है। पक्का करने पर हर सौदा उसी जोखिम की दीवार से गुज़रता है जिससे बोलकर दिया गया आदेश गुज़रता है।")}
           </div>
         </>
       )}
     </div>
   );
+}
+
+const SCENARIO_HI: Record<string, string> = {
+  covid: "कोविड की गिरावट", covid_recovery: "कोविड के बाद की रिकवरी", rate_shock_2022: "2022 की ब्याज दरों की मार",
+  adani_2023: "जनवरी 2023 की बिकवाली", market_10: "बाज़ार 10% गिरे", market_20: "बाज़ार 20% गिरे",
+  it_30: "टेक्नोलॉजी 30% गिरे", banks_25: "बैंक 25% गिरें",
+};
+const DELTA_HI: Record<string, string> = {
+  Score: "स्कोर", Cash: "नक़द", "Behaves like": "असल में कितने शेयर", Holdings: "शेयर", Industries: "उद्योग",
+  "Total value": "कुल क़ीमत", "Market sensitivity": "बाज़ार से संवेदनशीलता", "Breaches resolved": "सुलझी ख़ामियाँ", "New breaches": "नई ख़ामियाँ",
+};
+/** The four sentences the staging preview can return, in Hindi (the one figure is carried over). */
+function verdictHi(v: string): string {
+  const pts = v.match(/\d+/)?.[0];
+  if (v.startsWith("This puts you inside")) return `इससे आप अपनी तय हर सीमा के भीतर आ जाते हैं, और स्कोर ${pts} अंक बढ़ता है।`;
+  if (v.startsWith("Better on balance")) return `कुल मिलाकर बेहतर — ${pts} अंक — पर सब कुछ सुलझा नहीं है।`;
+  if (v.startsWith("This is not an improvement")) return "जो आँकड़े मायने रखते हैं उन पर यह सुधार नहीं है। पक्का करने से पहले यह जान लेना ज़रूरी है।";
+  if (v.startsWith("Roughly neutral")) return "लगभग बराबर। यहाँ मुख्य लागत सौदे करने की ही है।";
+  return v;
 }
 
 function fmt(v: number, format: string): string {
