@@ -41,7 +41,8 @@ flowchart TD
 | `goal` | "will 10000 a month reach 50 lakh in 15 years?" | `goal.fan` on the portfolio's own history |
 | `panic` | "what if I'd sold in the Covid crash?" | `panic.replay` |
 | `digest` | "my weekly digest" | `digest.build` |
-| `scam_help` | "someone asked for my OTP" | rules that explain the red flags, or a recovery checklist (1930, cybercrime.gov.in) |
+| `scam_help` | "someone asked for my OTP" | the red flags in what you describe, and a link to rehearse that exact call |
+| `scam_recovery` | "I lost 50000 on UPI to a fake bank officer" | `recovery.plan` for the situation read from the sentence, with 1930 / cybercrime.gov.in, a step table and the inline coach |
 | `tip_scan` | "is this telegram tip legit: ..." | `scanner.scan` |
 | `ledger` | "has my record been tampered with?" | `ledger.verify` |
 | `predict` | "which stock will double?" | a refusal and what it *can* do |

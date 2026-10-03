@@ -1213,6 +1213,36 @@ async def set_my_funds(body: MyFundIn) -> dict:
     return {"funds": assistant.set_my_fund(session.conn, body.fund_id, body.on)}
 
 
+@app.get("/recovery/types")
+async def recovery_types(lang: str = "en") -> dict:
+    from backend import recovery
+    return {"types": recovery.types(lang)}
+
+
+@app.get("/recovery/plan")
+async def recovery_plan(type: str = "upi_card", lang: str = "en") -> dict:
+    from backend import recovery
+    return recovery.plan(type, lang)
+
+
+class DraftIn(BaseModel):
+    type: str = "upi_card"
+    lang: str = "en"
+    amount: float | None = None
+    when: str = ""
+    txn_id: str = ""
+    fraud_contact: str = ""
+    bank: str = ""
+    name: str = ""
+
+
+@app.post("/recovery/draft")
+async def recovery_draft(body: DraftIn) -> dict:
+    from backend import recovery
+    return recovery.drafts(body.type, body.lang, body.amount, body.when, body.txn_id,
+                           body.fraud_contact, body.bank, body.name)
+
+
 @app.get("/goal")
 async def goal(monthly: float = 10000, years: int = 10, target: float = 5_000_000,
                haircut: float = 0.0) -> dict:

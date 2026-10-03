@@ -39,7 +39,7 @@ There is no analytics, no account, no cloud API key. The browser's Web Speech AP
 4. **Guaranteed high returns do not exist.** The promise is the bait.
 5. **Urgency and secrecy are tactics.** "Do not tell your family" is the scammer's key move.
 6. **Rule of three:** *Stop* (never act on a call), *hang up*, then *call the official number* (on your card or the bank's website) or **1930** (the national cyber-fraud helpline) / `cybercrime.gov.in`.
-7. **After a scam, act in the first hour:** report to 1930, ask your bank to block cards, UPI and net banking, remove any remote-access app, keep screenshots, and never pay anyone to "recover" money (that is a second scam).
+7. **After a scam, act in the first hour** (the recovery coach turns this into an ordered, situation-specific plan with a clock): report to 1930, ask your bank to block cards, UPI and net banking, remove any remote-access app, keep screenshots, and never pay anyone to "recover" money (that is a second scam).
 
 These appear in the assistant's scam answers, the weekly digest tips, the rehearsal's end card and the tactic explanations.
 

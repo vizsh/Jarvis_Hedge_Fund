@@ -14,11 +14,14 @@ Difficulty: **S** days of work, **M** about a week, **L** several weeks.
 | TTS runs on CPU only | ~2 s to first English audio |
 | Voice and Hindi speech recognition judged only on synthesized speech | needs human listening tests |
 
+## Done recently
+
+- **Scam recovery coach** (first-hour plan, clock, checklist, ready-to-send drafts, English and Hindi).
+
 ## Next features, by value
 
 | Feature | Problem | Size | Interactivity |
 |---|---|---|---|
-| **Scam recovery coach** | After a scam, people lose the first hour. Guided flow, countdown, and a generated complaint text for 1930 / the bank / cybercrime.gov.in | S | high |
 | **Loan prepayment vs investing** | The common household decision | S | high (sliders) |
 | **Scam photo checker** | Scams arrive as screenshots (fake SMS, UPI "collect" requests): OCR then the existing scanners | M | high |
 | **Real fund data import** | CAS statement / AMC monthly holdings (Excel) + AMFI NAVs for true overlap and fees | L | high |

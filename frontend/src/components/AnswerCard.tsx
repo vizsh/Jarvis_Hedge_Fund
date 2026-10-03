@@ -9,6 +9,7 @@ import { speak, stop as stopSpeech } from "../lib/speak";
 import { EmergencyMeter, FeeDrag, WeeklyDigest } from "../pages/PracticeMore";
 import { GoalFan, PanicSim } from "../pages/Demos";
 import { ScamCall } from "../pages/Practice";
+import { RecoveryCoach } from "../pages/Recovery";
 
 /** One structured answer: headline, key figures, a table when there is one, the steps, what to
  *  do next, how it was worked out, and tappable follow-ups. Used by the chat thread and the
@@ -21,7 +22,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
   const [copied, setCopied] = useState(false);
   const [inline, setInline] = useState(false);
   // The fee answer can be played with right here, with the figures it was computed from.
-  const canInline = ["fee_drag", "emergency", "goal", "panic", "digest", "scam_help"].includes(a.kind) && !!a.visual;
+  const canInline = ["fee_drag", "emergency", "goal", "panic", "digest", "scam_help", "scam_recovery"].includes(a.kind) && !!a.visual;
   const chips = a.follow_ups ?? [];
 
   const open = () => {
@@ -62,6 +63,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
 
       {canInline && inline && (a.kind === "fee_drag" ? <FeeDrag init={a.visual!.params} compact />
         : a.kind === "emergency" ? <EmergencyMeter init={a.visual!.params} compact />
+        : a.kind === "scam_recovery" ? <RecoveryCoach init={a.visual!.params} compact />
         : a.kind === "scam_help" ? <ScamCall init={a.visual!.params} compact />
         : a.kind === "digest" ? <WeeklyDigest compact autoPlay />
         : a.kind === "panic" ? <PanicSim init={a.visual!.params} compact />
@@ -75,7 +77,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
 
       <div className="atools">
         {canInline && <button className="abtn primary" aria-expanded={inline} onClick={() => setInline((v) => !v)}>
-          {inline ? (hi ? "बंद करें ▴" : "Hide it ▴") : a.kind === "scam_help" ? (hi ? "☎ यहीं अभ्यास करें" : "☎ Rehearse it here") : a.kind === "digest" ? (hi ? "▶ यहीं सुनिए" : "▶ Play it here") : (hi ? "यहीं आज़माइए ▾" : "Try it here ▾")}</button>}
+          {inline ? (hi ? "बंद करें ▴" : "Hide it ▴") : a.kind === "scam_recovery" ? (hi ? "🛟 यहीं कोच खोलें" : "🛟 Open the coach here") : a.kind === "scam_help" ? (hi ? "☎ यहीं अभ्यास करें" : "☎ Rehearse it here") : a.kind === "digest" ? (hi ? "▶ यहीं सुनिए" : "▶ Play it here") : (hi ? "यहीं आज़माइए ▾" : "Try it here ▾")}</button>}
         {a.visual && <button className={`abtn ${canInline ? "" : "primary"}`} onClick={open}>{canInline ? (hi ? "पूरे पेज पर खोलें ↗" : "Open full page ↗") : `${a.visual.label} ↗`}</button>}
         <button className="abtn" onClick={() => speak(answerText(a), a.lang === "hi" ? "hi" : "en", true)}
                 title={hi ? "ज़ोर से पढ़ें" : "Read this aloud"}>🔊 {hi ? "सुनें" : "Read aloud"}</button>

@@ -154,6 +154,14 @@ _RULES: list[tuple[str, re.Pattern]] = [
                      r"\b(check|scan|verify|analy[sz]e|screen|vet)\b.{0,15}\b(this|that|the)\b.{0,10}\b(tip|message|post|forward\w*|text)\b|"
                      r"\b(tip|tips|message|group|advice|signal)\b.{0,40}\b(on|from|in)\b.{0,12}\b(telegram|whatsapp|instagram|youtube|facebook|twitter)\b.{0,40}\b(legit|real|fake|scam|safe|true|trust\w*|check)\b|"
                      r"\b(sure[- ]?shot|100% (return|profit|guaranteed)|guaranteed (returns?|profit|(\d+x)|doubl\w+)|double your money|multibagger tip)\b")),
+    ("scam_recovery", _r(r"\b(anydesk|quicksupport|teamviewer|remote (access|app))\b.{0,60}\b(took|taken|withdrew|stole|debited|deducted|lost|money|cleared)\b|"
+                          r"\b(lost|losing|gave|paid|sent|transferred|debited|deducted|stolen|took|taken|withdrew|withdrawn|cheated|scammed|defrauded|duped|conned|tricked|robbed|fell for)\b.{0,70}\b(fraud\w*|scam\w*|fake|cheat\w*|cyber|phishing|stranger|unknown (caller|number|person)|caller|officer|anydesk|quicksupport|teamviewer|otp)\b|"
+                          r"\b(i|we|my (mother|father|parents?|wife|husband|son|daughter|friend|brother|sister))\b.{0,20}\b(was|were|got|been|am|is|have been|had been)\b.{0,12}\b(scammed|cheated|defrauded|duped|conned|tricked|robbed|hacked)\b|"
+                          r"\b(i|we)\b.{0,15}\b(shared|told|gave|sent)\b.{0,25}\b(otp|pin|cvv|password|code)\b|"
+                          r"\bunauthori[sz]ed (transaction|debit|payment|withdrawal)\b|\bmoney (got |was |has been |is )?(debited|deducted|stolen|withdrawn|missing)\b.{0,30}\b(without|fraud|fake|scam|cyber|unknown)\b|"
+                          r"\breport (a |an |this )?(cyber ?)?(fraud|scam|crime)\b|\bhow (do|can|to|should) (i )?(report|complain about) .{0,25}(fraud|scam|cyber)|"
+                          r"\b(get|recover) my money back\b|\brecover (my |the )?(lost )?money\b|"
+                          r"\bwhat (do|should) i do (after|if|when)\b.{0,30}\b(scam\w*|fraud\w*|cheat\w*|hack\w*)\b")),
     ("scam_help", _r(r"\bincome tax (department|officer)\b|\bsim (card )?(will be |is )?(blocked|deactivated|disconnected)\b|\b(claim|won) (a |your )?(prize|lottery|reward|gift)\b|\bclick (on )?(a|the|this) link\b|\bpolice\b.{0,25}\barrest\b.{0,20}\b(video|phone|call|online)\b|\bpenalty\b.{0,30}\bupi\b|\bshare the (code|otp)\b|\b(parcel|courier|customs)\b.{0,40}\b(illegal|drugs|contraband|seized|held|in my name|arrest)\b|\bcaller says\b|\b(transfer|send|move|pay)\b.{0,25}\bmoney\b.{0,40}\b(police|officer|rbi|bank|account|unblock|safe account|verification)\b|\b(screen[- ]?shar\w*|download|install)\b.{0,40}\bapps?\b.{0,40}\b(account|unblock|bank|kyc|fix)\b|\b(call|caller|sms|email|link|officer|message)\b.{0,30}\b(real|genuine|fake|legit|safe|authentic)\b|\blink\b.{0,40}\bkyc\b|\bkyc\b.{0,40}\blink\b|\b(otp|cvv|kyc (call|expired|update|pending)|digital arrest|scam\w*|fraud\w*|cheated|phishing|fake (call|caller|link|app|website|officer)|"
                       r"suspicious (call|message|link|sms|email)|someone (called|rang|messaged)|(got|received|had) (a|an) (call|message|sms|email)|anydesk|quicksupport|teamviewer|"
                       r"remote (access|control|app)|upi (fraud|scam|request)|collect request|1930|cyber ?crime|asked (me )?for my (pin|otp|password)|"
@@ -175,7 +183,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
 LEGACY = {"define", "stress", "fix", "why", "xray", "correlation", "diversification", "should_buy", "simplify"}
 NEW_KINDS = {"digest", "ledger", "my_funds_add", "my_funds_remove", "my_funds_show", "fund_vs_direct", "fund_overlap",
              "fund_list", "fund_info", "fee_drag", "emergency", "goal", "panic", "tip_scan", "scam_help", "predict",
-             "help", "chitchat", "clarify", "out_of_scope"}
+             "help", "chitchat", "clarify", "out_of_scope", "scam_recovery"}
 
 
 _OWNERSHIP = _r(r"\b(i|we)\s+(?:\w+\s+){0,2}?(own|hold|have|invest(ed)?|bought|put|started|am invested)\b|\badd\b.{0,60}\bto my\b|\bmy funds? (are|is)\b")
@@ -425,7 +433,7 @@ def h_out_of_scope(text: str, ctx: Ctx) -> Answer:
 _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "list", "fund_vs_direct": "overlap",
                 "my_funds_add": "overlap", "my_funds_show": "overlap", "my_funds_remove": "overlap",
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
-                "scam_help": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
+                "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
                 "correlation": "xray", "should_buy": "xray", "define": "help", "simplify": "xray"}
 
@@ -930,15 +938,9 @@ def _scam_scenario(text: str) -> str:
 
 def h_scam_help(text: str, ctx: Ctx) -> Answer:
     t = _t(ctx.lang)
-    lost = re.search(r"\b(lost|gave|shared|paid|sent|transferred|already|fell for|victim|scammed|cheated|debited|deducted)\b", text, re.I)
+    lost = re.search(r"\b(lost|gave|shared|paid|sent|transferred|already|fell for|victim|scammed|cheated|defrauded|duped|debited|deducted|stolen|taken from my account)\b", text, re.I)
     if lost:
-        a = Answer(headline=t("Act in the next few minutes: the first hour matters most.", "अगले कुछ मिनटों में कार्रवाई कीजिए: पहला घंटा सबसे अहम है।"),
-                   bullets=[t("1. Call 1930 (the cyber fraud helpline) or report at cybercrime.gov.in, with the amount, time and the number used.",
-                              "1. 1930 (साइबर ठगी हेल्पलाइन) पर फ़ोन कीजिए या cybercrime.gov.in पर रक़म, समय और इस्तेमाल हुए नंबर के साथ शिकायत कीजिए।"),
-                            t("2. Call your bank's official number now and ask them to block the card, UPI and net banking.", "2. अभी अपने बैंक के आधिकारिक नंबर पर फ़ोन करके कार्ड, UPI और नेट बैंकिंग बंद करवाइए।"),
-                            t("3. Remove any app they made you install, change your banking passwords, and keep screenshots and messages.", "3. जो ऐप उन्होंने इंस्टॉल करवाया उसे हटाइए, बैंकिंग पासवर्ड बदलिए, और स्क्रीनशॉट व संदेश सँभालकर रखिए।")],
-                   action=t("Do not send any more money to 'recover' it: that is a second scam.", "पैसा वापस पाने के नाम पर और पैसे मत भेजिए: वह दूसरी ठगी है।"))
-        return _done(a, ctx, _chips("scam", "help"), "scam_help")
+        return h_scam_recovery(text, ctx)
     flags = []
     if re.search(r"otp|cvv|pin\b|password", text, re.I):
         flags.append(t("It asks for an OTP, PIN or CVV: no bank or officer ever does.", "यह OTP, पिन या CVV माँगता है: कोई बैंक या अधिकारी कभी नहीं माँगता।"))
@@ -956,6 +958,35 @@ def h_scam_help(text: str, ctx: Ctx) -> Answer:
                facts=[_fact(t("Helpline", "हेल्पलाइन"), "1930", "good")],
                visual={"page": "practice", "label": t("Rehearse this call", "इस कॉल का अभ्यास करें"), "params": {"scenario": _scam_scenario(text)}})
     return _done(a, ctx, _chips("scam", "digest", "help"), "scam_help")
+
+
+def h_scam_recovery(text: str, ctx: Ctx) -> Answer:
+    """After a scam: the ordered steps for what happened, the helpline and portal, and the coach."""
+    from backend import recovery
+    t = _t(ctx.lang)
+    hi = ctx.lang == "hi"
+    kind = recovery.guess_type(text)
+    pl = recovery.plan(kind, ctx.lang)
+    steps = pl["steps"]
+    q = tools.quantities(text)["money"]
+    amount = q[0]["v"] if q else None
+    bullets = [f"{s['n']}. {s['title']}" for s in steps[:3]]
+    bullets.append(t("Helpline 1930 and cybercrime.gov.in: report within the first hour if you can.",
+                     "हेल्पलाइन 1930 और cybercrime.gov.in: हो सके तो पहले घंटे में शिकायत कीजिए।"))
+    a = Answer(headline=t("Act in this order: the first hour matters most.", "इसी क्रम में कदम उठाइए: पहला घंटा सबसे अहम है।"),
+               bullets=bullets,
+               action=t("Do not send any more money to 'recover' it: that is a second scam. None of this is your fault.",
+                        "पैसा वापस पाने के नाम पर और पैसे मत भेजिए: वह दूसरी ठगी है। इसमें आपकी कोई ग़लती नहीं है।"),
+               detail=t("A checklist built from the situation you described. It cannot promise a refund; it puts the steps that improve your chances in the right order.",
+                        "आपकी बताई स्थिति से बनी चेकलिस्ट। यह रिफ़ंड का वादा नहीं कर सकती; यह उन क़दमों को सही क्रम में रखती है जिनसे आपकी संभावना बढ़ती है।"),
+               facts=[_fact(t("Helpline", "हेल्पलाइन"), "1930", "good"), _fact(t("Portal", "पोर्टल"), "cybercrime.gov.in"),
+                      _fact(t("Steps", "क़दम"), str(len(steps)))],
+               table={"columns": [t("Step", "क़दम"), t("Do it", "कब तक")],
+                      "rows": [[s["title"], recovery.when_label(s["mins"], hi)] for s in steps]},
+               visual={"page": "protect", "label": t("Open the recovery coach", "रिकवरी कोच खोलें"),
+                       "params": {"type": kind, **({"amount": amount} if amount else {})}})
+    a.data = {"recovery_type": kind}
+    return _done(a, ctx, _chips("scam", "help"), "scam_recovery")
 
 
 def _tip_body(text: str) -> str:
@@ -1009,7 +1040,7 @@ HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "scam_help": h_scam_help, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1036,7 +1067,8 @@ INTENT_DOC = {
     "goal": "will a SIP or portfolio reach a target amount in some years / retirement planning",
     "panic": "what would have happened if the user sold during a crash",
     "digest": "weekly summary of the user's portfolio",
-    "scam_help": "a suspicious call/message/link, OTP request, or the user was scammed",
+    "scam_help": "a suspicious call/message/link or OTP request (not yet scammed)",
+    "scam_recovery": "the user already lost money or shared a code / was scammed and wants to know what to do",
     "tip_scan": "check if a pasted stock tip / group promise is legitimate",
     "predict": "asks for price predictions or hot stock picks",
     "ledger": "is the trade record tamper-proof",

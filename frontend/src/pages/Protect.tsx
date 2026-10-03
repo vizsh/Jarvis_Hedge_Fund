@@ -1,4 +1,5 @@
 import { PanicSim } from "./Demos";
+import { RecoveryCoach } from "./Recovery";
 import { useEffect, useState } from "react";
 
 import { Page } from "./Page";
@@ -215,6 +216,7 @@ export default function Protect() {
   const { t } = useT();
   return (
     <Page title="Protect" lead={t("Catch scams before they cost you, and stop paying tax you didn't need to.", "ठगी को पैसे ख़र्च कराने से पहले पकड़िए, और जो टैक्स देना ज़रूरी नहीं था, उसे देना बंद कीजिए।")}>
+      <div className="grid"><RecoveryCoach /></div>
       <div className="grid g2">
         <TipScanner />
         <TaxShield />

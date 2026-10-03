@@ -54,7 +54,7 @@ BLIND: list[tuple[str, str]] = [
     ("some guy rang saying he is from sbi and needs my otp urgently", "scam_help"),
     ("police on video call says i must transfer money to an rbi account", "scam_help"),
     ("they want me to download a screen sharing app to unblock my account", "scam_help"),
-    ("i lost 50000 to a fake loan app what now", "scam_help"),
+    ("i lost 50000 to a fake loan app what now", "scam_recovery"),
     ("how do i know if a bank call is real", "scam_help"),
     ("i got a link to update my kyc is it safe", "scam_help"),
     ("is this whatsapp stock group genuine: pay 5000 to join, guaranteed 30% monthly returns", "tip_scan"),

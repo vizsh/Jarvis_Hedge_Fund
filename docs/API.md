@@ -33,6 +33,9 @@ Base URL `http://localhost:8000`. JSON unless noted. Interactive OpenAPI docs ar
 | GET | `/digest?lang=` | weekly digest sections and spoken text. |
 | GET | `/scamcall/scenarios?lang=` | the three scenarios. |
 | POST | `/scamcall/step` | `{scenario, node, reply, pressure, lang}` -> next caller line / win / loss with feedback. |
+| GET | `/recovery/types?lang=` | the six scam situations. |
+| GET | `/recovery/plan?type=&lang=` | ordered steps (id, title, detail, `mins` deadline) for a situation. |
+| POST | `/recovery/draft` | `{type, lang, amount, when, txn_id, fraud_contact, bank, name}` -> `{script, portal, letter}`. |
 | POST | `/scan` | `{text}` -> tip scan: score, verdict, flags, claims, companies. |
 | GET | `/tax/shield` | per-holding tax if sold today vs waiting. |
 | GET / POST | `/lots` | cost basis lots you entered. |

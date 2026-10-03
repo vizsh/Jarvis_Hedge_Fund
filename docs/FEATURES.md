@@ -60,6 +60,21 @@ Why profiles exist: pointing institutional limits at a 10-stock portfolio produc
 
 ## Protect
 
+### Scam recovery coach
+
+![Recovery coach with a first-hour clock and ordered steps](img/recovery-coach.jpg)
+
+**Problem:** after a scam, people lose the first hour to panic, shame and not knowing the sequence.
+
+**How it works** (`backend/recovery.py`, `frontend/src/pages/Recovery.tsx`):
+1. Pick what happened (six situations: money taken via UPI/card, shared an OTP/PIN, installed a remote app, paid a fake investment, a fake police/"digital arrest" transfer, clicked a link).
+2. Get an **ordered plan** for *that* situation (for example a remote app starts with "cut the caller's access"; a fake investment starts with "stop paying"). Each step has a deadline chip ("within 15 minutes", "within 3 working days") and a plain explanation; urgent ones open by themselves.
+3. A **first-hour clock** (set when it happened) counts down; steps tick off and your progress is remembered on this device.
+4. **Ready-to-send drafts**, filled with only the details you type (gaps stay `[in brackets]`): a 30-second phone script for the helpline or bank, the text for cybercrime.gov.in, and a written dispute letter to the bank. Copy buttons; nothing is sent from the app.
+5. One-tap **Call 1930** and a link to cybercrime.gov.in; every step can be read aloud, in English or Hindi.
+
+In the assistant, "I lost 50000 on UPI to a fake bank officer" or "my mother was scammed" returns the first steps as a card with the full coach playable inline. It never promises a refund; it states that who bears the loss depends on whose lapse it was and tells you to ask in writing.
+
 ### Stock-tip scanner
 
 ![Scanning a scam tip, next to the tax shield](img/tip-scanner.jpg)
