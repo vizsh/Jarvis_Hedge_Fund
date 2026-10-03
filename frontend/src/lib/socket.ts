@@ -289,7 +289,8 @@ export async function startMic(onAuto?: (why: AutoStop) => void): Promise<boolea
 }
 
 /** Stop recording, post the utterance for local transcription, return what was heard. */
-export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | null> {
+/** `raw`: return the transcript only, without dispatching it as a command or translating it. */
+export async function stopMic(raw = false): Promise<{ transcript?: string; ok: boolean } | null> {
   cancelAnimationFrame(raf);
   window.clearInterval(vadTimer);
   analyser = null;
@@ -323,7 +324,7 @@ export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | 
   }
 
   try {
-    const res = await fetch(`/stt?lang=${useLang.getState().lang}`, {
+    const res = await fetch(`/stt?lang=${useLang.getState().lang}${raw ? "&raw=true" : ""}`, {
       method: "POST",
       headers: { "Content-Type": blob.type || "audio/webm" },
       body: blob,

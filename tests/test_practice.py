@@ -22,3 +22,18 @@ def test_overlap_is_symmetric_and_sector_funds_do_not_overlap():
     b = p.overlap("bluechip_b", "largecap_a", n)
     assert a["overlap_pct"] == b["overlap_pct"] and a["verdict"] == "red"
     assert p.overlap("it_fund", "pharma_fund", n)["overlap_pct"] == 0
+
+
+def test_hindi_replies_survive_transcriber_misspellings():
+    from backend.practice_hi import classify_hi
+    # what Whisper actually returned for synthesized speech of the refusals
+    assert classify_hi("नहीं मैं कोई, अप डाउनलोड नहीं करुंगा नमसते.") == "refuse"
+    assert classify_hi("यह तगी है, मैं फों कात रहा हूं") == "refuse"
+    assert classify_hi("कोर है चार 82913") == "comply"
+    assert classify_hi("कोड है चार आठ दो नौ एक तीन") == "comply"
+    assert classify_hi("तीक है, मुझे क्या करना होगा?") == "comply"
+
+
+def test_codes_spoken_as_number_words_count_as_giving_the_code():
+    assert p.classify("it is four eight two nine one three") == "comply"
+    assert p.scam_step("kyc", 1, "four eight two nine one three")["status"] == "lost"

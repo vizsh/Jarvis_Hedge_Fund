@@ -48,20 +48,33 @@ SCENARIOS_HI: dict[str, dict[str, Any]] = {
 
 # Substring matching, not : Devanagari vowel signs are not "word" characters, so  splits
 # words in the middle.
-_HARD = re.compile(r"(नमस्ते|नमस्कार|काट रहा|काट रही|फ़ोन रख|फोन रख|ठगी|1930|nahi|nahin|scam|fraud|thug|bye)", re.I)
-_NEG = re.compile(r"(नहीं|नही|मत )")
-_ASK = re.compile(r"(क्यों|कौन|क्या|कैसे|\?|？)")
-_STRONG = re.compile(r"(जैसा कहेंगे|ठीक है|करता हूँ|करती हूँ|भेजता|भेजती|जमा करता|बताता|बताती|कर दूँगा|मैं करूँगा|theek hai)", re.I)
-_COMPLY = re.compile(r"(हाँ|हां|जी|अभी|प्लीज़|प्लीज|haan|ok(ay)?|ji)", re.I)
-_VERIFYW = re.compile(r"(आधिकारिक|साइबर|लिखित|ब्रांच|सेबी|रजिस्टर|सीनियर|पुलिस|बैंक)")
+def norm(t: str) -> str:
+    """Spoken replies arrive from a transcriber that spells Hindi loosely (ठगी as तगी, फ़ोन as फों),
+    so both the reply and the patterns are reduced to the same plain spelling first."""
+    t = t.replace("\u093c", "").replace("\u0901", "\u0902")           # nukta off, chandrabindu -> anusvara
+    return t.replace("\u0949", "\u094b").replace("\u0957", "").lower()
+
+
+def _c(p: str) -> re.Pattern:
+    return re.compile(norm(p), re.I)
+
+
+_HARD = _c(r"(नमस्ते|नमस्कार|काट रह|कात रह|काट दू|फ[ोंो]+न? ?(रख|काट|कात)|ठगी|तगी|ठग |धोखा|1930|nahi|nahin|scam|fraud|thug|bye)")
+_NEG = _c(r"(नहीं|नही|नाही|मत )")
+_ASK = _c(r"(क्यों|क्यूं|कौन|क्या|कैसे|\?|？)")
+_STRONG = _c(r"(जैसा कहेंगे|जैसा कहोगे|ठीक है|तीक है|करता हूं|करती हूं|करता हु|भेजता|भेजती|जमा करता|बताता|बताती|कर दूंगा|मैं करूंगा|theek hai)")
+_COMPLY = _c(r"(हां|हा |जी|अभी|प्लीज|haan|ok(ay)?|ji)")
+_VERIFYW = _c(r"(आधिकारिक|साइबर|लिखित|ब्रांच|सेबी|रजिस्टर|सीनियर|पुलिस|बैंक)")
 _DIGITS = re.compile(r"\d{4,8}")
+# a code read out in words ("चार आठ दो नौ एक तीन") is as much a leaked code as one written in digits
+_NUMWORDS = _c(r"((शून्य|जीरो|एक|दो|तीन|चार|पांच|पाच|छह|छः|छ:|सात|आठ|नौ)[ ,]+){3,}(शून्य|जीरो|एक|दो|तीन|चार|पांच|पाच|छह|छः|सात|आठ|नौ)")
 
 
 def classify_hi(text: str) -> str:
     """refuse = hard stop, verify = checking the caller out, comply = doing what was asked,
     stall = unsure. Same four outcomes as the English classifier."""
-    t = text.strip()
-    if _DIGITS.search(t.replace("1930", "")):
+    t = norm(text.strip())
+    if _DIGITS.search(t.replace("1930", "")) or _NUMWORDS.search(t):
         return "comply"
     if _HARD.search(t):
         return "refuse"

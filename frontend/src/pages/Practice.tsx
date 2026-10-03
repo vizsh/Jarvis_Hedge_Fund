@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import "../styles-practice.css";
 import { Page } from "./Page";
-import { allowSpeech, speak, stop as stopSpeech } from "../lib/speak";
+import { allowSpeech, onVoice, speak, stop as stopSpeech, voiceReplies } from "../lib/speak";
+import * as socket from "../lib/socket";
+import { MicIcon } from "../components/VoiceInput";
 import { useLang } from "../lib/lang";
 import { hashParams } from "../lib/router";
 import { EmergencyMeter, FeeDrag, WeeklyDigest } from "./PracticeMore";
@@ -191,15 +193,66 @@ function ScamCall() {
   }, [phase]);
   useEffect(() => () => { stopSpeech(); window.clearInterval(typer.current); }, []);
 
+  // ---- talking back: the reply is spoken, transcribed locally, and scored like a typed one
+  const [listening, setListening] = useState(false);
+  const [handsfree, setHandsfree] = useState(false);
+  const [callerDone, setCallerDone] = useState(false);
+  const [heard, setHeard] = useState("");
+  const [micMsg, setMicMsg] = useState("");
+  const replyRef = useRef<(t: string) => Promise<void>>(async () => {});
+  const offVoice = useRef<() => void>(() => {});
+
+  const startListen = async () => {
+    if (listening || busy) return;
+    stopSpeech(); setMicMsg(""); setHeard("");
+    const ok = await socket.startMic((why) => {
+      if (why === "nospeech") {
+        socket.cancelMic(); setListening(false);
+        setMicMsg(hi ? "कुछ सुनाई नहीं दिया। माइक दबाकर बोलिए।" : "I did not hear anything. Tap the mic and speak.");
+      } else void finishListen();
+    });
+    if (!ok) { setMicMsg(socket.micError ?? (hi ? "माइक शुरू नहीं हो सका।" : "The microphone could not be started.")); return; }
+    setListening(true);
+  };
+  const finishListen = async () => {
+    setListening(false);
+    const r = await socket.stopMic(true);                     // transcript only: nothing is dispatched
+    if (r?.ok && r.transcript) { setHeard(r.transcript); await replyRef.current(r.transcript); }
+    else setMicMsg(r?.transcript ? (hi ? `मैंने सुना "${r.transcript}", पर साफ़ नहीं। फिर कोशिश कीजिए।` : `I heard "${r.transcript}" but not clearly. Try again.`)
+                                 : (socket.micError ?? (hi ? "समझ नहीं आया। फिर बोलिए।" : "I could not make that out. Try again.")));
+  };
+  const toggleMic = () => (listening ? void finishListen() : void startListen());
+
+  // Hands-free: once the caller has finished speaking, open the microphone by itself.
+  useEffect(() => {
+    if (phase === "call" && handsfree && callerDone && !listening && !busy && step?.status === "continue") void startListen();
+  }, [phase, handsfree, callerDone, listening, busy, step]); // eslint-disable-line
+  useEffect(() => { if (phase !== "call" && listening) { socket.cancelMic(); setListening(false); } }, [phase, listening]);
+  useEffect(() => () => { socket.cancelMic(); offVoice.current(); }, []);
+
   const say = (line: string) => {
     window.clearInterval(typer.current);
+    offVoice.current(); setCallerDone(false);
     setShown(""); setTalking(true);
     let i = 0;
     typer.current = window.setInterval(() => {
       i += 2; setShown(line.slice(0, i));
       if (i >= line.length) { window.clearInterval(typer.current); setTimeout(() => setTalking(false), 400); }
     }, 28);
-    if (voice) { allowSpeech(); speak(line, lang); }
+    if (voice && voiceReplies()) {
+      allowSpeech(); speak(line, lang);
+      // the caller is "done" when the audio has played to the end (or after a safety timeout)
+      let started = false;
+      const done = () => { off(); window.clearTimeout(fallback); setCallerDone(true); };
+      const off = onVoice((st) => {
+        if (st === "speaking") started = true;
+        if (started && st !== "speaking") done();
+      });
+      const fallback = window.setTimeout(done, Math.max(8000, line.split(" ").length * 600));
+      offVoice.current = () => { off(); window.clearTimeout(fallback); };
+    } else {
+      window.setTimeout(() => setCallerDone(true), line.length * 28 + 600);
+    }
   };
 
   const begin = (s: any) => { setSc(s); setPhase("ring"); setSeen([]); setLog([]); setSecs(0); setShown(""); setStep(null); };
@@ -218,6 +271,7 @@ function ScamCall() {
       setStep(r); setSeen((s) => [...s, ...(r.flags ?? [])]); setLog((l) => [...l, { who: "caller", text: r.line! }]); say(r.line!);
     } else { setStep(r); setPhase("end"); window.clearInterval(typer.current); }
   };
+  replyRef.current = reply;
   const hang = () => reply(hi ? "यह ठगी है। मैं फ़ोन काट रहा हूँ।" : "I am hanging up. This is a scam.");
 
   // Different order every call so the safe answer is not always in the same place.
@@ -272,10 +326,16 @@ function ScamCall() {
             <div className="replies">
               {options.map((o) => <button key={o} className="reply" disabled={busy} onClick={() => reply(o)}>{o}</button>)}
             </div>
+            <label className="small voicetog hf"><input type="checkbox" checked={handsfree} onChange={(e) => setHandsfree(e.target.checked)} />
+              {hi ? " हैंड्स-फ़्री: कॉलर के बाद माइक अपने आप खुले" : " Hands-free: the mic opens after the caller finishes"}</label>
+            {(heard || micMsg) && <div className={`micmsg ${micMsg ? "warn" : ""}`}>{micMsg || `${hi ? "आपने कहा" : "You said"}: “${heard}”`}</div>}
             <div className="cmdrow">
               <input className="field" placeholder={hi ? "…या अपना जवाब लिखिए" : "…or type your own reply"} value={text} onChange={(e) => setText(e.target.value)}
                      onKeyDown={(e) => { if (e.key === "Enter") void reply(text); }} />
-              <button className="btn go" disabled={busy} onClick={() => reply(text)}>{hi ? "बोलें" : "Say"}</button>
+              <button className={`btn micbtn ${listening ? "listening" : ""}`} disabled={busy} onClick={toggleMic}
+                      aria-label={listening ? (hi ? "सुनना बंद करें" : "Stop listening") : (hi ? "बोलकर जवाब दें" : "Answer by voice")}>
+                <MicIcon size={16} /> {listening ? (hi ? "सुन रहा हूँ…" : "Listening…") : (hi ? "बोलिए" : "Speak")}</button>
+              <button className="btn go" disabled={busy} onClick={() => reply(text)}>{hi ? "भेजें" : "Send"}</button>
               <button className="btn ghost danger" onClick={hang}>{hi ? "फ़ोन काटें" : "Hang up"}</button>
             </div>
           </>)}

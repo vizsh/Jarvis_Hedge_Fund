@@ -131,6 +131,7 @@ SCENARIOS: dict[str, dict[str, Any]] = {
                  "hints": ["Okay, depositing fifty thousand now.", "Can I withdraw whenever I want?", "Screenshots are easy to fake. I will not deposit, bye."]}]},
 }
 
+_NUMWORDS_EN = re.compile(r"(?:(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)[ ,-]+){3,}(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)", re.I)
 _DIGITS = re.compile(r"\b\d{4,8}\b")
 _VERIFY = re.compile(r"(scam|fraud|fake|hang(ing)? up|call(ing)? (the )?(bank|back|1930|police)|official|"
                      r"1930|cyber ?crime|not (share|sharing|installing|interested|transfer)|will not|never ask|"
@@ -144,7 +145,7 @@ def classify(text: str) -> str:
     """refuse = hard stop, verify = checking the caller out, comply = doing what was asked,
     stall = unsure. A reply carrying a code-like number is always compliance."""
     t = text.strip()
-    if _DIGITS.search(t.replace("1930", "")):
+    if _DIGITS.search(t.replace("1930", "")) or _NUMWORDS_EN.search(t):
         return "comply"
     if _VERIFY.search(t):
         return "refuse" if _REFUSE.search(t) else "verify"

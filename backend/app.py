@@ -839,7 +839,7 @@ async def command(cmd: Command) -> dict:
 
 
 @app.post("/stt")
-async def speech_to_text(request: Request, lang: str = "en") -> dict:
+async def speech_to_text(request: Request, lang: str = "en", raw: bool = False) -> dict:
     """Push-to-talk audio in, dispatched command out.
 
     The browser posts whatever MediaRecorder produced; faster-whisper decodes it
@@ -861,6 +861,13 @@ async def speech_to_text(request: Request, lang: str = "en") -> dict:
     except Exception as exc:  # noqa: BLE001
         bus.emit(EventType.ERROR, where="stt", message=f"{type(exc).__name__}: {exc}"[:160])
         return {"ok": False, "reason": "transcription failed"}
+
+    if raw:
+        # Transcribe only: no translation, no command dispatch. Used where the words themselves
+        # are the input (the scam-call rehearsal replies in the language that was spoken).
+        text = result.text.strip()
+        return {"ok": bool(text) and result.confidence >= 0.2, "transcript": text,
+                "confidence": result.confidence, "reason": None if text else "no speech"}
 
     if lang != "en" and result.text.strip():
         # Spoken Hindi: keep what was said, and act on its English meaning.
