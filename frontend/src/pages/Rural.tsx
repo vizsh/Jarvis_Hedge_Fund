@@ -6,6 +6,16 @@ import { hashParams } from "../lib/router";
 import { useT } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import { speak } from "../lib/speak";
+import { usePilot } from "../lib/pilot";
+
+/** While the guide is still asking for something, the page shows what it has so far and holds the result back. */
+function Waiting({ tool }: { tool: string }) {
+  const g = usePilot((s) => s.guide);
+  if (!g?.ask || g.tool !== tool) return null;
+  return <div className="rural-wait">🎙 {g.ask.question}</div>;
+}
+const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
+const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
 type Tool = "loan" | "scheme" | "schemes" | "docs" | "income";
 
@@ -40,15 +50,19 @@ type Loan = { yearly_pct: number; interest: number; total: number; band: string;
 
 function LoanTool({ init }: { init: Record<string, string> }) {
   const { t } = useT(); const lang = useLang((s) => s.lang);
-  const [f, setF] = useState(() => store.get("loan", { principal: "50000", rate: "5", unit: "per100_month", months: "10", mode: "interest_only" }));
-  useEffect(() => { if (init.principal) setF((o) => ({ ...o, principal: init.principal, rate: init.rate ?? o.rate, unit: init.unit ?? o.unit, months: init.months ?? o.months })); }, []); // eslint-disable-line
-  useEffect(() => store.set("loan", f), [f]);
-  const ok = Number(f.principal) > 0 && Number(f.rate) > 0 && Number(f.months) > 0;
+  const guided = init.tool === "loan";
+  const waiting = useWaiting("loan");
+  const [f, setF] = useState(() => guided
+    ? { principal: init.principal ? String(Number(init.principal)) : "", rate: init.rate ?? "", unit: init.unit ?? "per100_month", months: init.months ?? "", mode: "interest_only" }
+    : store.get("loan", { principal: "50000", rate: "5", unit: "per100_month", months: "10", mode: "interest_only" }));
+  useEffect(() => { if (!guided) store.set("loan", f); }, [f, guided]);
+  const ok = !waiting && Number(f.principal) > 0 && Number(f.rate) > 0 && Number(f.months) > 0;
   const r = usePost<Loan>("/rural/loan", { principal: Number(f.principal), rate: Number(f.rate), unit: f.unit, months: Number(f.months), mode: f.mode, lang }, ok);
   const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   return (
     <section className="card wide rural-card">
       <h2>{t("What does the moneylender's interest really cost?", "साहूकार का ब्याज असल में कितना पड़ता है?")}</h2>
+      <Waiting tool="loan" />
       <p className="muted">{t("Enter what you were told. I turn it into a yearly rate and rupees, and show what a bank or group would charge.", "जो आपको बताया गया वह भरिए। मैं उसे साल की दर और रुपयों में बदलूँगा, और बैंक या समूह की दर से तुलना दिखाऊँगा।")}</p>
       <div className="rural-form">
         <label>{t("Money borrowed (₹)", "उधार ली रक़म (₹)")}<input inputMode="numeric" value={f.principal} onChange={set("principal")} /></label>
@@ -94,9 +108,9 @@ type Offer = { score: number; level: string; verdict: string; rule: string; impl
 
 function SchemeTool({ init }: { init: Record<string, string> }) {
   const { t } = useT(); const lang = useLang((s) => s.lang);
-  const [text, setText] = useState(init.text ?? "");
+  const [text, setText] = useState(init.tool === "scheme" ? init.text ?? "" : "");
   const [n, setN] = useState({ put: "", get: "", months: "" });
-  const [go, setGo] = useState(!!init.text);
+  const [go, setGo] = useState(init.tool === "scheme" && !!init.text && !!init.run);
   const body = { text, put: n.put ? Number(n.put) : null, get: n.get ? Number(n.get) : null, months: n.months ? Number(n.months) : null, lang };
   const r = usePost<Offer>("/rural/scheme", body, go && (!!text.trim() || !!(n.put && n.get && n.months)), 0);
   const EX: [string, string, string][] = [
@@ -106,6 +120,7 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
   return (
     <section className="card wide rural-card">
       <h2>{t("Is this scheme or offer real?", "क्या यह योजना या ऑफ़र असली है?")}</h2>
+      <Waiting tool="scheme" />
       <p className="muted">{t("Write what they promised you, in your own words. I check it against the signs every fraud scheme shares.", "उन्होंने जो वादा किया वह अपने शब्दों में लिखिए। मैं उसे उन संकेतों से मिलाता हूँ जो हर ठगी योजना में एक जैसे होते हैं।")}</p>
       <textarea rows={4} value={text} onChange={(e) => { setText(e.target.value); setGo(false); }}
                 placeholder={t("e.g. A man in our village says pay ₹10,000 and get ₹20,000 in 6 months...", "जैसे: गाँव में एक आदमी कहता है ₹10,000 दो और 6 महीने में ₹20,000 पाओ...")} />
@@ -139,11 +154,14 @@ type Ent = { schemes: Sch[]; count: number; cash_per_year: number; note: string;
 const WORK: [string, string, string][] = [["farmer", "Farmer (own or rented land)", "किसान (अपनी या बटाई की ज़मीन)"], ["farm_labour", "Farm labourer", "खेत मज़दूर"], ["labour", "Daily-wage labourer", "दिहाड़ी मज़दूर"],
   ["vendor", "Street vendor / small trader", "फेरीवाला / छोटा व्यापारी"], ["artisan", "Artisan (carpenter, potter, weaver...)", "कारीगर (बढ़ई, कुम्हार, बुनकर...)"], ["business", "Small business owner", "छोटा कारोबारी"], ["other", "Something else", "कुछ और"]];
 
-function SchemesTool({ onPick }: { onPick: (ids: string[]) => void }) {
+function SchemesTool({ onPick, init }: { onPick: (ids: string[]) => void; init: Record<string, string> }) {
   const { t } = useT(); const lang = useLang((s) => s.lang);
-  const [p, setP] = useState(() => store.get("profile", { age: "35", gender: "male", land: "none", work: "labour", bank: true, taxpayer: false, poor: "unsure",
-    category: "general", daughter: false, kutcha: false, disability: false, widow: false, student: false, shg: false, lpg: true }));
-  const [go, setGo] = useState(false);
+  const guided = init.tool === "schemes";
+  const [p, setP] = useState(() => { const base = store.get("profile", { age: "35", gender: "male", land: "none", work: "labour", bank: true, taxpayer: false, poor: "unsure",
+    category: "general", daughter: false, kutcha: false, disability: false, widow: false, student: false, shg: false, lpg: true });
+    return guided ? { ...base, ...(init.age ? { age: String(init.age) } : {}), ...(init.gender ? { gender: init.gender } : {}), ...(init.work ? { work: init.work } : {}),
+      ...(init.land ? { land: init.land } : {}), ...(init.poor ? { poor: init.poor } : {}), ...(init.bank ? { bank: init.bank === "true" } : {}) } : base; });
+  const [go, setGo] = useState(guided && !!init.run);
   useEffect(() => store.set("profile", p), [p]);
   const profile = { ...p, age: Number(p.age) || 0 };
   const r = usePost<Ent>("/rural/entitlements", { profile, lang }, go, 0);
@@ -152,6 +170,7 @@ function SchemesTool({ onPick }: { onPick: (ids: string[]) => void }) {
   return (
     <section className="card wide rural-card">
       <h2>{t("Which government schemes am I missing?", "मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं?")}</h2>
+      <Waiting tool="schemes" />
       <p className="muted">{t("Answer about the person who is applying. Nothing is saved on a server.", "जो व्यक्ति आवेदन करेगा उसके बारे में जवाब दीजिए। कुछ भी सर्वर पर नहीं रखा जाता।")}</p>
       <div className="rural-form">
         <label>{t("Age", "उम्र")}<input inputMode="numeric" value={p.age} onChange={sel("age")} /></label>
@@ -192,9 +211,9 @@ function SchemesTool({ onPick }: { onPick: (ids: string[]) => void }) {
 type Ready = { summary: string; tip: string; steps: { n: number; id: string; name: string; how: string; blocks: number }[];
   schemes: { id: string; name: string; ready: boolean; have: number; total: number; missing: string[] }[]; all_docs: { id: string; name: string }[] };
 
-function DocsTool({ picked, setPicked }: { picked: string[]; setPicked: (x: string[]) => void }) {
+function DocsTool({ picked, setPicked, init }: { picked: string[]; setPicked: (x: string[]) => void; init: Record<string, string> }) {
   const { t } = useT(); const lang = useLang((s) => s.lang);
-  const [have, setHave] = useState<string[]>(() => store.get("have", []));
+  const [have, setHave] = useState<string[]>(() => (init.tool === "docs" && init.have !== undefined ? init.have.split(",").filter(Boolean) : store.get("have", [])));
   const [catalog, setCatalog] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => store.set("have", have), [have]);
   useEffect(() => { fetch(`/rural/schemes?lang=${lang}`).then((r) => r.json()).then((x) => setCatalog(x.schemes)).catch(() => {}); }, [lang]);
@@ -203,6 +222,7 @@ function DocsTool({ picked, setPicked }: { picked: string[]; setPicked: (x: stri
   return (
     <section className="card wide rural-card">
       <h2>{t("Are my papers ready?", "क्या मेरे काग़ज़ तैयार हैं?")}</h2>
+      <Waiting tool="docs" />
       <p className="muted">{t("Pick the schemes, tick what you already have. I tell you the one thing to fix first.", "योजनाएँ चुनिए, और जो काग़ज़ आपके पास हैं उन पर निशान लगाइए। मैं बताऊँगा सबसे पहले क्या ठीक करना है।")}</p>
       <h3>{t("1. Schemes I want", "1. मुझे ये योजनाएँ चाहिए")}</h3>
       <div className="rural-checks">{catalog.map((c) => <label key={c.id} className="rural-check"><input type="checkbox" checked={picked.includes(c.id)} onChange={() => setPicked(toggle(picked, c.id))} />{c.name}</label>)}</div>
@@ -244,19 +264,22 @@ function Rows({ rows, setRows, hint }: { rows: Row[]; setRows: (r: Row[]) => voi
   </div>);
 }
 
-function IncomeTool() {
+function IncomeTool({ init }: { init: Record<string, string> }) {
   const { t } = useT(); const lang = useLang((s) => s.lang);
-  const [inc, setInc] = useState<Row[]>(() => store.get("inc", [{ month: 10, amount: "120000", label: "Kharif harvest" }, { month: 4, amount: "60000", label: "Rabi harvest" }]));
-  const [out, setOut] = useState<Row[]>(() => store.get("out", [{ month: 6, amount: "20000", label: "Seed and fertiliser" }, { month: 7, amount: "10000", label: "School fees" }]));
-  const [cost, setCost] = useState(() => store.get("cost", "8000"));
+  const guided = init.tool === "income";
+  const waiting = useWaiting("income");
+  const [inc, setInc] = useState<Row[]>(() => guided ? fromJSON<{ month: number; amount: number }[]>(init.income, []).map((r) => ({ month: r.month, amount: String(r.amount), label: "" })) : store.get("inc", [{ month: 10, amount: "120000", label: "Kharif harvest" }, { month: 4, amount: "60000", label: "Rabi harvest" }]));
+  const [out, setOut] = useState<Row[]>(() => guided ? fromJSON<{ month: number; amount: number }[]>(init.out, []).map((r) => ({ month: r.month, amount: String(r.amount), label: "" })) : store.get("out", [{ month: 6, amount: "20000", label: "Seed and fertiliser" }, { month: 7, amount: "10000", label: "School fees" }]));
+  const [cost, setCost] = useState(() => (guided ? (init.cost ? String(Number(init.cost)) : "") : store.get("cost", "8000")));
   const [sav, setSav] = useState(() => store.get("sav", "0"));
-  useEffect(() => { store.set("inc", inc); store.set("out", out); store.set("cost", cost); store.set("sav", sav); }, [inc, out, cost, sav]);
+  useEffect(() => { if (guided) return; store.set("inc", inc); store.set("out", out); store.set("cost", cost); store.set("sav", sav); }, [inc, out, cost, sav]);
   const clean = (rows: Row[]) => rows.filter((r) => Number(r.amount) > 0).map((r) => ({ month: r.month, amount: Number(r.amount), label: r.label }));
-  const r = usePost<Plan>("/rural/income", { income: clean(inc), monthly_cost: Number(cost) || 0, one_offs: clean(out), savings: Number(sav) || 0, lang }, clean(inc).length > 0 && Number(cost) > 0);
+  const r = usePost<Plan>("/rural/income", { income: clean(inc), monthly_cost: Number(cost) || 0, one_offs: clean(out), savings: Number(sav) || 0, lang }, !waiting && clean(inc).length > 0 && Number(cost) > 0);
   const max = useMemo(() => Math.max(1, ...(r?.months ?? []).flatMap((m) => [Math.abs(m.balance)])), [r]);
   return (
     <section className="card wide rural-card">
       <h2>{t("Plan my money around harvest and wage seasons", "फ़सल और मज़दूरी के मौसम के हिसाब से पैसे की योजना")}</h2>
+      <Waiting tool="income" />
       <p className="muted">{t("Tell me when money comes in and what you must spend. I show which months you run short and how much to keep aside from each good month.", "बताइए पैसा कब आता है और क्या ख़र्च करना ही है। मैं दिखाऊँगा किन महीनों में कमी पड़ती है और हर अच्छे महीने में से कितना अलग रखना है।")}</p>
       <h3>{t("Money that comes in (harvest, sale, wages in bulk)", "जो पैसा आता है (फ़सल, बिक्री, एकमुश्त मज़दूरी)")}</h3>
       <Rows rows={inc} setRows={setInc} hint={t("what it is", "यह क्या है")} />
@@ -291,7 +314,7 @@ export default function Rural() {
   const { t } = useT();
   const params = useMemo(() => Object.fromEntries(hashParams().entries()), []);
   const [tool, setTool] = useState<Tool>((params.tool as Tool) || store.get("tool", "loan"));
-  const [picked, setPicked] = useState<string[]>(() => store.get("picked", []));
+  const [picked, setPicked] = useState<string[]>(() => (params.tool === "docs" && params.schemes ? params.schemes.split(",").filter(Boolean) : store.get("picked", [])));
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => store.set("tool", tool), [tool]);
   useEffect(() => store.set("picked", picked), [picked]);
@@ -308,9 +331,9 @@ export default function Rural() {
       <div className="grid">
         {tool === "loan" && <LoanTool init={params} />}
         {tool === "scheme" && <SchemeTool init={params} />}
-        {tool === "schemes" && <SchemesTool onPick={(ids) => { setPicked(ids); setTool("docs"); window.scrollTo(0, 0); }} />}
-        {tool === "docs" && <DocsTool picked={picked} setPicked={setPicked} />}
-        {tool === "income" && <IncomeTool />}
+        {tool === "schemes" && <SchemesTool init={params} onPick={(ids) => { setPicked(ids); setTool("docs"); window.scrollTo(0, 0); }} />}
+        {tool === "docs" && <DocsTool picked={picked} setPicked={setPicked} init={params} />}
+        {tool === "income" && <IncomeTool init={params} />}
       </div>
     </Page>
   );

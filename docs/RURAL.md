@@ -19,3 +19,13 @@ Five tools for farming and daily-wage households, under the **Rural / ग्र�
 
 ## Tests
 `tests/test_rural.py` (32): loan figures equal the arithmetic; 5 scam offers flagged and 4 ordinary offers never red; eligibility rules (age windows, tax-payer exclusion, missing bank); every scheme has documents and an official pointer; readiness ordering; income totals; EN and HI questions reach the right tool (Hindi figures are read by code).
+
+## The guide (D1): ask, and it takes you there and does it
+Say or type what you want. [`backend/guide.py`](../backend/guide.py) picks the tool, reads what it can from your sentence (English or Hindi figures, read by code), **opens the right page**, asks **only for what is missing, one question at a time** (tappable choices where there are choices), then runs the tool and speaks the result with the page showing it.
+
+- "my sahukar charges 5 rupees per hundred a month" → opens Moneylender check with the rate filled → "How much money did you borrow?" → "50000" → "For how many months?" → "10 months" → page shows 60% a year, and it says so.
+- "open the protect page", "take me to the moneylender check", "सुरक्षा पेज खोलिए" navigate (short imperatives only; a long question is answered, not treated as navigation). Any answer that has a page of its own (fee drag, emergency meter, scam coach...) now opens it too, except on the Assistant page where the card is already inline.
+- **The assistant stays with you.** The dock (logo, mic, text box) is on every page. While a question is open it shows the question, an example and choice chips; when a task is done it offers "what next" chips. Typing, speaking or tapping all answer the same question. Say "cancel" or press ✕ to stop. Asking a different clear question releases the guide.
+- Chained steps carry over: the schemes found in "My government schemes" are used by "Are my papers ready?", which then asks only which papers you have.
+- Deterministic, as everywhere: the conversation state lives on the server per browser tab (`cid`); the front end only follows the `guide` payload (`route`, `params`, `ask`, `next`).
+- Tests: `tests/test_guide.py`.

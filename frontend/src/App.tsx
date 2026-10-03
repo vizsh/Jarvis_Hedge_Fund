@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { connect } from "./lib/socket";
 import { installBargeIn } from "./lib/bargein";
-import { go, useRoute } from "./lib/router";
+import { go, useRoute, useHash } from "./lib/router";
 import { initVoices } from "./lib/speak";
 import { useGuide } from "./lib/guide";
 import { useUI } from "./lib/ui";
@@ -30,6 +30,7 @@ const PANEL_ROUTE: Record<string, string> = {
 
 export default function App() {
   const route = useRoute();
+  const hash = useHash();
   const builder = useUI((s) => s.builder);
   const setBuilder = useUI((s) => s.setBuilder);
   const setReport = useGuide((s) => s.setReport);
@@ -50,7 +51,7 @@ export default function App() {
   const page =
     route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect />
-    : route === "/rural" ? <Rural key={location.hash} />
+    : route === "/rural" ? <Rural key={hash} />
     : route === "/learn" ? <Learn />
     : route === "/practice" ? <Practice />
     : route === "/govern" ? <Govern />

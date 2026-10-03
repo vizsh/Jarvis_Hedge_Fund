@@ -10,6 +10,8 @@ import { setVoiceFor, useLang, voiceFor } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
+import { usePilot } from "../lib/pilot";
+import { send } from "../lib/socket";
 
 function VoicePicker() {
   const lang = useLang((s) => s.lang);
@@ -80,6 +82,9 @@ export function Dock() {
   const toggle = useVoice((s) => s.toggle);
   const speech = useStore((s) => s.speech);
   const barge = useBargeIn();
+  const guide = usePilot((s) => s.guide);
+  const [typed, setTyped] = useState("");
+  const hi = useLang((s) => s.lang) === "hi";
   const [talking, setTalking] = useState(false);
   useEffect(() => onVoice((st) => setTalking(st === "speaking")), []);
 
@@ -100,6 +105,24 @@ export function Dock() {
 
   return (
     <div className={`dock ${status} ${talking ? "talking" : ""}`}>
+      {(guide?.ask || (guide?.done && guide.next?.length)) && (
+        <div className="dock-guide">
+          <div className="dock-guide-head">
+            <span className="dock-logo" aria-hidden>J</span>
+            <b>{guide.label ?? "JARVIS"}</b>
+            {guide.step && <span className="dock-step">{guide.step[0]}/{guide.step[1]}</span>}
+            <button className="dock-x" aria-label="cancel" onClick={() => (guide.ask ? send("cancel", hi ? "रद्द" : "cancel") : usePilot.getState().set(null))}>✕</button>
+          </div>
+          {guide.ask ? (<>
+            <div className="dock-q">{guide.ask.question}</div>
+            {guide.ask.example && <div className="dock-sub">{guide.ask.example}</div>}
+            {guide.ask.choices && <div className="dock-chips">{guide.ask.choices.map((c) => <button key={c.text} onClick={() => send(c.text, c.label)}>{c.label}</button>)}</div>}
+          </>) : (<>
+            <div className="dock-sub">{hi ? "आगे क्या?" : "What next?"}</div>
+            <div className="dock-chips">{guide.next!.map((q) => <button key={q} onClick={() => send(q)}>{q}</button>)}</div>
+          </>)}
+        </div>
+      )}
       <button className="dock-mic" onClick={toggle} disabled={status === "processing"}
               aria-label={status === "listening" ? "Stop listening and send" : "Speak to JARVIS"}>
         <MicIcon size={20} />
@@ -109,6 +132,9 @@ export function Dock() {
         {!talking && speech && status === "idle" && !error && (
           <div className="dock-sub">{speech.length > 140 ? speech.slice(0, 138) + "…" : speech}</div>
         )}
+        <input className="dock-input" value={typed} onChange={(e) => setTyped(e.target.value)}
+               placeholder={guide?.ask ? (hi ? "यहाँ जवाब लिखिए…" : "Type your answer…") : (hi ? "आगे पूछिए…" : "Ask next…")}
+               onKeyDown={(e) => { if (e.key === "Enter" && typed.trim()) { send(typed.trim()); setTyped(""); } }} />
         <label className="dock-toggle" title="Interrupt by talking over it. Works best with headphones.">
           <input type="checkbox" checked={barge.on} onChange={(e) => barge.set(e.target.checked)} />
           talk over me to interrupt <i>(headphones)</i>

@@ -26,6 +26,17 @@ export function useRoute(): string {
   return route;
 }
 
+/** The whole hash, so a page can re-read its query when only the query changes. */
+export function useHash(): string {
+  const [h, setH] = useState(location.hash);
+  useEffect(() => {
+    const on = () => setH(location.hash);
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return h;
+}
+
 export function go(path: string): void { location.hash = "#" + path; }
 
 export const HI_LABEL: Record<string, string> = {

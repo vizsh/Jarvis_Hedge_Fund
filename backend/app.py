@@ -34,6 +34,7 @@ from analysis import xray as xray_mod
 from backend import actions as actions_mod
 from backend import ledger as ledger_mod
 from backend import tts as tts_mod
+from backend import guide as guide_mod
 from backend import hindi_input
 from backend import vernacular as vernacular_mod
 from analysis import scanner as scanner_mod
@@ -821,6 +822,12 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
     _req_lang.set(lang if lang in vernacular_mod.LANGS else None)
+    orig, ckey = text, (cid or "default")
+    # The guide goes first: an open question takes this line as its answer, and "open X" moves the page.
+    if (ga := guide_mod.intercept(text, _lang(), ckey)) is not None:
+        loc = await _present(ga)
+        bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"], cid=cid)
+        return {"accepted": True, "kind": "guide", "answer": loc["answer"]}
     if hindi_input.has_devanagari(text):
         # Hindi in, by voice or keyboard: figures and intent are read in code (no free translation,
         # which used to invent words). Anything it cannot place is passed on as is, and the
@@ -843,6 +850,12 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
     # follow-up like "and what does it move with" resolves without naming the company
     # again -- which is how people actually talk, and especially how they speak.
     answer = await _assist(text)
+    if answer.kind in guide_mod.KIND_TO_TOOL and not answer.data.get("guide"):
+        g = guide_mod.begin(guide_mod.KIND_TO_TOOL[answer.kind], text, _lang(), ckey)
+        if g["done"]:
+            answer.data["guide"] = g                     # the tool had everything: open its page with the result showing
+        else:
+            answer = guide_mod.to_answer(g, _lang())     # ask for what is missing, one question at a time
     bus.emit(EventType.INTENT, verb="ask", ticker=answer.subject,
              args={"question": text}, via="router")
     loc = await _present(answer)
