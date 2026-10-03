@@ -2,7 +2,7 @@
 
 import { useChat, type AnswerData } from "./chat";
 import { useStore } from "./store";
-import { useLang } from "./lang";
+import { CLIENT_ID, useLang } from "./lang";
 import type { EvidenceItem, FundState, WireEvent } from "./types";
 import {
   allowSpeech, forceStop, isSilenced, resumeVoice as resumeSpeech, speak,
@@ -52,6 +52,13 @@ export function connect(): void {
   ws.onmessage = (msg) => {
     if (!isCurrent()) return;                   // a zombie must not reach the store
     const event: WireEvent = JSON.parse(msg.data);
+    // Only this screen's own replies, in this screen's language: a reply another tab or device
+    // asked for, or an announcement in the other language, is neither shown nor spoken here.
+    if (event.type === "speech" && !event.payload?._replay) {
+      const sp = event.payload as { cid?: string; lang?: string };
+      if (sp.cid && sp.cid !== CLIENT_ID) return;
+      if (!sp.cid && sp.lang && sp.lang !== useLang.getState().lang) return;
+    }
     useStore.getState().ingest(event);
 
     // Anything that moves the fund or the clock invalidates the panels. Debounced so a
@@ -97,7 +104,7 @@ export function send(text: string, shown?: string): void {
   allowSpeech();          // asking is an explicit request to be answered
   useChat.getState().push({ who: "you", text: shown ?? text });
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: "command", text }));
+    socket.send(JSON.stringify({ type: "command", text, lang: useLang.getState().lang, cid: CLIENT_ID }));
   }
 }
 
@@ -325,7 +332,7 @@ export async function stopMic(raw = false): Promise<{ transcript?: string; ok: b
   }
 
   try {
-    const res = await fetch(`/stt?lang=${useLang.getState().lang}${raw ? "&raw=true" : ""}`, {
+    const res = await fetch(`/stt?lang=${useLang.getState().lang}&cid=${CLIENT_ID}${raw ? "&raw=true" : ""}`, {
       method: "POST",
       headers: { "Content-Type": blob.type || "audio/webm" },
       body: blob,

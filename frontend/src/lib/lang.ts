@@ -26,8 +26,12 @@ export const useLang = create<{ lang: "en" | "hi"; set: (l: "en" | "hi") => void
   },
 }));
 
-// The backend forgets on restart, so tell it again on load.
-if (read() === "hi") {
-  void fetch("/language", { method: "POST", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ lang: "hi" }) });
-}
+/** This browser tab's identity. Replies to what this tab asked carry it back, so another tab or
+ *  device (possibly in the other language) never shows or speaks them. */
+export const CLIENT_ID = Math.random().toString(36).slice(2, 10);
+
+// Every question also carries this screen's language, so the answer follows what is selected HERE.
+// Announce the choice on load too (English as well as Hindi): the server remembers the last one
+// any screen set, and an English screen must not inherit another screen's Hindi.
+void fetch("/language", { method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ lang: read() }) });

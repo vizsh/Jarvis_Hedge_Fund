@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "./Panels";
 import { useGuide, type Action, type Flow } from "../lib/guide";
 import { useStore } from "../lib/store";
+import { CLIENT_ID, useLang } from "../lib/lang";
 import { useT } from "../lib/i18n";
 
 const rupees = (v: number) => {
@@ -40,7 +41,7 @@ export function ActionQueue() {
     if (a.question) {
       void fetch("/ask", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: a.question }),
+        body: JSON.stringify({ question: a.question, lang: useLang.getState().lang, cid: CLIENT_ID }),
       });
     }
   };

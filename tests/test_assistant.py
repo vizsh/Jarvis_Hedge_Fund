@@ -385,3 +385,19 @@ def test_every_flow_has_complete_hindi_that_lines_up_with_english():
         for en, h in zip(f.steps, loc["steps"]):
             for n in V._numbers(en.text + " ".join(o["consequence"] for o in en.options)):
                 assert n in V._numbers(h["text"] + " ".join(o["consequence"] for o in h["options"])), (fid, n)
+
+
+def test_each_request_uses_its_own_language_not_the_servers_last_one(session, monkeypatch):
+    """Two screens in different languages must not override each other (the server-wide language
+    used to make an English screen answer in Hindi after another screen chose it)."""
+    import asyncio
+    from backend import app as app_mod
+    monkeypatch.setattr(app_mod, "session", session)
+    app_mod.LANG = "hi"                                    # as if another screen had chosen Hindi
+    try:
+        en = asyncio.run(app_mod.ask(app_mod.AskIn(question="what does a 2% fee cost over 20 years", lang="en")))
+        hi = asyncio.run(app_mod.ask(app_mod.AskIn(question="what does a 2% fee cost over 20 years", lang="hi")))
+        assert en["lang"] == "en" and not V.looks_hindi(en["headline"])
+        assert hi["lang"] == "hi" and V.looks_hindi(hi["headline"])
+    finally:
+        app_mod.LANG = "en"

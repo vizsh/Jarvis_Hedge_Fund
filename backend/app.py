@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
 import math
 import re
 from pathlib import Path
@@ -181,6 +182,8 @@ async def _heartbeat() -> None:
 
 class Command(BaseModel):
     text: str
+    lang: str | None = None      # the language of the screen that asked (see _lang)
+    cid: str | None = None       # which browser tab asked, so only it shows and speaks the reply
 
 
 @app.get("/health")
@@ -331,6 +334,8 @@ async def stress_tests() -> dict:
 class AskIn(BaseModel):
     question: str
     level: str = "normal"        # normal | simple | maths
+    lang: str | None = None
+    cid: str | None = None
 
 
 @app.post("/ask")
@@ -342,9 +347,10 @@ async def ask(body: AskIn) -> dict:
     Re-asking at a different level is how somebody says "I did not follow that" without
     having to rephrase anything.
     """
+    _req_lang.set(body.lang if body.lang in vernacular_mod.LANGS else None)
     a = await _assist(body.question, body.level)
     loc = await _present(a)
-    bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"])
+    bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"], cid=body.cid)
     return loc["answer"]
 
 
@@ -803,17 +809,18 @@ _last_lang = "en"
 _MORE = re.compile(r"^\s*(tell me more|more( detail)?|go on|continue|read (it|that) (all|out)|full answer)\W*$", re.I)
 
 
-async def dispatch(text: str) -> dict:
+async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -> dict:
     """The single entry point for anything typed or spoken.
 
     Decides command vs question ONCE, here, so the two paths cannot diverge. They used
     to: the command bar ran an imperative parser that turned "what should I sell" into
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
+    _req_lang.set(lang if lang in vernacular_mod.LANGS else None)
     if _MORE.match(text or "") and _last_full:
         # "tell me more": read the long version of the last answer. Answers are spoken
         # short by default; this is how the person asks for the rest.
-        bus.emit(EventType.SPEECH, text=_last_full, final=True, lang=_last_lang)
+        bus.emit(EventType.SPEECH, text=_last_full, final=True, lang=_last_lang, cid=cid)
         return {"accepted": True, "kind": "more"}
     decision = route_input(text)
     if decision.kind == "command" and decision.intent:
@@ -829,7 +836,7 @@ async def dispatch(text: str) -> dict:
              args={"question": text}, via="router")
     loc = await _present(answer)
     bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang,
-             answer=loc["answer"])
+             answer=loc["answer"], cid=cid)
     emit_telemetry(session, bus)
     return {"accepted": True, "kind": "question", "why": decision.why,
             "answer": loc["answer"]}
@@ -865,11 +872,11 @@ def _check_watches() -> None:
 async def command(cmd: Command) -> dict:
     if player and player.active:
         return {"accepted": False, "reason": "replay in progress"}
-    return await dispatch(cmd.text)
+    return await dispatch(cmd.text, cmd.lang, cmd.cid)
 
 
 @app.post("/stt")
-async def speech_to_text(request: Request, lang: str = "en", raw: bool = False) -> dict:
+async def speech_to_text(request: Request, lang: str = "en", raw: bool = False, cid: str | None = None) -> dict:
     """Push-to-talk audio in, dispatched command out.
 
     The browser posts whatever MediaRecorder produced; faster-whisper decodes it
@@ -924,7 +931,7 @@ async def speech_to_text(request: Request, lang: str = "en", raw: bool = False) 
 
     # Same router as typed input. Voice used to go through the imperative parser only,
     # so a perfectly transcribed question still produced the wrong action.
-    out = await dispatch(result.text)
+    out = await dispatch(result.text, lang, cid)
     return {"ok": True, "transcript": result.text, "raw": result.raw,
             "confidence": result.confidence, "ms": result.duration_ms,
             "repaired": result.repaired, **out}
@@ -999,7 +1006,14 @@ async def firewall_check(body: FirewallIn) -> dict:
             "policy": session.policy.describe()}
 
 
-LANG = "en"                      # answer language: "en" or "hi"
+LANG = "en"                      # last language a screen chose (used for announcements nobody asked for)
+_req_lang: contextvars.ContextVar = contextvars.ContextVar("req_lang", default=None)
+
+
+def _lang() -> str:
+    """The language of the request being served. Each screen sends its own, so two tabs (or a
+    tab and a phone) can use different languages without overriding each other."""
+    return _req_lang.get() or LANG
 HI_VOICE = "hi_IN-pratham-medium"
 
 
@@ -1028,14 +1042,14 @@ async def _assist(question: str, level: str = "normal"):
     emergency cash, goals, scams and so on; the original explainer for portfolio questions."""
     from backend import assistant
     ctx = assistant.Ctx(pit=session.pit, portfolio=session.portfolio, prices=session.prices,
-                        policy=session.policy, conn=session.conn, convo=convo, lang=LANG, level=level)
+                        policy=session.policy, conn=session.conn, convo=convo, lang=_lang(), level=level)
     return await assistant.aanswer(question, ctx)
 
 
 async def _present(answer):
     """The answer as it should be shown and spoken in the current language."""
     global _last_full, _last_lang
-    loc = await vernacular_mod.localize_answer(answer, LANG)
+    loc = await vernacular_mod.localize_answer(answer, _lang())
     _last_full = loc["full"]
     _last_lang = "hi" if loc["translated"] else "en"
     return loc
@@ -1310,7 +1324,7 @@ async def _reader(socket: WebSocket) -> None:
         if message.get("type") == "command":
             if player and player.active:
                 continue   # a live command mid-replay would fight the recording
-            _spawn(dispatch(str(message.get("text", ""))))
+            _spawn(dispatch(str(message.get("text", "")), message.get("lang"), message.get("cid")))
         elif message.get("type") == "boot":
             _spawn(boot(session, bus))
         elif message.get("type") == "transcript":

@@ -6,6 +6,7 @@ import { useStore } from "../lib/store";
 import { Num } from "./DrillDown";
 import { AnswerCard } from "./AnswerCard";
 import { useT } from "../lib/i18n";
+import { CLIENT_ID, useLang } from "../lib/lang";
 
 const SCENARIO_HI: Record<string, string> = {
   covid: "कोविड की गिरावट", covid_recovery: "कोविड के बाद की रिकवरी", rate_shock_2022: "2022 की ब्याज दरों की मार",
@@ -184,7 +185,7 @@ export function AskPanel() {
     try {
       const res = await fetch("/ask", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, level }),
+        body: JSON.stringify({ question, level, lang: useLang.getState().lang, cid: CLIENT_ID }),
       });
       setAnswer(await res.json());
       if (level === "normal") setQ("");

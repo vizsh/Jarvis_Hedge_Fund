@@ -9,7 +9,7 @@
 import { create } from "zustand";
 
 import { allowSpeech, speak, stop as stopSpeech } from "./speak";
-import { useLang } from "./lang";
+import { CLIENT_ID, useLang } from "./lang";
 
 export interface FlowStep {
   kind: "say" | "show" | "choose" | "ask" | "confirm" | "done";
@@ -163,7 +163,7 @@ async function runStep(
       const res = await fetch("/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: step.question }),
+        body: JSON.stringify({ question: step.question, lang: useLang.getState().lang, cid: CLIENT_ID }),
       });
       set({ stepData: await res.json() });
     } catch {
