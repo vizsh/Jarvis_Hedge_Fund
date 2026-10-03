@@ -14,6 +14,7 @@ import { ReportView } from "./components/Report";
 import { PortfolioBuilder } from "./components/Portfolio";
 import Protect from "./pages/Protect";
 import Govern from "./pages/Govern";
+import Practice from "./pages/Practice";
 import { Assistant, Home, Learn, Portfolio, Research } from "./pages/Pages";
 
 // Where each named panel lives, so the command palette and guided flows can send you there.
@@ -49,6 +50,7 @@ export default function App() {
     route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect />
     : route === "/learn" ? <Learn />
+    : route === "/practice" ? <Practice />
     : route === "/govern" ? <Govern />
     : route === "/research" ? <Research />
     : route === "/assistant" ? <Assistant />

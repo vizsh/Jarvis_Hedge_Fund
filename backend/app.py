@@ -14,7 +14,7 @@ import math
 import re
 from pathlib import Path
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import HTTPException, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
@@ -1074,6 +1074,43 @@ async def tax_shield() -> dict:
     out = shield_mod.shield(session.portfolio, session.prices, lots, asof)
     out["sample"] = bool(session.portfolio_id and session.portfolio_id.startswith("preset_"))
     return out
+
+
+@app.get("/funds")
+async def funds() -> dict:
+    from backend import practice
+    return {"funds": practice.fund_list()}
+
+
+@app.get("/funds/overlap")
+async def funds_overlap(a: str, b: str) -> dict:
+    from backend import practice
+    from core import universe
+    if a not in practice.FUNDS or b not in practice.FUNDS:
+        raise HTTPException(404, "unknown fund")
+    own = {t: sh * session.prices.get(t, 0.0) for t, sh in session.portfolio.positions.items()}
+    return practice.overlap(a, b, universe.name, own)
+
+
+@app.get("/scamcall/scenarios")
+async def scam_scenarios() -> dict:
+    from backend import practice
+    return {"scenarios": practice.scenario_list()}
+
+
+class ScamIn(BaseModel):
+    scenario: str
+    node: int = 0
+    reply: str | None = None
+    pressure: int = 0
+
+
+@app.post("/scamcall/step")
+async def scam_step(body: ScamIn) -> dict:
+    from backend import practice
+    if body.scenario not in practice.SCENARIOS:
+        raise HTTPException(404, "unknown scenario")
+    return practice.scam_step(body.scenario, body.node, body.reply, body.pressure)
 
 
 @app.get("/goal")
