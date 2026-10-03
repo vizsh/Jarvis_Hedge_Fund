@@ -13,7 +13,10 @@ export default defineConfig({
       ...["/health", "/state", "/policy", "/prices", "/evidence", "/command", "/boot",
           "/stt", "/script", "/recordings", "/replay", "/record", "/calibration", "/universe", "/portfolios", "/profiles",
           "/xray", "/stress", "/ask", "/glossary", "/screen", "/correlation",
-          "/rebalance", "/attribution", "/lots", "/history"]
+          "/rebalance", "/attribution", "/lots", "/history",
+          "/tts", "/language", "/translate", "/scan", "/tax", "/firewall", "/sandbox", "/ledger",
+          "/funds", "/myfunds", "/scamcall", "/feedrag", "/emergency", "/digest", "/goal", "/panic",
+          "/actions", "/flows", "/palette", "/drilldown", "/report", "/watch"]
         .map((route) => [route, "http://localhost:8000"]),
     ]),
   },
