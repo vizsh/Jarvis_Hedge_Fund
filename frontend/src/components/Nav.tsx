@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { go, ROUTES, useRoute } from "../lib/router";
+import { go, HI_LABEL, ROUTES, useRoute } from "../lib/router";
 import { interrupt, onVoice } from "../lib/speak";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
@@ -43,6 +43,7 @@ function LangSwitch() {
 
 export function TopNav() {
   const route = useRoute();
+  const lang = useLang((s) => s.lang);
   const connected = useStore((s) => s.connected);
   const fund = useStore((s) => s.fund);
   const setBuilder = useUI((s) => s.setBuilder);
@@ -51,7 +52,7 @@ export function TopNav() {
       <a className="brand-mini" href="#/"><b>JARVIS</b><span>//</span>ALPHA OS</a>
       <nav className="navlinks" aria-label="Pages">
         {ROUTES.map((r) => (
-          <a key={r.path} href={"#" + r.path} className={route === r.path ? "on" : ""}>{r.label}</a>
+          <a key={r.path} href={"#" + r.path} className={route === r.path ? "on" : ""}>{lang === "hi" ? HI_LABEL[r.label] ?? r.label : r.label}</a>
         ))}
       </nav>
       <div className="nav-right">

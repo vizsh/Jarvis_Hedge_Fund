@@ -1,3 +1,4 @@
+import { TamperDemo } from "./Demos";
 import { useEffect, useState } from "react";
 
 import { Page } from "./Page";
@@ -225,6 +226,7 @@ export default function Govern() {
     <Page title="Govern" lead="Rules that no AI can override: check a trade, simulate a fix, and keep an honest record.">
       <div className="grid g2"><Firewall onStage={bump} /><RebalanceSim refreshKey={key} onBooked={bump} /></div>
       <div className="grid"><Ledger refreshKey={key} /></div>
+      <div className="grid"><TamperDemo /></div>
     </Page>
   );
 }

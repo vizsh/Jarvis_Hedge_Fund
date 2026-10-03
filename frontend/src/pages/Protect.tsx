@@ -1,3 +1,4 @@
+import { PanicSim } from "./Demos";
 import { useEffect, useState } from "react";
 
 import { Page } from "./Page";
@@ -178,6 +179,7 @@ export default function Protect() {
         <TipScanner />
         <TaxShield />
       </div>
+      <div className="grid"><PanicSim /></div>
       <div className="grid"><WatchlistPanel /></div>
     </Page>
   );

@@ -1076,6 +1076,34 @@ async def tax_shield() -> dict:
     return out
 
 
+@app.get("/panic")
+async def panic(key: str = "covid") -> dict:
+    from analysis import panic as panic_mod
+    return panic_mod.replay(session.pit, session.portfolio, session.prices, key)
+
+
+class TamperIn(BaseModel):
+    id: int
+    field: str = "price"
+    value: float | str = 1.0
+    rehash: bool = False
+
+
+@app.post("/ledger/demo-seed")
+async def ledger_demo_seed() -> dict:
+    return {"added": ledger_mod.seed_demo(session.conn, session.pit.clock_iso)}
+
+
+@app.post("/ledger/tamper")
+async def ledger_tamper(body: TamperIn) -> dict:
+    return ledger_mod.simulate_tamper(session.conn, body.id, body.field, body.value, body.rehash)
+
+
+@app.post("/ledger/tamper/real")
+async def ledger_tamper_real(body: TamperIn) -> dict:
+    return ledger_mod.attempt_real_edit(session.conn, body.id)
+
+
 @app.get("/ledger")
 async def get_ledger(limit: int = 100) -> dict:
     return {"entries": ledger_mod.entries(session.conn, limit),

@@ -25,3 +25,8 @@ export function useRoute(): string {
 }
 
 export function go(path: string): void { location.hash = "#" + path; }
+
+export const HI_LABEL: Record<string, string> = {
+  Home: "होम", Portfolio: "पोर्टफोलियो", Protect: "सुरक्षा", Learn: "सीखें",
+  Govern: "नियम", Research: "शोध", Assistant: "सहायक",
+};

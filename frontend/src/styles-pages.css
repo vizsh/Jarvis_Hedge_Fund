@@ -242,3 +242,12 @@ body::before { opacity: 0.45; }
 .langsw button.on { background: rgba(37, 217, 255, 0.16); color: var(--cyan); font-weight: 600; }
 .voicesel { background: rgba(0,0,0,0.35); border: 1px solid var(--rule); color: var(--text-dim); border-radius: 99px; padding: 4px 10px; font: inherit; font-size: 12px; max-width: 170px; }
 @media (max-width: 1100px) { .voicesel { display: none; } }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.panicchart { width: 100%; height: auto; max-height: 240px; background: rgba(255,255,255,0.03); border-radius: 4px; }
+.big { font-size: 22px; display: block; }
+.blocks { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
+.blk { min-width: 108px; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; transition: background .2s, border-color .2s; }
+.blk.ok { border-color: rgba(34,255,160,.5); background: rgba(34,255,160,.06); }
+.blk.bad { border-color: rgba(255,71,107,.7); background: rgba(255,71,107,.12); }
+.blk.edited { outline: 2px solid var(--amber, #ffb020); }
