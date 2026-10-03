@@ -918,6 +918,15 @@ def h_digest(text: str, ctx: Ctx) -> Answer:
 
 
 # ---- scams -----------------------------------------------------------------------------
+def _scam_scenario(text: str) -> str:
+    """Which rehearsal fits what was described: a police/arrest call, an investment tip, else the bank/KYC call."""
+    if re.search(r"arrest|police|cbi|customs|court|parcel|warrant|digital", text, re.I):
+        return "police"
+    if re.search(r"invest|tip|telegram|whatsapp|group|return|profit|trading|stock", text, re.I):
+        return "invest"
+    return "kyc"
+
+
 def h_scam_help(text: str, ctx: Ctx) -> Answer:
     t = _t(ctx.lang)
     lost = re.search(r"\b(lost|gave|shared|paid|sent|transferred|already|fell for|victim|scammed|cheated|debited|deducted)\b", text, re.I)
@@ -944,7 +953,7 @@ def h_scam_help(text: str, ctx: Ctx) -> Answer:
                bullets=flags[:3],
                action=t("Hang up, then call the number printed on your card or the official website. Report at 1930.", "फ़ोन काटिए, फिर कार्ड पर छपे या आधिकारिक वेबसाइट के नंबर पर ख़ुद फ़ोन कीजिए। 1930 पर शिकायत कीजिए।"),
                facts=[_fact(t("Helpline", "हेल्पलाइन"), "1930", "good")],
-               visual={"page": "practice", "label": t("Rehearse this call", "इस कॉल का अभ्यास करें"), "params": {}})
+               visual={"page": "practice", "label": t("Rehearse this call", "इस कॉल का अभ्यास करें"), "params": {"scenario": _scam_scenario(text)}})
     return _done(a, ctx, _chips("scam", "digest", "help"), "scam_help")
 
 

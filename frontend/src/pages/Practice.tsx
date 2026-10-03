@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import "../styles-practice.css";
 import { Page } from "./Page";
-import { allowSpeech, onVoice, speak, stop as stopSpeech, voiceReplies } from "../lib/speak";
+import { allowSpeech, onVoice, speak, speechGeneration, stop as stopSpeech, voiceReplies } from "../lib/speak";
 import * as socket from "../lib/socket";
 import { MicIcon } from "../components/VoiceInput";
 import { useLang } from "../lib/lang";
@@ -164,7 +164,7 @@ function Wave({ on }: { on: boolean }) {
   return <div className={`wave ${on ? "on" : ""}`}>{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ animationDelay: `${i * 55}ms` }} />)}</div>;
 }
 
-function ScamCall() {
+export function ScamCall({ init, compact = false }: { init?: Record<string, string | number>; compact?: boolean }) {
   const lang = useLang((s) => s.lang);
   const hi = lang === "hi";
   const [list, setList] = useState<any[]>([]);
@@ -229,6 +229,8 @@ function ScamCall() {
   }, [phase, handsfree, callerDone, listening, busy, step]); // eslint-disable-line
   useEffect(() => { if (phase !== "call" && listening) { socket.cancelMic(); setListening(false); } }, [phase, listening]);
   useEffect(() => () => { socket.cancelMic(); offVoice.current(); }, []);
+  // A Stop anywhere also ends hands-free listening: it must not reopen the microphone by itself.
+  useEffect(() => onVoice((st) => { if (st === "stopped") { socket.cancelMic(); setListening(false); setHandsfree(false); } }), []);
 
   const say = (line: string) => {
     window.clearInterval(typer.current);
@@ -243,7 +245,8 @@ function ScamCall() {
       allowSpeech(); speak(line, lang);
       // the caller is "done" when the audio has played to the end (or after a safety timeout)
       let started = false;
-      const done = () => { off(); window.clearTimeout(fallback); setCallerDone(true); };
+      const gen = speechGeneration();              // taken after speak(): any later bump is a Stop
+      const done = () => { off(); window.clearTimeout(fallback); if (speechGeneration() === gen) setCallerDone(true); };
       const off = onVoice((st) => {
         if (st === "speaking") started = true;
         if (started && st !== "speaking") done();
@@ -255,6 +258,12 @@ function ScamCall() {
     }
   };
 
+  const auto = useRef(false);
+  useEffect(() => {
+    if (!init?.scenario || auto.current || !list.length) return;
+    const s = list.find((x) => x.id === init.scenario);
+    if (s) { auto.current = true; begin(s); }
+  }, [list]); // eslint-disable-line
   const begin = (s: any) => { setSc(s); setPhase("ring"); setSeen([]); setLog([]); setSecs(0); setShown(""); setStep(null); };
   const accept = async () => {
     setPhase("call");
@@ -281,8 +290,8 @@ function ScamCall() {
   }, [step]);
 
   if (phase === "pick") return (
-    <section className="card wide">
-      <h2>{hi ? "ठगी वाली कॉल का अभ्यास" : "Scam call rehearsal"}</h2>
+    <section className={compact ? "fd-inline" : "card wide"}>
+      {!compact && <h2>{hi ? "ठगी वाली कॉल का अभ्यास" : "Scam call rehearsal"}</h2>}
       <p className="muted">{hi ? "असली कॉल आने से पहले मना करना सीखिए। कॉल करने वाला वही चालें चलेगा जो असली ठग चलते हैं। यहाँ कुछ भी असली नहीं है और कोई डेटा आपकी मशीन से बाहर नहीं जाता।"
         : "Practise saying no before it is real. A caller will pressure you using the exact tactics scammers use. Nothing here is real and no data leaves your machine."}</p>
       <div className="scgrid">
@@ -296,7 +305,7 @@ function ScamCall() {
     </section>);
 
   return (
-    <section className="card wide">
+    <section className={compact ? "fd-inline" : "card wide"}>
       <div className="phone">
         <div className="phone-top">
           <div className={`avatar ${phase === "ring" ? "ringing" : ""}`}>☎</div>

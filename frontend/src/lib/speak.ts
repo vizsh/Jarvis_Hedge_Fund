@@ -246,6 +246,8 @@ function haltAudio(): void {
 let repliesOn = true;
 try { repliesOn = localStorage.getItem("jarvis.voiceReplies") !== "off"; } catch { /* storage blocked */ }
 export function voiceReplies(): boolean { return repliesOn; }
+/** Bumps on every halt. A player that sees it change since its line started knows the line was cut off, not finished. */
+export function speechGeneration(): number { return generation; }
 export function setVoiceReplies(on: boolean): void {
   repliesOn = on;
   try { localStorage.setItem("jarvis.voiceReplies", on ? "on" : "off"); } catch { /* storage blocked */ }

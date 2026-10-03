@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLang } from "../lib/lang";
 import { hashParams } from "../lib/router";
-import { allowSpeech, onVoice, speak, stop as stopSpeech } from "../lib/speak";
+import { allowSpeech, onVoice, speak, speechGeneration, stop as stopSpeech } from "../lib/speak";
 
 const inr = (v: number) => {
   const a = Math.abs(v), s = v < 0 ? "-" : "";
@@ -227,12 +227,20 @@ export function WeeklyDigest({ compact = false, autoPlay = false }: { compact?: 
       if (!playing.current || i >= lines.length) { playing.current = false; setActive(-1); return; }
       setActive(i);
       let started = false;
+      let gen = -1;
       const off = onVoice((st) => {
         if (st === "speaking") started = true;
-        if (started && st === "idle") { off(); i += 1; speakLine(); }
+        if (started && st === "idle") {
+          off();
+          // the generation moves when anything halts the audio (any Stop button, Esc, a new
+          // question): that ends the briefing. Only a line that ran to its end moves on.
+          if (speechGeneration() !== gen) { playing.current = false; setActive(-1); return; }
+          i += 1; speakLine();
+        }
         if (st === "stopped" || st === "muted") { off(); playing.current = false; setActive(-1); }
       });
       speak(lines[i].text, lang, true);
+      gen = speechGeneration();
     };
     speakLine();
   };

@@ -116,3 +116,5 @@
 .fd-inline .sliders { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .emwrap.one { grid-template-columns: 1fr !important; justify-items: center; }
 .fd-inline .em-bars { width: 100%; }
+.fd-inline .phone { max-width: 100%; padding: 12px; border-radius: 18px; }
+.fd-inline .scgrid { grid-template-columns: 1fr; }

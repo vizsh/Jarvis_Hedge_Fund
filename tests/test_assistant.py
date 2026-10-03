@@ -345,3 +345,8 @@ def test_fourth_set_has_no_confident_wrong_answers_and_hinglish_is_asked_not_gue
     assert wrong == 0, (right, wrong, asked)
     for text in ("mere mutual funds ek jaise stocks rakhte hain kya", "kaun sa stock double hoga"):
         assert A.detect(text)[0] == "clarify"        # offline: asks; the local-model stage reads Hinglish
+
+
+def test_scam_answer_picks_the_matching_rehearsal(session):
+    assert ask(session, "someone called asking for my otp").visual["params"]["scenario"] == "kyc"
+    assert ask(session, "a man on a video call says i am under digital arrest").visual["params"]["scenario"] == "police"

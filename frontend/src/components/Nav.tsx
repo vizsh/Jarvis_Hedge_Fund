@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { go, HI_LABEL, ROUTES, useRoute } from "../lib/router";
-import { interrupt, onVoice } from "../lib/speak";
+import { onVoice, stop as stopNow } from "../lib/speak";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
 import { useBargeIn } from "../lib/bargein";
@@ -85,7 +85,7 @@ export function Dock() {
 
   if (route === "/assistant") {
     return talking ? (
-      <button className="stop-float" onClick={interrupt}>■ STOP — enough</button>
+      <button className="stop-float" onClick={stopNow}>■ STOP — enough</button>
     ) : null;
   }
 
@@ -114,7 +114,7 @@ export function Dock() {
           talk over me to interrupt <i>(headphones)</i>
         </label>
       </div>
-      {talking && <button className="dock-stop" onClick={interrupt}>■ Stop</button>}
+      {talking && <button className="dock-stop" onClick={stopNow}>■ Stop</button>}
       <a className="dock-open" href="#/assistant">Open assistant</a>
     </div>
   );
