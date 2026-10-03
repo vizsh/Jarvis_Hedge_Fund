@@ -52,8 +52,8 @@ export default function App() {
     route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect />
     : route === "/rural" ? <Rural key={hash} />
-    : route === "/learn" ? <Learn />
-    : route === "/practice" ? <Practice />
+    : route === "/learn" ? <Learn key={hash} />
+    : route === "/practice" ? <Practice key={hash} />
     : route === "/govern" ? <Govern />
     : route === "/research" ? <Research />
     : route === "/assistant" ? <Assistant />

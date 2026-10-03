@@ -851,7 +851,10 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
     # again -- which is how people actually talk, and especially how they speak.
     answer = await _assist(text)
     if answer.kind in guide_mod.KIND_TO_TOOL and not answer.data.get("guide"):
-        g = guide_mod.begin(guide_mod.KIND_TO_TOOL[answer.kind], text, _lang(), ckey)
+        tool = guide_mod.KIND_TO_TOOL[answer.kind]
+        # Read what the sentence gave; a tool that guessed defaults for the rest (a fee question with no
+        # amount) still asks, because a guessed figure is not the person's figure.
+        g = guide_mod.begin(tool, text, _lang(), ckey)
         if g["done"]:
             answer.data["guide"] = g                     # the tool had everything: open its page with the result showing
         else:
@@ -1067,6 +1070,15 @@ async def set_language(body: LangIn) -> dict:
     if body.lang in vernacular_mod.LANGS:
         LANG = body.lang
     return {"lang": LANG}
+
+
+def _guide_ctx(lang: str):
+    from backend import assistant
+    return assistant.Ctx(pit=session.pit, portfolio=session.portfolio, prices=session.prices,
+                         policy=session.policy, conn=session.conn, convo=None, lang=lang)
+
+
+guide_mod.ctx_factory = _guide_ctx
 
 
 async def _assist(question: str, level: str = "normal"):

@@ -71,3 +71,51 @@ def test_open_while_a_question_is_pending_navigates_instead_of_failing():
     G.begin("loan", "", "en", "c")
     a = G.intercept("open the learn page", "en", "c")
     assert a.data["guide"]["route"] == "/learn" and not G.active("c")
+
+
+# ---- fee drag, emergency, goal (answered by the existing handlers) -----------------------------
+@pytest.fixture
+def ctx_factory():
+    from backend import assistant, portfolios
+    from backend.session import Session
+    s = Session.create(); s.reprice()
+    d = portfolios.load(s.conn, "preset_typical_retail")
+    s.set_portfolio(d["name"], d["cash"], d["positions"], "preset_typical_retail")
+    G.ctx_factory = lambda lang: assistant.Ctx(s.pit, s.portfolio, s.prices, s.policy, s.conn, None, lang)
+    yield
+    G.ctx_factory = None
+
+
+def test_emergency_asks_two_things_then_opens_the_meter_with_the_answer(ctx_factory):
+    g = G.begin("emergency", "how long will my savings last", "en", "c")
+    assert g["route"] == "/practice" and g["ask"]["slot"] == "cash"
+    g = G.fill("c", "3 lakh", "en"); assert g["ask"]["slot"] == "exp" and not g["navigate"]
+    g = G.fill("c", "40000", "en")
+    assert g["done"] and g["params"]["cash"] == "300000.0" and "7.5 months" in g["say"] and g["params"]["run"] == "1"
+
+
+def test_fee_drag_flow_and_skipping_the_optional_fee(ctx_factory):
+    G.begin("fee", "what does the fund fee cost me", "en", "c")
+    G.fill("c", "every month", "en"); G.fill("c", "10000", "en"); g = G.fill("c", "20 years", "en")
+    assert g["ask"]["slot"] == "fee" and g["ask"]["optional"]
+    g = G.fill("c", "skip", "en")
+    assert g["done"] and g["params"]["monthly"] == "10000.0" and g["params"]["years"] == "20" and "2% fee" in g["say"]
+
+
+def test_goal_flow_in_hindi_and_figures_come_from_the_calculator(ctx_factory):
+    G.begin("goal", "", "hi", "c")
+    G.fill("c", "पचास लाख", "hi"); G.fill("c", "दस हज़ार", "hi"); g = G.fill("c", "पंद्रह साल", "hi")
+    assert g["done"] and g["route"] == "/learn" and g["params"]["target"] == "5000000.0" and g["params"]["years"] == "15"
+    assert "50.00 लाख" in g["say"] or "50 लाख" in g["say"]
+
+
+def test_sentences_with_everything_prefill_all_slots(ctx_factory):
+    g = G.begin("fee", "what does a 2% fee cost on 5 lakh over 20 years", "en", "c")
+    assert g["done"] and g["params"]["lump"] == "500000.0"
+    g = G.begin("emergency", "how long will 3 lakh last if I spend 40000 a month", "en", "c")
+    assert g["done"]
+
+
+def test_vague_fee_question_asks_instead_of_guessing(ctx_factory):
+    g = G.begin("fee", "what does the fund fee cost me", "en", "c")
+    assert not g["done"] and g["ask"]["slot"] == "mode"

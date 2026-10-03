@@ -212,6 +212,24 @@ def p_cost(text: str):
     return p_money(text)
 
 
+def p_years(text: str):
+    f = figures(text)
+    n = (f["years"] or f["bare"] or f["money"] or [None])[0]
+    if f["months"] and not f["years"]:
+        n = f["months"][0] / 12
+    return int(round(n)) if n and 0 < n <= 60 else None
+
+
+def p_pct(text: str):
+    f = figures(text)
+    n = (f["pct"] or f["bare"] or [None])[0]
+    return n if n is not None and 0 <= n <= 20 else None
+
+
+MODE = _c(("monthly", "Every month (SIP)", "हर महीने (SIP)", r"month|sip|every|monthly|हर महीने|महीने|एसआईपी|मासिक"),
+          ("lump", "Once, in one go", "एक बार में", r"once|one.?time|lump|single|one go|एक बार|इकट्ठा|एकमुश्त"))
+
+
 # ------------------------------------------------------------------------------- tool definitions
 def slot(name, en, hi, ex_en, ex_hi, parse, choices=None, optional=False):
     return dict(name=name, en=en, hi=hi, ex_en=ex_en, ex_hi=ex_hi, parse=parse, choices=choices, optional=optional)
@@ -245,7 +263,31 @@ TOOLS: dict[str, dict[str, Any]] = {
         slot("out", "Any big one-time costs? Say the month and amount, or say none.", "कोई बड़ा एकमुश्त ख़र्च? महीना और रक़म बताइए, या 'कोई नहीं' कहिए।",
              "For example: 20000 in June for seed", "जैसे: जून में 20000 बीज के लिए", p_one_offs, optional=True)]),
 }
+TOOLS.update({
+    "fee": dict(title=("Fee calculator", "फ़ीस कैलकुलेटर"), kind="fee_drag", route="/practice", partial_nav=False, slots=[
+        slot("mode", "Do you invest once, or every month?", "आप एक बार निवेश करते हैं, या हर महीने?", "Tap one", "एक चुनिए", parse_choice(MODE), MODE),
+        slot("amount", "How much do you invest?", "आप कितना निवेश करते हैं?", "For example: 10000, or 5 lakh", "जैसे: 10000, या 5 लाख", p_money),
+        slot("years", "For how many years?", "कितने साल के लिए?", "For example: 20", "जैसे: 20", p_years),
+        slot("fee", "What yearly fee does the fund charge, in percent?", "फ़ंड सालाना कितने प्रतिशत फ़ीस लेता है?", "For example: 2. Say skip if you do not know.", "जैसे: 2। पता न हो तो 'छोड़ो' कहिए।", p_pct, optional=True)]),
+    "emergency": dict(title=("Emergency meter", "इमरजेंसी मीटर"), kind="emergency", route="/practice", partial_nav=False, slots=[
+        slot("cash", "How much cash savings do you have?", "आपके पास कितनी नक़द बचत है?", "For example: 3 lakh", "जैसे: 3 लाख", p_money),
+        slot("exp", "How much do you spend in a month?", "आप महीने में कितना ख़र्च करते हैं?", "For example: 40000", "जैसे: 40000", p_money)]),
+    "goal": dict(title=("Goal chart", "लक्ष्य चार्ट"), kind="goal", route="/learn", partial_nav=False, slots=[
+        slot("target", "How much money do you want to reach?", "आप कितनी रक़म तक पहुँचना चाहते हैं?", "For example: 50 lakh, or 1 crore", "जैसे: 50 लाख, या 1 करोड़", p_money),
+        slot("monthly", "How much can you put in each month?", "आप हर महीने कितना डाल सकते हैं?", "For example: 10000", "जैसे: 10000", p_money),
+        slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
+})
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
+RURAL = {"loan", "scheme", "schemes", "docs", "income"}
+HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
+ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
+SENTENCE = {
+    "fee": lambda p, lang: "What does a {fee}% fee cost on {amt} {when} over {years} years?".format(
+        fee=f"{p['fee']:g}" if p.get("fee") is not None else "2", amt=f"{int(p['amount'])}", years=int(p["years"]),
+        when="a month" if p.get("mode") == "monthly" else "invested once"),
+    "emergency": lambda p, lang: f"How long will {int(p['cash'])} last if I spend {int(p['exp'])} a month?",
+    "goal": lambda p, lang: f"Will {int(p['monthly'])} a month reach {int(p['target'])} in {int(p['years'])} years?",
+}
 
 PAGES = [
     ("home", "/", ("Home", "होम"), r"\bhome\b|dashboard|होम", ["How am I doing?", "What can you do?"]),
@@ -262,6 +304,9 @@ TOOL_NAV = [("loan", r"moneylender|money lender|sahukar|loan checker|interest ch
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
+            ("fee", r"fee (calculator|slider|drag|checker)|expense ratio calculator|फ़ीस कैलकुलेटर|फीस कैलकुलेटर"),
+            ("emergency", r"emergency (meter|calculator|fund (meter|calculator))|इमरजेंसी मीटर"),
+            ("goal", r"goal (chart|planner|calculator)|लक्ष्य चार्ट"),
             ("income", r"(income|harvest|year|season) (planner|plan)|plan my (year|season|harvest)|मेरा साल|आमदनी की योजना")]
 NAV_EN = re.compile(r"^\s*(please\s+)?(take me to|go to|open|show me|navigate to|switch to|bring up|let'?s (go to|open)|start|launch|guide me (to|through))\b", re.I)
 NAV_HI = re.compile(r"(खोलो|खोलिए|खोलें|ले चलो|ले चलिए|दिखाओ|दिखाइए|दिखाएँ|जाओ|जाइए|पर चलो|पर चलिए|शुरू करो|शुरू कीजिए)")
@@ -272,6 +317,10 @@ def _ask(spec: dict, lang: str) -> dict[str, Any]:
     t = _t(lang)
     return {"slot": spec["name"], "question": t(spec["en"], spec["hi"]), "example": t(spec["ex_en"], spec["ex_hi"]), "optional": spec["optional"],
             "choices": [{"text": en, "label": hi if lang == "hi" else en} for _v, en, hi, _rx in spec["choices"]] if spec["choices"] else None}
+
+
+def _route(tool: str) -> str:
+    return TOOLS[tool].get("route", "/rural")
 
 
 def _query(tool: str, params: dict[str, Any], run: bool) -> dict[str, str]:
@@ -308,6 +357,34 @@ def _prefill(tool: str, st: dict[str, Any], text: str) -> None:
             p["principal"] = principal
         if months:
             p["months"] = months
+    elif tool in HANDLER_TOOLS:
+        from backend import assistant
+        roles = tools.money_roles(text)
+        q = tools.quantities(text)
+        yrs = int(q["years"][0]["v"]) if q["years"] else None
+        if tool == "fee":
+            pf = assistant._parse_fee(text)
+            if roles["monthly"] is not None:
+                p["mode"], p["amount"] = "monthly", roles["monthly"]
+            elif roles["lump"] is not None:
+                p["mode"], p["amount"] = "lump", roles["lump"]
+            if pf["years"]:
+                p["years"] = pf["years"]
+            if pf["fees"]:
+                p["fee"] = max(pf["fees"])
+        elif tool == "emergency":
+            if roles["monthly"] is not None and roles["lump"] is not None:
+                p["exp"], p["cash"] = roles["monthly"], roles["lump"]
+            elif roles["monthly"] is not None:
+                p["exp"] = roles["monthly"]
+        else:
+            if roles["monthly"] is not None:
+                p["monthly"] = roles["monthly"]
+            if yrs:
+                p["years"] = yrs
+            big = [m["v"] for m in q["money"] if m["v"] != roles["monthly"]]
+            if big:
+                p["target"] = max(big)
     elif tool == "scheme":
         if len(text.strip()) > 25 and re.search(r"\d|scheme|offer|double|chit|गारंटी|दोगुना|योजना", text, re.I):
             p["text"] = text.strip()
@@ -356,13 +433,27 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         r = rural.income_plan(p["income"], p["cost"], p.get("out") or [], 0, 36, lang)
         say = f"{r['headline']} {r['tips'][0] if r['tips'] else ''}"
         params = {"income": p["income"], "cost": p["cost"], "out": p.get("out") or []}
+    elif tool in HANDLER_TOOLS:
+        from backend import assistant
+        ctx = ctx_factory(lang) if ctx_factory else None
+        sentence = SENTENCE[tool](p, lang)
+        a = assistant.HANDLERS[TOOLS[tool]["kind"]](sentence, ctx) if ctx else None
+        say = (a.headline + (" " + a.bullets[0] if a and a.bullets else "")) if a else ""
+        vis = (a.visual or {}).get("params", {}) if a else {}
+        params = vis or {k: v for k, v in p.items()}
+        STATE.pop(cid, None)
+        nxt = {"fee": ["How long will 3 lakh last if I spend 40000 a month?", "Will 10000 a month reach 50 lakh in 15 years?"],
+               "emergency": ["What does a 2% fee cost over 20 years?", "Will 10000 a month reach 50 lakh in 15 years?"],
+               "goal": ["What does a 2% fee cost over 20 years?", "How long will 3 lakh last if I spend 40000 a month?"]}[tool]
+        return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
+                "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
     nxt = {"loan": ["Which government schemes can I get?", "Plan my money around the harvest"],
            "scheme": ["Check my moneylender interest", "I already lost money in a scam"],
            "schemes": ["Are my papers ready?", "Check my moneylender interest"],
            "docs": ["Which government schemes can I get?", "Check my moneylender interest"],
            "income": ["Check my moneylender interest", "Which government schemes can I get?"]}[tool]
-    return {"tool": tool, "route": "/rural", "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
+    return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
             "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
 
 
@@ -373,7 +464,7 @@ def _payload(cid: str, st: dict[str, Any], lang: str, navigate: bool) -> dict[st
         return _finish(cid, st, lang)
     slots = TOOLS[st["tool"]]["slots"]
     st["awaiting"] = spec["name"]
-    return {"tool": st["tool"], "route": "/rural", "label": t(*TOOLS[st["tool"]]["title"]), "navigate": navigate, "done": False,
+    return {"tool": st["tool"], "route": _route(st["tool"]), "label": t(*TOOLS[st["tool"]]["title"]), "navigate": navigate, "done": False,
             "ask": _ask(spec, lang), "params": _query(st["tool"], st["params"], False), "say": None,
             "step": [slots.index(spec) + 1, len(slots)]}
 
@@ -415,7 +506,7 @@ def fill(cid: str, text: str, lang: str) -> dict[str, Any] | None:
         st["tries"] += 1
         a = _ask(spec, lang)
         a["question"] = t("I did not catch that. ", "मैं समझ नहीं पाया। ") + a["question"]
-        return {"tool": st["tool"], "route": "/rural", "label": t(*TOOLS[st["tool"]]["title"]), "navigate": False, "done": False, "ask": a,
+        return {"tool": st["tool"], "route": _route(st["tool"]), "label": t(*TOOLS[st["tool"]]["title"]), "navigate": False, "done": False, "ask": a,
                 "params": _query(st["tool"], st["params"], False), "say": None, "step": None, "retry": True}
     if spec["name"] == "rate" and isinstance(val, dict):
         st["params"]["rate"], st["params"]["unit"] = val["rate"], val["unit"]
@@ -424,7 +515,7 @@ def fill(cid: str, text: str, lang: str) -> dict[str, Any] | None:
     else:
         st["params"][spec["name"]] = val
     st["tries"] = 0
-    return _payload(cid, st, lang, navigate=True)
+    return _payload(cid, st, lang, navigate=TOOLS[st["tool"]].get("partial_nav", True))
 
 
 # ------------------------------------------------------------------------------- opening a page
@@ -480,3 +571,11 @@ def intercept(text: str, lang: str, cid: str) -> Answer | None:
             return to_answer(g, lang)
     g = navigate(text, lang, cid)
     return to_answer(g, lang) if g else None
+
+
+def done_from_answer(tool: str, answer: Answer, lang: str) -> dict[str, Any]:
+    """The handler already had every figure: open its page with those figures and the result showing."""
+    t = _t(lang)
+    vis = answer.visual or {}
+    return {"tool": tool, "route": "/" + vis.get("page", "").lstrip("/") if vis.get("page") else _route(tool), "label": t(*TOOLS[tool]["title"]),
+            "navigate": True, "done": True, "ask": None, "params": _query(tool, vis.get("params", {}), True), "say": answer.headline, "next": [], "step": None}
