@@ -135,8 +135,9 @@ export function FeeDrag({ init, compact = false }: { init?: Record<string, strin
 }
 
 /* ------------------------------------------------------------ emergency fund */
-export function EmergencyMeter() {
+export function EmergencyMeter({ init, compact = false }: { init?: Record<string, string | number>; compact?: boolean }) {
   const hi = useLang((s) => s.lang) === "hi";
+  overrides = init;
   const [cash, setCash] = useState(num("cash", 300000));
   const [exp, setExp] = useState(num("exp", 40000));
   const [inc, setInc] = useState(num("inc", 0));
@@ -161,9 +162,9 @@ export function EmergencyMeter() {
   const label = band === "green" ? (hi ? "सुरक्षित" : "Safe") : band === "amber" ? (hi ? "ठीक-ठाक" : "Getting there") : (hi ? "जोखिम में" : "At risk");
 
   return (
-    <section className="card wide">
-      <h2>{hi ? "इमरजेंसी फ़ंड मीटर" : "Emergency-fund meter"}</h2>
-      <p className="muted">{hi ? "अगर आमदनी रुक जाए तो आपका पैसा कितने महीने चलेगा?" : "If your income stopped, how many months would your money last?"}</p>
+    <section className={compact ? "fd-inline" : "card wide"}>
+      {!compact && <h2>{hi ? "इमरजेंसी फ़ंड मीटर" : "Emergency-fund meter"}</h2>}
+      {!compact && <p className="muted">{hi ? "अगर आमदनी रुक जाए तो आपका पैसा कितने महीने चलेगा?" : "If your income stopped, how many months would your money last?"}</p>}
       <div className="sliders">
         <Slider label={hi ? "नक़द बचत" : "Cash savings"} value={cash} set={setCash} min={0} max={3000000} step={10000} fmt={inr} />
         <Slider label={hi ? "मासिक ख़र्च" : "Monthly spending"} value={exp} set={setExp} min={5000} max={300000} step={1000} fmt={inr} />
@@ -171,7 +172,7 @@ export function EmergencyMeter() {
         <Slider label={hi ? "बेचे जा सकने वाले निवेश" : "Investments you could sell"} value={inv} set={setInv} min={0} max={5000000} step={50000} fmt={inr} />
       </div>
       {d && (
-        <div className="emwrap">
+        <div className={compact ? "emwrap one" : "emwrap"}>
           <div className={`em-ring ${band}`}>
             <b>{d.runway_cash === null ? "∞" : d.runway_cash.toFixed(1)}</b>
             <span>{hi ? "महीने" : "months"}</span>

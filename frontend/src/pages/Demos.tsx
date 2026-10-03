@@ -126,10 +126,11 @@ export function TamperDemo() {
 }
 
 /* ------------------------------------------------------------ goal fan chart */
-export function GoalFan() {
-  const [monthly, setMonthly] = useState(() => Number(hashParams().get("monthly")) || 10000);
-  const [years, setYears] = useState(() => Number(hashParams().get("years")) || 10);
-  const [target, setTarget] = useState(() => Number(hashParams().get("target")) || 3000000);
+export function GoalFan({ init, compact = false }: { init?: Record<string, string | number>; compact?: boolean }) {
+  const pick = (k: string, d: number) => Number(init?.[k] ?? hashParams().get(k)) || d;
+  const [monthly, setMonthly] = useState(() => pick("monthly", 10000));
+  const [years, setYears] = useState(() => pick("years", 10));
+  const [target, setTarget] = useState(() => pick("target", 3000000));
   const [haircut, setHaircut] = useState(0);
   const [d, setD] = useState<any>(null);
 
@@ -159,9 +160,9 @@ export function GoalFan() {
       <input type="range" min={min} max={max} step={step} value={v} onChange={(e) => set(Number(e.target.value))} /></label>);
 
   return (
-    <section className="card">
-      <h2>Will I get there?</h2>
-      <p className="muted">Your holdings plus a monthly SIP, shown as a range of outcomes built from how this portfolio actually behaved.</p>
+    <section className={compact ? "fd-inline" : "card"}>
+      {!compact && <h2>Will I get there?</h2>}
+      {!compact && <p className="muted">Your holdings plus a monthly SIP, shown as a range of outcomes built from how this portfolio actually behaved.</p>}
       <div className="sliders">
         {slider("Monthly SIP", monthly, setMonthly, 0, 100000, 1000, inr)}
         {slider("Years", years, setYears, 1, 30, 1, (n) => `${n}`)}

@@ -114,3 +114,5 @@
 .fd-inline { padding: 10px; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); }
 .fdwrap.one { grid-template-columns: 1fr !important; }
 .fd-inline .sliders { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.emwrap.one { grid-template-columns: 1fr !important; justify-items: center; }
+.fd-inline .em-bars { width: 100%; }
