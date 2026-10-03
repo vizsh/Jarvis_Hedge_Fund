@@ -27,3 +27,18 @@ def test_real_edit_is_refused_and_chain_survives():
     assert ledger.verify(c)["ok"]
 
 
+
+
+def test_goal_fan_orders_percentiles_and_worse_returns_lower_odds():
+    from analysis import goal
+    from backend import portfolios
+    from backend.session import Session
+    s = Session.create()
+    s.reprice()
+    d = portfolios.load(s.conn, "preset_typical_retail")
+    s.set_portfolio(d["name"], d["cash"], d["positions"], "preset_typical_retail")
+    a = goal.fan(s.pit, s.portfolio, s.prices, 10000, 10, 3_000_000)
+    b = goal.fan(s.pit, s.portfolio, s.prices, 10000, 10, 3_000_000, haircut=0.3)
+    last = a["points"][-1]
+    assert last["p10"] <= last["p50"] <= last["p90"]
+    assert b["prob_target"] <= a["prob_target"]

@@ -1076,6 +1076,15 @@ async def tax_shield() -> dict:
     return out
 
 
+@app.get("/goal")
+async def goal(monthly: float = 10000, years: int = 10, target: float = 5_000_000,
+               haircut: float = 0.0) -> dict:
+    from analysis import goal as goal_mod
+    years = max(1, min(30, years))
+    return goal_mod.fan(session.pit, session.portfolio, session.prices, max(0, monthly), years, target,
+                        max(0.0, min(0.6, haircut)))
+
+
 @app.get("/panic")
 async def panic(key: str = "covid") -> dict:
     from analysis import panic as panic_mod

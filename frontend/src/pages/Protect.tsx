@@ -17,6 +17,39 @@ const SAMPLES = [
 ];
 
 /* ------------------------------------------------------------ tip scanner */
+function RiskGauge({ score }: { score: number }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => { const t = setTimeout(() => setShown(score), 60); return () => clearTimeout(t); }, [score]);
+  const ang = -90 + (Math.max(0, Math.min(100, shown)) / 100) * 180;
+  const arc = (a: number, b: number, c: string) => {
+    const p = (t: number) => [100 + 80 * Math.cos(Math.PI * (1 - t / 100)), 100 - 80 * Math.sin(Math.PI * (1 - t / 100))];
+    const [x1, y1] = p(a), [x2, y2] = p(b);
+    return <path d={`M${x1} ${y1} A80 80 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth="14" fill="none" />;
+  };
+  return (
+    <svg viewBox="0 0 200 118" className="gauge" role="img" aria-label={`Risk ${score} out of 100`}>
+      {arc(0, 33, "#22ffa0")}{arc(33, 66, "#ffb020")}{arc(66, 100, "#ff476b")}
+      <g className="needle" style={{ transform: `rotate(${ang}deg)` }}>
+        <line x1="100" y1="100" x2="100" y2="34" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      </g>
+      <circle cx="100" cy="100" r="6" fill="#fff" />
+      <text x="100" y="116" textAnchor="middle" fontSize="13" fill="#fff">{score}/100</text>
+    </svg>
+  );
+}
+
+function Highlighted({ text, flags }: { text: string; flags: any[] }) {
+  const quotes = flags.map((f) => f.quote).filter(Boolean);
+  if (!quotes.length) return null;
+  const esc = quotes.map((q: string) => q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const parts = text.split(new RegExp(`(${esc})`, "i"));
+  return (
+    <div className="tiphl" aria-label="Tip with scam-style phrases marked">
+      {parts.map((p, i) => (i % 2 ? <mark key={i}>{p}</mark> : <span key={i}>{p}</span>))}
+    </div>
+  );
+}
+
 function TipScanner() {
   const [text, setText] = useState("");
   const [res, setRes] = useState<any>(null);
@@ -53,6 +86,8 @@ function TipScanner() {
 
       {res && !res.empty && (
         <div className="scan-result">
+          <RiskGauge score={res.score} />
+          <Highlighted text={text} flags={res.flags} />
           <div className={`vbanner ${res.tone}`}>
             <div className="v-label">{res.verdict}</div>
             <div className="v-score">Risk score <b>{res.score}</b>/100</div>

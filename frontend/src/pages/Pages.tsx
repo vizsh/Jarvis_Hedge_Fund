@@ -1,3 +1,4 @@
+import { GoalFan } from "./Demos";
 import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import { useEffect, useState } from "react";
@@ -95,6 +96,7 @@ function Glossary() {
 export function Learn() {
   return (
     <Page title="Learn" lead="Ask in your own words, see what a crash would do to you, and find out where every number comes from.">
+      <div className="grid"><GoalFan /></div>
       <div className="grid g2">
         <AskPanel />
         <div className="stack">

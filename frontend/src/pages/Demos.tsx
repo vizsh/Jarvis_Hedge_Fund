@@ -122,3 +122,69 @@ export function TamperDemo() {
     </section>
   );
 }
+
+/* ------------------------------------------------------------ goal fan chart */
+export function GoalFan() {
+  const [monthly, setMonthly] = useState(10000);
+  const [years, setYears] = useState(10);
+  const [target, setTarget] = useState(3000000);
+  const [haircut, setHaircut] = useState(0);
+  const [d, setD] = useState<any>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetch(`/goal?monthly=${monthly}&years=${years}&target=${target}&haircut=${haircut / 100}`)
+        .then((r) => r.json()).then(setD).catch(() => {});
+    }, 200);
+    return () => clearTimeout(t);
+  }, [monthly, years, target, haircut]);
+
+  const W = 640, H = 220;
+  const g = useMemo(() => {
+    if (!d?.ok) return null;
+    const pts = d.points as any[];
+    const hi = Math.max(...pts.map((p) => p.p90), target) * 1.05;
+    const x = (m: number) => (m / (years * 12)) * W;
+    const y = (v: number) => H - (v / hi) * H;
+    const up = pts.map((p) => `${x(p.month)},${y(p.p90)}`);
+    const dn = pts.map((p) => `${x(p.month)},${y(p.p10)}`).reverse();
+    return { band: [...up, ...dn].join(" "), mid: pts.map((p) => `${x(p.month)},${y(p.p50)}`).join(" "),
+             ty: y(target), last: pts[pts.length - 1] };
+  }, [d, years, target]);
+
+  const slider = (label: string, v: number, set: (n: number) => void, min: number, max: number, step: number, fmt: (n: number) => string) => (
+    <label className="small slider"><span>{label}: <b>{fmt(v)}</b></span>
+      <input type="range" min={min} max={max} step={step} value={v} onChange={(e) => set(Number(e.target.value))} /></label>);
+
+  return (
+    <section className="card">
+      <h2>Will I get there?</h2>
+      <p className="muted">Your holdings plus a monthly SIP, shown as a range of outcomes built from how this portfolio actually behaved.</p>
+      <div className="sliders">
+        {slider("Monthly SIP", monthly, setMonthly, 0, 100000, 1000, inr)}
+        {slider("Years", years, setYears, 1, 30, 1, (n) => `${n}`)}
+        {slider("Goal", target, setTarget, 500000, 20000000, 100000, inr)}
+        {slider("If returns are worse by", haircut, setHaircut, 0, 40, 5, (n) => `${n}%`)}
+      </div>
+      {g && d && (
+        <>
+          <svg viewBox={`0 0 ${W} ${H}`} className="panicchart" role="img" aria-label="Range of outcomes">
+            <polygon points={g.band} fill="var(--cyan)" opacity="0.18" />
+            <polyline points={g.mid} fill="none" stroke="var(--cyan)" strokeWidth="2" />
+            <line x1="0" x2={W} y1={g.ty} y2={g.ty} stroke="var(--amber, #ffb020)" strokeDasharray="6 4" />
+          </svg>
+          <div className="sim">
+            <div><div className="muted small">Bad case (1 in 10)</div><b className="big">{inr(g.last.p10)}</b></div>
+            <div className={`vbanner ${d.prob_target >= 0.7 ? "green" : d.prob_target >= 0.4 ? "amber" : "red"}`}>
+              {Math.round(d.prob_target * 100)}% of paths reach {inr(target)}
+              <div className="small">you put in {inr(d.invested)} · typical result {inr(g.last.p50)}</div>
+            </div>
+            <div><div className="muted small">Good case (1 in 10)</div><b className="big">{inr(g.last.p90)}</b></div>
+          </div>
+          <p className="tiny muted">Built from {d.history_years} years of history, mostly a rising market, so the real
+            future can be worse — use the slider above to test that. A range of possibilities, not a forecast.</p>
+        </>
+      )}
+    </section>
+  );
+}

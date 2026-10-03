@@ -251,3 +251,9 @@ body::before { opacity: 0.45; }
 .blk.ok { border-color: rgba(34,255,160,.5); background: rgba(34,255,160,.06); }
 .blk.bad { border-color: rgba(255,71,107,.7); background: rgba(255,71,107,.12); }
 .blk.edited { outline: 2px solid var(--amber, #ffb020); }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 16px; margin: 8px 0; }
+.slider { display: flex; flex-direction: column; gap: 3px; } .slider input { width: 100%; }
+.gauge { width: 100%; max-width: 280px; display: block; margin: 4px auto; }
+.gauge .needle { transition: transform 0.9s cubic-bezier(.2,1.4,.4,1); transform-origin: 100px 100px; }
+.tiphl { padding: 10px; background: rgba(255,255,255,0.04); border-radius: 4px; line-height: 1.7; white-space: pre-wrap; font-size: 13.5px; }
+.tiphl mark { background: rgba(255,71,107,0.35); color: inherit; border-radius: 2px; padding: 0 2px; }
