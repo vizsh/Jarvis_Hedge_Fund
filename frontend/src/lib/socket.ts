@@ -1,5 +1,6 @@
 // WebSocket client with auto-reconnect and an audio envelope for the orb.
 
+import { useChat, type AnswerData } from "./chat";
 import { useStore } from "./store";
 import { useLang } from "./lang";
 import type { EvidenceItem, FundState, WireEvent } from "./types";
@@ -69,6 +70,9 @@ export function connect(): void {
     // Replayed history is rendered but never spoken. It already happened.
     if (event.type === "speech" && event.payload?.text && !event.payload?._replay) {
       const line = String(event.payload.text);
+      // Every spoken line also lands in the chat thread, as a structured answer card when the
+      // line came with one, so the reply can be read as well as heard (or only read).
+      useChat.getState().push({ who: "jarvis", text: line, answer: event.payload?.answer as AnswerData | undefined });
       pulseSpeech(line.length);
       speak(line, (event.payload?.lang as string) || "en");
     }
@@ -90,6 +94,7 @@ export function connect(): void {
 
 export function send(text: string): void {
   allowSpeech();          // asking is an explicit request to be answered
+  useChat.getState().push({ who: "you", text });
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "command", text }));
   }

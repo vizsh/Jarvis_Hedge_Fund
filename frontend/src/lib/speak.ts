@@ -241,8 +241,21 @@ function haltAudio(): void {
   window.speechSynthesis?.cancel();
 }
 
-export function speak(text: string, lang = "en"): void {
+// "Voice replies" preference: when off, nothing is read aloud automatically and the answer is
+// text only. An explicit "Read aloud" press still speaks (force = true).
+let repliesOn = true;
+try { repliesOn = localStorage.getItem("jarvis.voiceReplies") !== "off"; } catch { /* storage blocked */ }
+export function voiceReplies(): boolean { return repliesOn; }
+export function setVoiceReplies(on: boolean): void {
+  repliesOn = on;
+  try { localStorage.setItem("jarvis.voiceReplies", on ? "on" : "off"); } catch { /* storage blocked */ }
+  if (!on) interrupt();
+  emit();
+}
+
+export function speak(text: string, lang = "en", force = false): void {
   if (!text) return;
+  if (!repliesOn && !force) return;
   curLang = lang;
   if (silenced) { setState("stopped"); return; }
   if (isMuted()) { setState("muted"); return; }

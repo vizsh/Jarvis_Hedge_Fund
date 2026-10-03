@@ -4,6 +4,7 @@ import { Panel } from "./Panels";
 import { pct, rupees } from "./Portfolio";
 import { useStore } from "../lib/store";
 import { Num } from "./DrillDown";
+import { AnswerCard } from "./AnswerCard";
 
 /** Portfolio X-ray. The first screen a new user should see, because "what does what
  *  I already own look like" is the question they actually have. */
@@ -155,11 +156,11 @@ export function StressPanel() {
  *  does not know what to ask will ask nothing. */
 const SUGGESTED = [
   "How am I doing?",
-  "Why is my risk high?",
-  "What should I sell?",
+  "Which of my mutual funds overlap?",
+  "What does a 2% fee cost over 20 years?",
+  "How long will 3 lakh last if I spend 40000 a month?",
+  "Will 10000 a month reach 50 lakh in 15 years?",
   "What if the market drops 20%?",
-  "What happened in Covid?",
-  "Am I diversified?",
 ];
 
 export function AskPanel() {
@@ -202,14 +203,9 @@ export function AskPanel() {
 
       {answer && (
         <div className="answer">
-          <div className="a-head">{answer.headline}</div>
-          {answer.bullets?.map((b: string, i: number) => (
-            <div className="a-bullet" key={i}>{b}</div>
-          ))}
-          {answer.action && <div className="a-action">{answer.action}</div>}
-
-          {/* Explain-back. Three levels of the same truth, the reader picks — rather
-              than one level and a hope that it landed. */}
+          <AnswerCard a={answer} onAsk={(q) => ask(q)} />
+          {/* Explain-back. Three levels of the same truth, the reader picks, rather than
+              one level and a hope that it landed. */}
           <div className="a-levels">
             <span className="a-lv-label">Does that make sense?</span>
             <button className={`a-lv ${answer.level === "simple" ? "on" : ""}`}
@@ -226,17 +222,6 @@ export function AskPanel() {
               </button>
             )}
           </div>
-
-          {/* Next moves, derived from the answer that was just given. An answer with no
-              exit leaves the user holding a fact and no idea what to do with it. */}
-          {!!answer.follow_ups?.length && (
-            <div className="a-next">
-              <div className="a-next-label">Next</div>
-              {answer.follow_ups.map((f: string, i: number) => (
-                <div className="ask-chip next" key={f} onClick={() => ask(f)}>{answer.follow_ups_hi?.[i] ?? f}</div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </Panel>

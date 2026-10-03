@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { hashParams } from "../lib/router";
+
 const inr = (v: number) => `₹${Math.round(Math.abs(v)).toLocaleString("en-IN")}`;
 const post = (url: string, body: unknown) =>
   fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -7,7 +9,7 @@ const post = (url: string, body: unknown) =>
 
 /* ------------------------------------------------------------ panic-sell replay */
 export function PanicSim() {
-  const [key, setKey] = useState("covid");
+  const [key, setKey] = useState(() => hashParams().get("episode") || "covid");
   const [d, setD] = useState<any>(null);
   const [day, setDay] = useState(0);
 
@@ -125,9 +127,9 @@ export function TamperDemo() {
 
 /* ------------------------------------------------------------ goal fan chart */
 export function GoalFan() {
-  const [monthly, setMonthly] = useState(10000);
-  const [years, setYears] = useState(10);
-  const [target, setTarget] = useState(3000000);
+  const [monthly, setMonthly] = useState(() => Number(hashParams().get("monthly")) || 10000);
+  const [years, setYears] = useState(() => Number(hashParams().get("years")) || 10);
+  const [target, setTarget] = useState(() => Number(hashParams().get("target")) || 3000000);
   const [haircut, setHaircut] = useState(0);
   const [d, setD] = useState<any>(null);
 

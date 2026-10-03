@@ -114,10 +114,10 @@ def _r(p: str) -> re.Pattern:
 
 _FUNDISH = _r(r"\b(funds?|mutual|mfs?|schemes?|sips?)\b")
 _RULES: list[tuple[str, re.Pattern]] = [
-    ("digest", _r(r"\bone[- ]minute (update|brief\w*|summary|catch-?up)\b|\b(over|in|during) the (past|last) week\b|\b(past|last) (week|7 days|seven days)\b|\b(summary|summari[sz]e|update|brief\w*|roundup|recap)\b.{0,40}\b(this|the|last|past) week\b|\bfor (this|the) week\b|\b(weekly|week'?s|this week'?s?)\b.{0,25}\b(digest|summary|update|report|recap|brief|roundup)\b|\bdigest\b|"
+    ("digest", _r(r"\brundown\b|\bweekly (money|portfolio)\b|\bone[- ]minute (update|brief\w*|summary|catch-?up)\b|\b(over|in|during) the (past|last) week\b|\b(past|last) (week|7 days|seven days)\b|\b(summary|summari[sz]e|update|brief\w*|roundup|recap)\b.{0,40}\b(this|the|last|past) week\b|\bfor (this|the) week\b|\b(weekly|week'?s|this week'?s?)\b.{0,25}\b(digest|summary|update|report|recap|brief|roundup)\b|\bdigest\b|"
                   r"\b(brief|update|summari[sz]e|catch) me\b.{0,45}\bweek\b|\bhow (was|did|is) my week\b|\bmy week\b|"
                   r"\bsunday (summary|update|brief)\b")),
-    ("ledger", _r(r"\b(change|alter|edit|modify|rewrite|tamper|fake|backdate)\w*\b.{0,30}\b(past|old|previous|earlier|my)\b.{0,15}\b(trades?|entries|records?|ledger|history)\b|\b(ledger|audit (trail|log)|tamper\w*|hash[- ]?chain|trade history|trade log|trail of (my )?trades|"
+    ("ledger", _r(r"\b(transaction|trade|order) history\b.{0,30}\b(edit|alter|chang|tamper|modif)\w*|\b(change|alter|edit|modify|rewrite|tamper|fake|backdate)\w*\b.{0,30}\b(past|old|previous|earlier|my)\b.{0,15}\b(trades?|entries|records?|ledger|history)\b|\b(ledger|audit (trail|log)|tamper\w*|hash[- ]?chain|trade history|trade log|trail of (my )?trades|"
                   r"record of (my )?(trades|decisions)|records? (been )?(changed|altered|edited))\b")),
     ("my_funds_remove", _r(r"\b(remove|delete|drop|forget|clear)\b.{0,40}\b(funds?|mutual)\b|\bno longer (own|hold)\b.{0,40}\bfund|"
                            r"\b(sold|exited|redeemed)\b.{0,30}\b(my )?\w*\s?fund\b")),
@@ -130,12 +130,12 @@ _RULES: list[tuple[str, re.Pattern]] = [
                           r"\bdo my (stocks|shares|holdings)\b.{0,30}\b(appear|show up|repeat)\b.{0,30}\bfunds?\b")),
     ("fund_overlap", _r(r"\b(overlap\w*|same stocks?|same shares|common (stocks|holdings|shares)|duplicat\w*|similar funds?|"
                         r"hold the same|holding the same|paying twice|pay twice|twice for the same|redundant|same thing|same as|clash(es)?|conflict|doubling up|double up|alike|most similar|how similar|crossover|cross-over|same job|twins?|clones?|copies|carbon cop(y|ies))\b")),
-    ("fund_list", _r(r"\bwhat (mutual )?funds do you (cover|have|support|know|offer)\b|\b(name|list) the funds\b|\b(what|which|list|show|name|available)\b.{0,25}\b(mutual )?funds?\b.{0,30}\b(have|available|compare|cover|support|know|there|list|offer)\b|"
+    ("fund_list", _r(r"\bwhich (mutual )?funds do you (track|analy[sz]e|have|cover|support|know)\b|\bwhat (mutual )?funds do you (cover|have|support|know|offer)\b|\b(name|list) the funds\b|\b(what|which|list|show|name|available)\b.{0,25}\b(mutual )?funds?\b.{0,30}\b(have|available|compare|cover|support|know|there|list|offer)\b|"
                       r"\blist (of )?(all )?(the )?(mutual )?funds\b|\bshow me (all )?(the )?(mutual )?funds\b|\bwhich funds (can|do) (i|you)\b")),
-    ("fund_info", _r(r"\bstocks?\b.{0,40}\bfund\b.{0,15}\b(invested in|holds?|owns?)\b|\bfund\b.{0,12}\binvested in\b|\bwhat (stocks|shares|companies)\b.{0,30}\b(does|do|are|is)\b.{0,40}\bfund\b|\b(top )?holdings? (of|in)\b|\bwhat('?s| is| does)\b.{0,25}\b(inside|in|hold|holds|own)\b.{0,30}\bfund\b|"
+    ("fund_info", _r(r"\b(biggest|largest|top|main|major) (holdings|positions|stocks)\b.{0,30}\bfund\b|\bstocks?\b.{0,40}\bfund\b.{0,15}\b(invested in|holds?|owns?)\b|\bfund\b.{0,12}\binvested in\b|\bwhat (stocks|shares|companies)\b.{0,30}\b(does|do|are|is)\b.{0,40}\bfund\b|\b(top )?holdings? (of|in)\b|\bwhat('?s| is| does)\b.{0,25}\b(inside|in|hold|holds|own)\b.{0,30}\bfund\b|"
                       r"\bwhat does\b.{0,40}\bhold\b|\bwhat stocks (are )?(in|inside)\b|\bwhat('?s| is) in (the )?\w+\s?\w*\s?fund\b")),
     ("fee_drag", _r(r"\bexpense ratios?\b|\b(management fees?|manager fees?|fund manager|fees?|expense ratio|ter|brokerage|commission|charges?|direct plans?|regular plans?|expense)\b")),
-    ("emergency", _r(r"\b(cushion|income stopped|lose my job|lost my job|how many months do i get)\b|\b(savings?|cash|money)\b.{0,30}\b(cover|last|carry)\b.{0,30}\b(without|if|no)\b.{0,20}\b(income|salary|job|work)\b|\bwithout (any )?(income|salary|a job)\b|\bhow long (can|will|could|would) (i|my|it|that|we)\b.{0,40}\b(live|last|survive|manage|cope|get by)\b|\b(emergency fund|emergency savings|emergency money|rainy day|runway|safety net|"
+    ("emergency", _r(r"\bbuffer\b.{0,30}\b(job|income|salary)\b|\b(cushion|income stopped|lose my job|lost my job|how many months do i get)\b|\b(savings?|cash|money)\b.{0,30}\b(cover|last|carry)\b.{0,30}\b(without|if|no)\b.{0,20}\b(income|salary|job|work)\b|\bwithout (any )?(income|salary|a job)\b|\bhow long (can|will|could|would) (i|my|it|that|we)\b.{0,40}\b(live|last|survive|manage|cope|get by)\b|\b(emergency fund|emergency savings|emergency money|rainy day|runway|safety net|"
                       r"(how long|how many months).{0,45}\b(last|survive|manage|cover|go on|stay afloat|get by)\b|"
                       r"(lose|lost|losing|quit|laid off|layoffs?|job loss|no job|without (a )?(job|salary|income))\b.{0,30}\b(job|income|salary|work)?\b.{0,30}\b(months?|how long|last|survive|savings)\b|"
                       r"if my (salary|income|job) (stops|ends|goes|disappears)|months? of (expenses|living costs|savings)|"
@@ -157,17 +157,17 @@ _RULES: list[tuple[str, re.Pattern]] = [
                       r"suspicious (call|message|link|sms|email)|someone (called|rang|messaged)|(got|received|had) (a|an) (call|message|sms|email)|anydesk|quicksupport|teamviewer|"
                       r"remote (access|control|app)|upi (fraud|scam|request)|collect request|1930|cyber ?crime|asked (me )?for my (pin|otp|password)|"
                       r"lost money (to|in) (a )?(scam|fraud)|blackmail\w*|loan app|parcel (with|has|held)|customs (officer|call))\b")),
-    ("predict", _r(r"\bwhich (small|mid|large)[- ]?cap\b|\bmake me rich\b|\bwill (bitcoin|btc|crypto|gold|silver|nifty|sensex|the market|[a-z]+)\b.{0,15}\b(cross|hit|touch|reach|breach)\b|\b(target price|price target)\b|\b(will|going to)\b.{0,25}\b(give|make|return|get)\b.{0,15}\b\d+ ?x\b|\b\d+ ?x\b.{0,12}\b(return|returns|in a year|in a month)\b|\b(will|going to|gonna)\b.{0,25}\b(double|triple|go up|rise|moon|crash|fall|rally|jump|shoot up|touch)\b|"
+    ("predict", _r(r"\b(penny stocks?|explode|rocket|ten[- ]?bagger|10 ?x)\b|\bwhich (small|mid|large)[- ]?cap\b|\bmake me rich\b|\bwill (bitcoin|btc|crypto|gold|silver|nifty|sensex|the market|[a-z]+)\b.{0,15}\b(cross|hit|touch|reach|breach)\b|\b(target price|price target)\b|\b(will|going to)\b.{0,25}\b(give|make|return|get)\b.{0,15}\b\d+ ?x\b|\b\d+ ?x\b.{0,12}\b(return|returns|in a year|in a month)\b|\b(will|going to|gonna)\b.{0,25}\b(double|triple|go up|rise|moon|crash|fall|rally|jump|shoot up|touch)\b|"
                     r"\b(price target|multibagger|which stocks? (to buy|will|should i buy|is best)|best stocks? to buy|stocks? to buy (now|today|tomorrow)|"
                     r"hot stocks?|next (big )?winner|will .{0,20} (be|hit) (₹|rs)?\s?\d)\b|\bpredict\w*\b|\bforecast\b|\btomorrow'?s? (price|market)\b|\bwhere will (the )?(market|nifty|sensex)\b")),
-    ("help", _r(r"\bwhat should i ask\b|\bwhat (are )?(the )?(things|stuff|questions|topics) (i|we) can (ask|do|say)\b|^\s*(help|what can you do|what do you do|what can i (ask|do)|how (do|can) i use (this|you)|who are you|what are you|features|capabilities|show (me )?what you can do|menu)\b")),
+    ("help", _r(r"\bhow can you help\b|\bwhat should i ask\b|\bwhat (are )?(the )?(things|stuff|questions|topics) (i|we) can (ask|do|say)\b|^\s*(help|what can you do|what do you do|what can i (ask|do)|how (do|can) i use (this|you)|who are you|what are you|features|capabilities|show (me )?what you can do|menu)\b")),
     ("stress", _r(r"\b(tanks?|plunges?|collapses?|crashes|slumps?|tumbles?)\b.{0,20}\b\d+\s?(%|percent)\b")),
-    ("diversification", _r(r"@@b(too heavily|overexposed|over-exposed|eggs in one basket|too tilted|too much (of my money )?(is )?(riding )?in)@@b.{0,30}@@b(one|single|same|a)@@b|@@btoo heavily invested@@b".replace("@@", chr(92)))),
-    ("correlation", _r(r"\b(fall|rise|move|go up|go down|drop) together\b|\btend to (fall|rise|move|drop)\b|@@b(behave|act|move|trade)@@w*@@b.{0,15}@@b(the same|alike|similarly|in sync|together)@@b|@@bany of my (shares|stocks|holdings)@@b.{0,30}@@b(same|alike|together)@@b".replace("@@", chr(92)))),
+    ("diversification", _r(r"\b(same|one|single) sector\b|@@b(too heavily|overexposed|over-exposed|eggs in one basket|too tilted|too much (of my money )?(is )?(riding )?in)@@b.{0,30}@@b(one|single|same|a)@@b|@@btoo heavily invested@@b".replace("@@", chr(92)))),
+    ("correlation", _r(r"\blockstep\b|\bin sync\b|\b(fall|rise|move|go up|go down|drop) together\b|\btend to (fall|rise|move|drop)\b|@@b(behave|act|move|trade)@@w*@@b.{0,15}@@b(the same|alike|similarly|in sync|together)@@b|@@bany of my (shares|stocks|holdings)@@b.{0,30}@@b(same|alike|together)@@b".replace("@@", chr(92)))),
     ("should_buy", _r(r"@@b(good|great|wise|smart|sensible)@@s+(addition|buy|pick|idea to buy)@@b|@@bshould i (get(?! rid)|pick up|add|buy)@@b".replace("@@", chr(92)))),
     ("fix", _r(r"\bwhich of my (stocks|shares|holdings)\b.{0,25}\b(sell|drop|exit|get rid of|dump|cut|trim|reduce)\b|\bget rid of\b|@@bwhat should i (cut|drop|reduce|lower|offload|get rid of|trim)@@b|@@bto be safer@@b|@@bhow (can|do) i (de-?risk|reduce my risk|make it safer)@@b".replace("@@", chr(92)))),
     ("why", _r(r"\b(weakest|weak) (part|spot|point|link)\b|@@b(main|biggest|top|key|major|worst)@@s+(risks?|problems?|weak(ness)?es)@@b|@@brisks? in my@@b".replace("@@", chr(92)))),
-    ("xray", _r(r"\b(big picture|bird.s eye|how my (investments|money|portfolio) (are|is) doing)\b|\b(check-?up|health ?check|overview|status)\b.{0,25}\b(my|of my)\b.{0,15}\b(investments?|portfolio|money|holdings)\b|@@b(in good shape|doing well|state of my (money|portfolio|investments)|my overall (position|picture)|how (am|are) (i|you) doing with)@@b".replace("@@", chr(92)))),
+    ("xray", _r(r"\bhow is everything\b|\b(big picture|bird.s eye|how my (investments|money|portfolio) (are|is) doing)\b|\b(check-?up|health ?check|overview|status)\b.{0,25}\b(my|of my)\b.{0,15}\b(investments?|portfolio|money|holdings)\b|@@b(in good shape|doing well|state of my (money|portfolio|investments)|my overall (position|picture)|how (am|are) (i|you) doing with)@@b".replace("@@", chr(92)))),
     ("chitchat", _r(r"^\s*(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|thanks?( you)?|thank you|ok(ay)?|cool|great|nice|bye|goodbye|see you)\W*$")),
 ]
 
@@ -191,9 +191,11 @@ _PERSONAL = _r(r"\b(my|mine|i|we|our)\b|\d")
 
 def rule_intent(text: str) -> str | None:
     low = text.strip()
+    funds_early = find_funds(low)
     # A plain "what is X?" about a term we have a definition for is a definition, even when X
     # is also a trigger word for a tool ("expense ratio", "overlap", "otp").
-    if _DEF_Q.search(low) and not _PERSONAL.search(low) and explain.define(low):
+    if _DEF_Q.search(low) and not _PERSONAL.search(low) and explain.define(low) and not (
+            funds_early and re.search(r"\b(holdings?|positions|inside|contain\w*|stocks|biggest|largest|top|own)\b", low, re.I)):
         return "define"
     funds = find_funds(low)
     # A named fund plus a comparison word is an overlap question even without the word

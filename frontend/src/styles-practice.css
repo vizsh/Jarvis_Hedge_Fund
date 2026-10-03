@@ -67,3 +67,39 @@
 .tactics { display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .tactic { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 6px; background: rgba(255,176,32,.08); border-left: 3px solid #ffb020; }
 .rule { padding: 10px; border-radius: 6px; background: rgba(0,229,255,.08); font-size: 13.5px; }
+
+/* ---- practice: fee drag, emergency, digest, own-star */
+.ownstar { display: inline-block; margin-top: 4px; font-size: 11px; color: #9fb3c8; cursor: pointer; }
+.ownstar.on { color: #ffd166; font-weight: 700; } .ownstar:hover { color: #fff; }
+.fdwrap { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 18px; align-items: start; }
+.fdchart { touch-action: none; cursor: crosshair; }
+.fd-free { fill: none; stroke: #8aa0b5; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.fd-low { fill: none; stroke: #22ffa0; stroke-width: 2.5; } .fd-high { fill: none; stroke: #ff476b; stroke-width: 2.5; }
+.fd-band { fill: rgba(255, 71, 107, .16); } .fd-cursor { stroke: rgba(255,255,255,.35); stroke-width: 1; }
+.fd-dot-high { fill: #ff476b; } .fd-dot-low { fill: #22ffa0; }
+.fd-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-top: 6px; }
+.lg::before { content: ""; display: inline-block; width: 18px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+.lg.low::before { background: #22ffa0; } .lg.high::before { background: #ff476b; } .lg.free::before { background: #8aa0b5; }
+.fd-side { display: flex; flex-direction: column; gap: 8px; }
+.fd-big { display: flex; flex-direction: column; padding: 12px; border-radius: 10px; background: rgba(255,71,107,.1); border: 1px solid rgba(255,71,107,.35); }
+.fd-big span { font-size: 12px; color: #ff9fb0; } .fd-big b { font-size: 26px; color: #ff6b87; font-variant-numeric: tabular-nums; } .fd-big small { color: #9fb3c8; font-size: 11.5px; }
+.fd-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.08); }
+.fd-bar .kept { background: #22ffa0; transition: width .6s; } .fd-bar .eaten { background: #ff476b; transition: width .6s; }
+@media (max-width: 800px) { .fdwrap, .emwrap { grid-template-columns: 1fr !important; } }
+
+.emwrap { display: grid; grid-template-columns: 150px minmax(0, 1fr) 230px; gap: 18px; align-items: center; margin-top: 8px; }
+.em-ring { width: 140px; height: 140px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 8px solid; position: relative; transition: border-color .4s, box-shadow .4s; }
+.em-ring.green { border-color: #22ffa0; box-shadow: 0 0 26px rgba(34,255,160,.25); } .em-ring.amber { border-color: #ffb020; box-shadow: 0 0 26px rgba(255,176,32,.25); } .em-ring.red { border-color: #ff476b; box-shadow: 0 0 26px rgba(255,71,107,.3); }
+.em-ring b { font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; } .em-ring span { font-size: 12px; color: #9fb3c8; } .em-ring small { font-size: 11px; margin-top: 4px; font-weight: 700; }
+.em-bars { display: flex; gap: 5px; align-items: flex-end; height: 150px; }
+.em-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; font-size: 10px; color: #7e93a8; }
+.em-col.target span { color: #fff; font-weight: 800; } .em-col.target .em-track { outline: 2px dashed rgba(255,255,255,.55); }
+.em-track { width: 100%; height: 130px; border-radius: 4px; background: rgba(255,255,255,.07); display: flex; align-items: flex-end; overflow: hidden; }
+.em-fill { width: 100%; border-radius: 3px; transition: height .7s cubic-bezier(.2,.8,.2,1); }
+.em-fill.r { background: #ff476b; } .em-fill.a { background: #ffb020; } .em-fill.g { background: #22ffa0; }
+.em-side { display: flex; flex-direction: column; gap: 8px; }
+
+.digest { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.dg-line { padding: 9px 12px; border-radius: 8px; border-left: 3px solid transparent; color: #8fa3b8; line-height: 1.55; transition: all .3s; }
+.dg-line.on { background: rgba(0,229,255,.12); border-left-color: var(--cyan); color: #fff; transform: translateX(4px); }
+.dg-line.done { color: #cfe0f0; }

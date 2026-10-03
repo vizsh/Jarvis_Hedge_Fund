@@ -1,0 +1,43 @@
+"""Fourth set, written after the third was used for tuning. Not used to tune anything: the
+first-run result of this set is the honest estimate. Includes typed Hinglish (Roman-script
+Hindi), which only the optional local-model stage can understand."""
+
+BLIND4: list[tuple[str, str]] = [
+    ("are the two funds i hold just duplicates of each other", "fund_overlap"),
+    ("how much overlap is there between the technology fund and the flexi cap fund", "fund_overlap"),
+    ("do bluechip fund b and the nifty index fund invest in the same companies", "fund_overlap"),
+    ("which mutual funds do you track", "fund_list"),
+    ("what are the biggest holdings in the nifty index fund", "fund_info"),
+    ("what would a 1.2% annual fee do to 3 lakh in 25 years", "fee_drag"),
+    ("how bad are fund fees on a long sip", "fee_drag"),
+    ("savings of 5 lakh with monthly bills of 60000 how long can i stay afloat", "emergency"),
+    ("how much buffer do i need if my job vanished", "emergency"),
+    ("would 18000 monthly get me to 2 crore in 22 years", "goal"),
+    ("how realistic is a 1 crore goal in 10 years for me", "goal"),
+    ("what would it have cost me to sell everything in march 2020", "panic"),
+    ("give me the quick weekly money rundown", "digest"),
+    ("a stranger on the phone wants a code that came by sms", "scam_help"),
+    ("my father got a call claiming his aadhaar is linked to a crime", "scam_help"),
+    ("is it legit that an app promises triple returns in a month", "tip_scan"),
+    ("which penny stock will explode", "predict"),
+    ("could my transaction history be secretly edited later", "ledger"),
+    ("how can you help me", "help"),
+    ("who wrote hamlet", "out_of_scope"),
+    ("define expense ratio", "define"),
+    ("how is everything with my portfolio", "xray"),
+    ("what is making my risk score worse", "why"),
+    ("which position should i reduce first", "fix"),
+    ("what would happen to me if the market fell by a quarter", "stress"),
+    ("is all my money sitting in the same sector", "diversification"),
+    ("do any two of my stocks move in lockstep", "correlation"),
+    ("is buying hdfc bank a smart idea for me", "should_buy"),
+    # typed Hinglish
+    ("mere mutual funds ek jaise stocks rakhte hain kya", "fund_overlap"),
+    ("2 percent fee 20 saal mein kitna nuksaan karti hai", "fee_drag"),
+    ("agar meri naukri chali jaye to mere paise kitne mahine chalenge", "emergency"),
+    ("kya main 15 saal mein 50 lakh bana paunga sip se", "goal"),
+    ("kisi ne phone pe mera otp maanga", "scam_help"),
+    ("mera weekly summary sunao", "digest"),
+    ("mera portfolio kaisa chal raha hai", "xray"),
+    ("kaun sa stock double hoga", "predict"),
+]

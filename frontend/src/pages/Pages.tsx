@@ -1,3 +1,4 @@
+import { ChatThread } from "../components/ChatThread";
 import { GoalFan } from "./Demos";
 import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
@@ -156,6 +157,7 @@ export function Assistant() {
         </Canvas>
       </div>
       <OrbMic />
+      <ChatThread />
       <div className="assistant-side"><JobsLauncher compact /></div>
       <div className="assistant-bottom"><CommandBar /></div>
     </div>

@@ -31,3 +31,8 @@ export const HI_LABEL: Record<string, string> = {
   Home: "होम", Portfolio: "पोर्टफोलियो", Protect: "सुरक्षा", Learn: "सीखें", Practice: "अभ्यास",
   Govern: "नियम", Research: "शोध", Assistant: "सहायक",
 };
+
+/** Query parameters after the route in the hash, e.g. #/practice?a=largecap_a&b=bluechip_b */
+export function hashParams(): URLSearchParams {
+  return new URLSearchParams(location.hash.split("?")[1] ?? "");
+}

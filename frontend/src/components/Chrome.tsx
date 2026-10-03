@@ -139,12 +139,12 @@ export function ForceStop() {
 
 /* ------------------------------------------------------------------ command */
 const SUGGESTIONS = [
+  "Which of my mutual funds overlap?",
+  "What does a 2% fee cost over 20 years?",
+  "How long will 3 lakh last if I spend 40000 a month?",
+  "Give me my weekly digest",
   "analyse TCS",
   "buy 30 shares of Persistent",
-  "what if we relax the sector cap to 40%",
-  "rewind to 2020-03-23",
-  "execute",
-  "show me the portfolio",
 ];
 
 export function CommandBar() {
@@ -220,7 +220,7 @@ export function CommandBar() {
           id="command-input"
           ref={input}
           value={text}
-          placeholder="analyse TCS · buy 30 Persistent · rewind to 2020-03-23"
+          placeholder="Ask about funds, fees, savings, goals or scams — or: analyse TCS"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(text); }}
         />

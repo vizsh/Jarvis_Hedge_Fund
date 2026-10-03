@@ -28,6 +28,19 @@ def session() -> Session:
     return s
 
 
+@pytest.fixture(autouse=True)
+def _no_saved_funds_leak(session):
+    """The test session shares the app database: never leave a user's saved funds changed."""
+    before = A.my_funds(session.conn)
+    for f in before:
+        A.set_my_fund(session.conn, f, False)
+    yield
+    for f in A.my_funds(session.conn):
+        A.set_my_fund(session.conn, f, False)
+    for f in before:
+        A.set_my_fund(session.conn, f, True)
+
+
 def ask(session, q, lang="en", convo=None, level="normal"):
     ctx = A.Ctx(session.pit, session.portfolio, session.prices, session.policy, session.conn,
                 convo if convo is not None else explain.Conversation(), lang, level)
@@ -324,3 +337,11 @@ def test_a_long_loose_keyword_match_can_be_corrected_by_a_confident_model(sessio
     ctx = A.Ctx(session.pit, session.portfolio, session.prices, session.policy, session.conn, explain.Conversation(), "en")
     assert A.detect(q)[1] in ("legacy", "none")
     assert _run(A.aanswer(q, ctx)).data["intent"] in ("correlation", "clarify")
+
+
+def test_fourth_set_has_no_confident_wrong_answers_and_hinglish_is_asked_not_guessed():
+    from tests.chat_eval_blind4 import BLIND4
+    right, wrong, asked = _score(BLIND4)
+    assert wrong == 0, (right, wrong, asked)
+    for text in ("mere mutual funds ek jaise stocks rakhte hain kya", "kaun sa stock double hoga"):
+        assert A.detect(text)[0] == "clarify"        # offline: asks; the local-model stage reads Hinglish
