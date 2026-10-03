@@ -200,7 +200,7 @@ export function EmergencyMeter({ init, compact = false }: { init?: Record<string
 }
 
 /* ------------------------------------------------------------ weekly digest */
-export function WeeklyDigest() {
+export function WeeklyDigest({ compact = false, autoPlay = false }: { compact?: boolean; autoPlay?: boolean }) {
   const lang = useLang((s) => s.lang);
   const hi = lang === "hi";
   const [d, setD] = useState<any>(null);
@@ -237,11 +237,15 @@ export function WeeklyDigest() {
     speakLine();
   };
   const halt = () => { playing.current = false; stopSpeech(); setActive(-1); };
+  const started = useRef(false);
+  useEffect(() => {          // opened from a chat answer: the person pressed "Play it here", so start
+    if (autoPlay && lines.length && !started.current) { started.current = true; play(); }
+  }, [autoPlay, lines]); // eslint-disable-line
 
   return (
-    <section className="card wide">
-      <h2>{hi ? "साप्ताहिक आवाज़ सार" : "Weekly voice digest"}</h2>
-      <p className="muted">{hi ? "आपके पोर्टफ़ोलियो का एक मिनट का सार, आपकी भाषा में। हर आँकड़ा सीधे आपके डेटा से।" : "A one-minute spoken summary of your portfolio. Every figure comes straight from your data."}</p>
+    <section className={compact ? "fd-inline" : "card wide"}>
+      {!compact && <h2>{hi ? "साप्ताहिक आवाज़ सार" : "Weekly voice digest"}</h2>}
+      {!compact && <p className="muted">{hi ? "आपके पोर्टफ़ोलियो का एक मिनट का सार, आपकी भाषा में। हर आँकड़ा सीधे आपके डेटा से।" : "A one-minute spoken summary of your portfolio. Every figure comes straight from your data."}</p>}
       <div className="chips">
         <button className="btn go" onClick={play} disabled={!d || active >= 0}>▶ {hi ? "सुनिए" : "Play briefing"}</button>
         <button className="btn ghost" onClick={halt}>■ {hi ? "रोकें" : "Stop"}</button>
