@@ -8,8 +8,8 @@ const post = (url: string, body: unknown) =>
                body: JSON.stringify(body) }).then((r) => r.json());
 
 /* ------------------------------------------------------------ panic-sell replay */
-export function PanicSim() {
-  const [key, setKey] = useState(() => hashParams().get("episode") || "covid");
+export function PanicSim({ init, compact = false }: { init?: Record<string, string | number>; compact?: boolean }) {
+  const [key, setKey] = useState(() => String(init?.episode ?? hashParams().get("episode") ?? "") || "covid");
   const [d, setD] = useState<any>(null);
   const [day, setDay] = useState(0);
 
@@ -40,9 +40,9 @@ export function PanicSim() {
   const sline = `${geo.x(day)},${geo.y(sellVal)} ${geo.x(geo.vals.length - 1)},${geo.y(sellVal)}`;
 
   return (
-    <section className="card">
-      <h2>Panic-sell replay</h2>
-      <p className="muted">Real prices from a real crash, applied to your holdings. Drag to choose the day you would have sold.</p>
+    <section className={compact ? "fd-inline" : "card"}>
+      {!compact && <h2>Panic-sell replay</h2>}
+      {!compact && <p className="muted">Real prices from a real crash, applied to your holdings. Drag to choose the day you would have sold.</p>}
       <div className="chips">
         {Object.entries(d.episodes as Record<string, string>).map(([k, l]) => (
           <button key={k} className={`btn sm ${k === key ? "go" : "ghost"}`} onClick={() => setKey(k)}>{l}</button>))}

@@ -7,7 +7,7 @@ import { useLang } from "../lib/lang";
 import { go } from "../lib/router";
 import { speak, stop as stopSpeech } from "../lib/speak";
 import { EmergencyMeter, FeeDrag } from "../pages/PracticeMore";
-import { GoalFan } from "../pages/Demos";
+import { GoalFan, PanicSim } from "../pages/Demos";
 
 /** One structured answer: headline, key figures, a table when there is one, the steps, what to
  *  do next, how it was worked out, and tappable follow-ups. Used by the chat thread and the
@@ -20,7 +20,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
   const [copied, setCopied] = useState(false);
   const [inline, setInline] = useState(false);
   // The fee answer can be played with right here, with the figures it was computed from.
-  const canInline = ["fee_drag", "emergency", "goal"].includes(a.kind) && !!a.visual;
+  const canInline = ["fee_drag", "emergency", "goal", "panic"].includes(a.kind) && !!a.visual;
   const chips = a.follow_ups ?? [];
 
   const open = () => {
@@ -61,6 +61,7 @@ export function AnswerCard({ a, onAsk, compact = false }: {
 
       {canInline && inline && (a.kind === "fee_drag" ? <FeeDrag init={a.visual!.params} compact />
         : a.kind === "emergency" ? <EmergencyMeter init={a.visual!.params} compact />
+        : a.kind === "panic" ? <PanicSim init={a.visual!.params} compact />
         : <GoalFan init={a.visual!.params} compact />)}
 
       {a.detail && (
