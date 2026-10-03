@@ -23,3 +23,13 @@ for name, sub in VOICES.items():
             urllib.request.urlretrieve(f"{ROOT}/{sub}/{name}{ext}", target)
     print("voice ready:", name)
 print("Hindi speech INPUT uses Whisper 'small' (multilingual); it downloads itself on first use.")
+
+# Kokoro: the primary, more natural voice (English + Hindi). ~380 MB, one-time download.
+KOKORO = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
+kdest = dest.parent / "kokoro"
+kdest.mkdir(parents=True, exist_ok=True)
+for fn in ("kokoro-v1.0.onnx", "voices-v1.0.bin"):
+    if not (kdest / fn).exists():
+        print("downloading", fn)
+        urllib.request.urlretrieve(f"{KOKORO}/{fn}", kdest / fn)
+    print("kokoro ready:", fn)

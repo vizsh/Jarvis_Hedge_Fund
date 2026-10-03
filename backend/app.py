@@ -975,7 +975,7 @@ class LangIn(BaseModel):
 @app.get("/language")
 async def get_language() -> dict:
     return {"lang": LANG, "languages": vernacular_mod.LANGS,
-            "hindi_voice": tts_mod.available(HI_VOICE)}
+            "hindi_voice": tts_mod.available(None, "hi")}
 
 
 @app.post("/language")
@@ -997,6 +997,37 @@ async def _present(answer):
     return loc
 
 
+def _speech_filter(payload: dict) -> dict | None:
+    """Keep spoken language consistent with the chosen language.
+
+    Lines that already carry a `lang` (answers localised in _present) pass straight
+    through. Everything else -- portfolio announcements, trade-check messages -- is
+    translated in Hindi mode: exact rules are instant; anything else goes to the model in
+    the background and is spoken when it arrives (never as English over Hindi text).
+    """
+    if LANG != "hi" or payload.get("lang") or not payload.get("text"):
+        return payload
+    from backend.hindi_rules import exact
+    text = str(payload["text"])
+    sents = [x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x]
+    done = [exact(x) for x in sents]
+    if sents and all(d is not None for d in done):
+        return {**payload, "text": " ".join(done), "lang": "hi"}
+
+    async def later() -> None:
+        hi = (await vernacular_mod.translate_many([text], "hi"))[0]
+        # A failed translation stays silent: English over Hindi text is the bug being fixed.
+        if vernacular_mod.looks_hindi(hi):
+            bus.emit(EventType.SPEECH, **{**payload, "text": hi, "lang": "hi"})
+    try:
+        _spawn(later())
+    except RuntimeError:
+        pass
+    return None
+
+
+bus.speech_filter = _speech_filter
+
 class TTSIn(BaseModel):
     text: str
     voice: str | None = None
@@ -1005,20 +1036,22 @@ class TTSIn(BaseModel):
 
 @app.post("/tts")
 async def tts_speak(body: TTSIn) -> Response:
-    """One sentence in, one WAV out. The browser plays it through an <audio> element it
-    controls, which is what makes interruption instant (see backend/tts.py)."""
-    text = body.text.strip()[:500]
-    voice = body.voice or (HI_VOICE if body.lang == "hi" else None)
-    if not text or not tts_mod.available(voice):
+    """One chunk of speech in, one WAV out. The browser plays it through an <audio> element
+    it controls, which is what makes interruption instant (see backend/tts.py)."""
+    text = body.text.strip()[:700]
+    if not text or not tts_mod.available(body.voice, body.lang):
         return Response(status_code=204)
-    wav = await asyncio.to_thread(tts_mod.synthesize, text, voice)
+    try:
+        wav = await asyncio.to_thread(tts_mod.synthesize, text, body.voice, body.lang)
+    except Exception:  # noqa: BLE001
+        return Response(status_code=204)      # the browser falls back rather than going mute
     return Response(content=wav, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/tts/status")
 async def tts_status() -> dict:
-    return {"available": tts_mod.available(), "voice": tts_mod.DEFAULT_VOICE,
-            "voices": tts_mod.voices()}
+    return {"available": tts_mod.available(), "defaults": tts_mod.DEFAULTS,
+            "voices": tts_mod.catalogue()}
 
 
 class ScanIn(BaseModel):

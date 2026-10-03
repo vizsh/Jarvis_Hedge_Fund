@@ -9,6 +9,7 @@
 import { create } from "zustand";
 
 import { allowSpeech, speak, stop as stopSpeech } from "./speak";
+import { useLang } from "./lang";
 
 export interface FlowStep {
   kind: "say" | "show" | "choose" | "ask" | "confirm" | "done";
@@ -150,7 +151,9 @@ async function runStep(
   // Speaking is the whole point of a guided flow, so a step that wants to be spoken
   // must clear any earlier Stop latch — otherwise the tour runs in silence and looks
   // broken rather than muted.
-  if (guidedVoice && step.speak && step.text) {
+  // In Hindi mode the static step wording is English: staying silent is better than
+  // speaking English over Hindi answers. (Question steps still speak Hindi via /ask.)
+  if (guidedVoice && step.speak && step.text && useLang.getState().lang === "en") {
     allowSpeech();
     speak(step.text);
   }

@@ -44,7 +44,18 @@ class EventBus:
                 self.dropped += 1
         return event
 
-    def emit(self, type_: EventType, **payload) -> Event:
+    # Optional hook: given the payload of a SPEECH event, return the payload to emit now, or
+    # None to hold it back (the hook then emits a translated version itself). This is the
+    # single place every spoken line passes through, so no code path can talk in the wrong
+    # language -- the English announcement that played over Hindi text came from a path
+    # that never went near the translator.
+    speech_filter = None
+
+    def emit(self, type_: EventType, **payload) -> Event | None:
+        if type_ is EventType.SPEECH and self.speech_filter is not None:
+            payload = self.speech_filter(payload)
+            if payload is None:
+                return None
         return self.publish(ev(type_, **payload))
 
     @property

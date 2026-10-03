@@ -6,9 +6,29 @@ import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
 import { useBargeIn } from "../lib/bargein";
 import { useVoice } from "../lib/voice";
-import { useLang } from "../lib/lang";
+import { setVoiceFor, useLang, voiceFor } from "../lib/lang";
+import { speak } from "../lib/speak";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
+
+function VoicePicker() {
+  const lang = useLang((s) => s.lang);
+  const [voices, setVoices] = useState<{ id: string; label: string; lang: string }[]>([]);
+  const [, bump] = useState(0);
+  useEffect(() => { fetch("/tts/status").then((r) => r.json()).then((d) => setVoices(d.voices ?? [])).catch(() => {}); }, []);
+  const mine = voices.filter((v) => v.lang === lang);
+  if (mine.length < 2) return null;
+  const chosen = voiceFor(lang) ?? mine[0].id;
+  return (
+    <select className="voicesel" aria-label="Voice" value={chosen} title="Choose the voice"
+            onChange={(e) => {
+              setVoiceFor(lang, e.target.value); bump((n) => n + 1);
+              speak(lang === "hi" ? "नमस्ते, मैं जार्विस हूँ। आपकी मदद के लिए तैयार।" : "Hello, I'm JARVIS. Ready when you are.", lang);
+            }}>
+      {mine.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+    </select>
+  );
+}
 
 function LangSwitch() {
   const lang = useLang((s) => s.lang);
@@ -40,6 +60,7 @@ export function TopNav() {
           {fund?.portfolio_name ?? "Portfolio"} ▾
         </button>
         <LangSwitch />
+        <VoicePicker />
         <span className={`dot ${connected ? "live" : "dead"}`} title={connected ? "Connected" : "Offline"} />
         <ForceStop />
       </div>

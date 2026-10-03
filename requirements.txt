@@ -19,3 +19,5 @@ faster-whisper==1.1.1
 # --- dev ---
 pytest==8.3.4
 piper-tts
+kokoro-onnx
+soundfile

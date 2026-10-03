@@ -35,6 +35,7 @@ let current = "";
 let generation = 0;
 let aborter: AbortController | null = null;
 let useFallback = false;
+import { voiceFor } from "./lang";
 let curLang = "en";          // language of the line being spoken: picks the server voice
 
 // `stopped`: soft latch, lifted by asking something new. `silenced`: hard latch, only the
@@ -84,6 +85,27 @@ function sentences(text: string): string[] {
 }
 
 /** Numbers and symbols read badly aloud. */
+/** Turn sentences into the pieces actually sent to the voice.
+ *
+ *  One request per sentence made speech arrive in blocks: a pause after every sentence, and
+ *  each sentence given flat, stand-alone intonation. Instead the FIRST sentence goes alone
+ *  (so speech starts quickly) and everything after it travels as one piece, which the voice
+ *  reads with continuous phrasing. Long answers are cut into ~45-word pieces so no single
+ *  request is slow. */
+function chunks(text: string): string[] {
+  const s = sentences(text);
+  if (s.length <= 1) return s;
+  const out = [s[0]];
+  let cur: string[] = [], words = 0;
+  for (const sent of s.slice(1)) {
+    const w = sent.split(/\s+/).length;
+    if (cur.length && words + w > 45) { out.push(cur.join(" ")); cur = []; words = 0; }
+    cur.push(sent); words += w;
+  }
+  if (cur.length) out.push(cur.join(" "));
+  return out;
+}
+
 function forSpeech(text: string): string {
   if (curLang === "hi") {
     // The Hindi line already contains its own words; only symbols need spelling out, and
@@ -142,12 +164,13 @@ const wavs = new Map<string, Promise<Blob | null>>();
 
 function fetchWav(text: string, signal: AbortSignal): Promise<Blob | null> {
   const lang = curLang;
-  const key = lang + "|" + text;
+  const voice = voiceFor(lang);
+  const key = lang + "|" + (voice ?? "") + "|" + text;
   const hit = wavs.get(key);
   if (hit) return hit;
   const p = fetch("/tts", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, lang }), signal,
+    body: JSON.stringify({ text, lang, voice }), signal,
   }).then(async (r) => (r.status === 200 ? await r.blob() : null)).catch(() => null);
   wavs.set(key, p);
   p.then((b) => { if (!b) wavs.delete(key); });
@@ -166,11 +189,13 @@ async function playNext(g: number): Promise<void> {
   setState("speaking");
   const signal = aborter!.signal;
 
-  // Fetch this sentence and warm the next one.
   const mine = fetchWav(spoken, signal);
-  if (queue[index + 1]) void fetchWav(forSpeech(queue[index + 1]), signal);
   const blob = await mine;
   if (g !== generation) return;
+  // Only NOW ask for the pieces after this one. Requesting them together made the longer
+  // second piece win the server's queue, so speech took 4+ seconds to begin.
+  if (queue[index + 1]) void fetchWav(forSpeech(queue[index + 1]), signal);
+  if (queue[index + 2]) void fetchWav(forSpeech(queue[index + 2]), signal);
 
   if (!blob) {                       // server voice unavailable -> never be silent
     useFallback = true;
@@ -186,7 +211,7 @@ async function playNext(g: number): Promise<void> {
     URL.revokeObjectURL(url);
     if (g !== generation) return;
     index += 1;
-    window.setTimeout(() => void playNext(g), Math.min(260, 90 + current.length) / rate);
+    void playNext(g);                 // no artificial pause: the voice supplies its own phrasing
   };
   audio.onended = done;
   audio.onerror = done;
@@ -229,7 +254,7 @@ export function speak(text: string, lang = "en"): void {
   lastSpoken = text; lastSpokenAt = now;
 
   haltAudio();                       // a new verdict supersedes the last one
-  queue = sentences(text);
+  queue = chunks(text);
   index = 0;
   aborter = new AbortController();
   void playNext(generation);
