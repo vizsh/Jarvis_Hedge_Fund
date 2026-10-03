@@ -35,6 +35,7 @@ let current = "";
 let generation = 0;
 let aborter: AbortController | null = null;
 let useFallback = false;
+let curLang = "en";          // language of the line being spoken: picks the server voice
 
 // `stopped`: soft latch, lifted by asking something new. `silenced`: hard latch, only the
 // user lifts it (the STOP VOICE / VOICE OFF button).
@@ -78,12 +79,23 @@ function sentences(text: string): string[] {
   const guarded = text
     .replace(/(\d)\.(\d)/g, "$1<DOT>$2")
     .replace(/\b(Mr|Mrs|Dr|vs|approx|e\.g|i\.e)\./gi, "$1<DOT>");
-  return guarded.split(/(?<=[.!?])\s+/)
+  return guarded.split(/(?<=[.!?।])\s+/)
     .map((s) => s.replace(/<DOT>/g, ".").trim()).filter(Boolean);
 }
 
 /** Numbers and symbols read badly aloud. */
 function forSpeech(text: string): string {
+  if (curLang === "hi") {
+    // The Hindi line already contains its own words; only symbols need spelling out, and
+    // in Hindi (the English replacements below would drop English words into it).
+    return text
+      .replace(/\.NS/g, "")
+      .replace(/₹\s?([\d.,]+)\s*(लाख|करोड़)/g, "$1 $2 रुपये")
+      .replace(/₹\s?([\d,.]+)/g, "$1 रुपये")
+      .replace(/%/g, " प्रतिशत")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
   return text
     .replace(/\.NS\b/g, "")
     .replace(/\bNAV\b/g, "net asset value")
@@ -129,12 +141,13 @@ function claimLine(text: string): boolean {
 const wavs = new Map<string, Promise<Blob | null>>();
 
 function fetchWav(text: string, signal: AbortSignal): Promise<Blob | null> {
-  const key = text;
+  const lang = curLang;
+  const key = lang + "|" + text;
   const hit = wavs.get(key);
   if (hit) return hit;
   const p = fetch("/tts", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }), signal,
+    body: JSON.stringify({ text, lang }), signal,
   }).then(async (r) => (r.status === 200 ? await r.blob() : null)).catch(() => null);
   wavs.set(key, p);
   p.then((b) => { if (!b) wavs.delete(key); });
@@ -203,8 +216,9 @@ function haltAudio(): void {
   window.speechSynthesis?.cancel();
 }
 
-export function speak(text: string): void {
+export function speak(text: string, lang = "en"): void {
   if (!text) return;
+  curLang = lang;
   if (silenced) { setState("stopped"); return; }
   if (isMuted()) { setState("muted"); return; }
   if (stopped) { setState("stopped"); return; }

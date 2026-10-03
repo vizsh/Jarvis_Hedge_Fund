@@ -182,6 +182,13 @@ def snap_to_grammar(text: str) -> tuple[str, bool]:
 
 
 # --- transcription ------------------------------------------------------------------
+@lru_cache(maxsize=1)
+def _model_multilingual():
+    """Multilingual Whisper, loaded only when someone speaks Hindi. small.en cannot."""
+    from faster_whisper import WhisperModel
+    return WhisperModel("small", device="cpu", compute_type=COMPUTE)
+
+
 def transcribe(audio: bytes, language: str = "en") -> Transcript:
     """Transcribe one push-to-talk utterance.
 
@@ -190,10 +197,16 @@ def transcribe(audio: bytes, language: str = "en") -> Transcript:
     converting to wav ourselves.
     """
     t0 = time.perf_counter()
-    model = _model()
+    # Hindi is transcribed AS Hindi; backend/vernacular.to_english() then recovers the
+    # English meaning so the router and every answer work unchanged. (Whisper's own
+    # "translate" task was tried first and dropped key words: "why is my risk high" came
+    # back as "why do I have a lot of problems".)
+    hindi = language != "en"
+    model = _model_multilingual() if hindi else _model()
     segments, info = model.transcribe(
         io.BytesIO(audio),
-        language=language,
+        language=language if hindi else "en",
+        task="transcribe",
         # Beam search, not greedy. These utterances are short enough that the extra
         # cost is ~200ms, and greedy decoding was picking the wrong homophone often
         # enough to matter ("by" for "buy" is the whole ballgame here).
@@ -210,7 +223,7 @@ def transcribe(audio: bytes, language: str = "en") -> Transcript:
             # is exactly how push-to-talk gets used.
             "speech_pad_ms": 400,
         },
-        initial_prompt=INITIAL_PROMPT,
+        initial_prompt=None if hindi else INITIAL_PROMPT,
         condition_on_previous_text=False,  # each command is independent
         # A held key with no speech should come back empty, not hallucinate a
         # sentence from the room tone.
@@ -234,7 +247,7 @@ def transcribe(audio: bytes, language: str = "en") -> Transcript:
     return Transcript(
         text=text, raw=raw, confidence=round(confidence, 3),
         duration_ms=int((time.perf_counter() - t0) * 1000),
-        model=MODEL_SIZE, repaired=repaired,
+        model="small (multilingual)" if hindi else MODEL_SIZE, repaired=repaired,
     )
 
 

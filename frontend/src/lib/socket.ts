@@ -1,6 +1,7 @@
 // WebSocket client with auto-reconnect and an audio envelope for the orb.
 
 import { useStore } from "./store";
+import { useLang } from "./lang";
 import type { EvidenceItem, FundState, WireEvent } from "./types";
 import {
   allowSpeech, forceStop, isSilenced, resumeVoice as resumeSpeech, speak,
@@ -69,7 +70,7 @@ export function connect(): void {
     if (event.type === "speech" && event.payload?.text && !event.payload?._replay) {
       const line = String(event.payload.text);
       pulseSpeech(line.length);
-      speak(line);
+      speak(line, (event.payload?.lang as string) || "en");
     }
   };
 
@@ -317,7 +318,7 @@ export async function stopMic(): Promise<{ transcript?: string; ok: boolean } | 
   }
 
   try {
-    const res = await fetch("/stt", {
+    const res = await fetch(`/stt?lang=${useLang.getState().lang}`, {
       method: "POST",
       headers: { "Content-Type": blob.type || "audio/webm" },
       body: blob,

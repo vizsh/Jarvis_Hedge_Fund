@@ -232,8 +232,8 @@ export function AskPanel() {
           {!!answer.follow_ups?.length && (
             <div className="a-next">
               <div className="a-next-label">Next</div>
-              {answer.follow_ups.map((f: string) => (
-                <div className="ask-chip next" key={f} onClick={() => ask(f)}>{f}</div>
+              {answer.follow_ups.map((f: string, i: number) => (
+                <div className="ask-chip next" key={f} onClick={() => ask(f)}>{answer.follow_ups_hi?.[i] ?? f}</div>
               ))}
             </div>
           )}

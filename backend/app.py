@@ -33,6 +33,7 @@ from analysis import xray as xray_mod
 from backend import actions as actions_mod
 from backend import ledger as ledger_mod
 from backend import tts as tts_mod
+from backend import vernacular as vernacular_mod
 from analysis import scanner as scanner_mod
 from analysis import shield as shield_mod
 from backend import drilldown as drilldown_mod
@@ -334,8 +335,9 @@ async def ask(body: AskIn) -> dict:
     """
     a = explain.answer(body.question, session.pit, session.portfolio,
                        session.prices, session.policy, convo=convo, level=body.level)
-    bus.emit(EventType.SPEECH, text=a.spoken(), final=True, answer=a.as_dict())
-    return a.as_dict()
+    loc = await _present(a)
+    bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang, answer=loc["answer"])
+    return loc["answer"]
 
 
 # --------------------------------------------------------------- the guidance layer
@@ -768,6 +770,7 @@ async def evidence(ticker: str) -> dict:
 
 
 _last_full = ""
+_last_lang = "en"
 _MORE = re.compile(r"^\s*(tell me more|more( detail)?|go on|continue|read (it|that) (all|out)|full answer)\W*$", re.I)
 
 
@@ -778,11 +781,10 @@ async def dispatch(text: str) -> dict:
     to: the command bar ran an imperative parser that turned "what should I sell" into
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
-    global _last_full
     if _MORE.match(text or "") and _last_full:
         # "tell me more": read the long version of the last answer. Answers are spoken
         # short by default; this is how the person asks for the rest.
-        bus.emit(EventType.SPEECH, text=_last_full, final=True)
+        bus.emit(EventType.SPEECH, text=_last_full, final=True, lang=_last_lang)
         return {"accepted": True, "kind": "more"}
     decision = route_input(text)
     if decision.kind == "command" and decision.intent:
@@ -795,14 +797,14 @@ async def dispatch(text: str) -> dict:
     # again -- which is how people actually talk, and especially how they speak.
     answer = explain.answer(text, session.pit, session.portfolio,
                             session.prices, session.policy, convo=convo)
-    _last_full = answer.spoken_full()
     bus.emit(EventType.INTENT, verb="ask", ticker=answer.subject,
              args={"question": text}, via="router")
-    bus.emit(EventType.SPEECH, text=answer.spoken(), final=True,
-             answer=answer.as_dict())
+    loc = await _present(answer)
+    bus.emit(EventType.SPEECH, text=loc["spoken"], final=True, lang=_last_lang,
+             answer=loc["answer"])
     emit_telemetry(session, bus)
     return {"accepted": True, "kind": "question", "why": decision.why,
-            "answer": answer.as_dict()}
+            "answer": loc["answer"]}
 
 
 def _check_watches() -> None:
@@ -839,7 +841,7 @@ async def command(cmd: Command) -> dict:
 
 
 @app.post("/stt")
-async def speech_to_text(request: Request) -> dict:
+async def speech_to_text(request: Request, lang: str = "en") -> dict:
     """Push-to-talk audio in, dispatched command out.
 
     The browser posts whatever MediaRecorder produced; faster-whisper decodes it
@@ -857,11 +859,15 @@ async def speech_to_text(request: Request) -> dict:
         return {"ok": False, "reason": "stt unavailable"}
 
     try:
-        result = await asyncio.to_thread(stt.transcribe, audio)
+        result = await asyncio.to_thread(stt.transcribe, audio, lang)
     except Exception as exc:  # noqa: BLE001
         bus.emit(EventType.ERROR, where="stt", message=f"{type(exc).__name__}: {exc}"[:160])
         return {"ok": False, "reason": "transcription failed"}
 
+    if lang != "en" and result.text.strip():
+        # Spoken Hindi: keep what was said, and act on its English meaning.
+        result.raw = result.text
+        result.text = await vernacular_mod.to_english(result.text)
     bus.emit(EventType.TRANSCRIPT, text=result.text, final=True, raw=result.raw,
              confidence=result.confidence, ms=result.duration_ms,
              repaired=result.repaired, model=result.model)
@@ -958,9 +964,43 @@ async def firewall_check(body: FirewallIn) -> dict:
             "policy": session.policy.describe()}
 
 
+LANG = "en"                      # answer language: "en" or "hi"
+HI_VOICE = "hi_IN-pratham-medium"
+
+
+class LangIn(BaseModel):
+    lang: str
+
+
+@app.get("/language")
+async def get_language() -> dict:
+    return {"lang": LANG, "languages": vernacular_mod.LANGS,
+            "hindi_voice": tts_mod.available(HI_VOICE)}
+
+
+@app.post("/language")
+async def set_language(body: LangIn) -> dict:
+    """Switch the language answers are explained in. Numbers never come from the
+    translation step -- see backend/vernacular.py."""
+    global LANG
+    if body.lang in vernacular_mod.LANGS:
+        LANG = body.lang
+    return {"lang": LANG}
+
+
+async def _present(answer):
+    """The answer as it should be shown and spoken in the current language."""
+    global _last_full, _last_lang
+    loc = await vernacular_mod.localize_answer(answer, LANG)
+    _last_full = loc["full"]
+    _last_lang = "hi" if loc["translated"] else "en"
+    return loc
+
+
 class TTSIn(BaseModel):
     text: str
     voice: str | None = None
+    lang: str = "en"
 
 
 @app.post("/tts")
@@ -968,9 +1008,10 @@ async def tts_speak(body: TTSIn) -> Response:
     """One sentence in, one WAV out. The browser plays it through an <audio> element it
     controls, which is what makes interruption instant (see backend/tts.py)."""
     text = body.text.strip()[:500]
-    if not text or not tts_mod.available(body.voice):
+    voice = body.voice or (HI_VOICE if body.lang == "hi" else None)
+    if not text or not tts_mod.available(voice):
         return Response(status_code=204)
-    wav = await asyncio.to_thread(tts_mod.synthesize, text, body.voice)
+    wav = await asyncio.to_thread(tts_mod.synthesize, text, voice)
     return Response(content=wav, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 

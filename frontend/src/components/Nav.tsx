@@ -6,8 +6,20 @@ import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
 import { useBargeIn } from "../lib/bargein";
 import { useVoice } from "../lib/voice";
+import { useLang } from "../lib/lang";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
+
+function LangSwitch() {
+  const lang = useLang((s) => s.lang);
+  const set = useLang((s) => s.set);
+  return (
+    <div className="langsw" role="group" aria-label="Answer language">
+      <button className={lang === "en" ? "on" : ""} onClick={() => set("en")}>EN</button>
+      <button className={lang === "hi" ? "on" : ""} onClick={() => set("hi")} title="उत्तर हिन्दी में">हिन्दी</button>
+    </div>
+  );
+}
 
 export function TopNav() {
   const route = useRoute();
@@ -27,6 +39,7 @@ export function TopNav() {
                 title="Load, build or paste a portfolio">
           {fund?.portfolio_name ?? "Portfolio"} ▾
         </button>
+        <LangSwitch />
         <span className={`dot ${connected ? "live" : "dead"}`} title={connected ? "Connected" : "Offline"} />
         <ForceStop />
       </div>

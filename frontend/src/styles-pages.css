@@ -235,3 +235,8 @@ body::before { opacity: 0.45; }
 @media (prefers-reduced-motion: reduce) {
   .dock-stop, .stop-float, .dock.listening .dock-mic { animation: none; }
 }
+
+/* ----------------------------------------------------------------- language switch */
+.langsw { display: inline-flex; border: 1px solid var(--rule); border-radius: 99px; overflow: hidden; }
+.langsw button { background: transparent; border: 0; color: var(--text-dim); padding: 4px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.langsw button.on { background: rgba(37, 217, 255, 0.16); color: var(--cyan); font-weight: 600; }
