@@ -173,14 +173,14 @@ _RULES: list[tuple[str, re.Pattern]] = [
     ("stress", _r(r"\b(tanks?|plunges?|collapses?|crashes|slumps?|tumbles?)\b.{0,20}\b\d+\s?(%|percent)\b")),
     ("diversification", _r(r"\b(same|one|single) sector\b|@@b(too heavily|overexposed|over-exposed|eggs in one basket|too tilted|too much (of my money )?(is )?(riding )?in)@@b.{0,30}@@b(one|single|same|a)@@b|@@btoo heavily invested@@b".replace("@@", chr(92)))),
     ("correlation", _r(r"\blockstep\b|\bin sync\b|\b(fall|rise|move|go up|go down|drop) together\b|\btend to (fall|rise|move|drop)\b|@@b(behave|act|move|trade)@@w*@@b.{0,15}@@b(the same|alike|similarly|in sync|together)@@b|@@bany of my (shares|stocks|holdings)@@b.{0,30}@@b(same|alike|together)@@b".replace("@@", chr(92)))),
-    ("should_buy", _r(r"@@b(good|great|wise|smart|sensible)@@s+(addition|buy|pick|idea to buy)@@b|@@bshould i (get(?! rid)|pick up|add|buy)@@b".replace("@@", chr(92)))),
+    ("should_buy", _r(r"@@b(good|great|wise|smart|sensible|safe|right)@@s+(addition|buy|pick|idea to buy|time to buy|stock to buy)@@b|@@b(should|can|could|may|shall) i (get(?! rid)|pick up|add|buy|invest in|purchase|take)@@b|@@b(tell me|let me know|advise me|help me decide|suggest)@@b.{0,30}@@b(if|whether)@@b.{0,25}@@b(buy|invest in|purchase|get|add)@@b|@@bis (it|[a-z .&]{2,25}) (ok|okay|safe|worth|good|wise|fine)@@b.{0,12}@@b(to )?(buy|buying|invest|investing)@@b|@@bworth (buying|investing)@@b|@@b(is|would) (it|[a-z .&]{2,25}) (a )?(good|safe|wise) (buy|stock|investment|addition)@@b|@@bshould i (still )?(buy|invest)@@b".replace("@@", chr(92)))),
     ("fix", _r(r"\bwhich of my (stocks|shares|holdings)\b.{0,25}\b(sell|drop|exit|get rid of|dump|cut|trim|reduce)\b|\bget rid of\b|@@bwhat should i (cut|drop|reduce|lower|offload|get rid of|trim)@@b|@@bto be safer@@b|@@bhow (can|do) i (de-?risk|reduce my risk|make it safer)@@b".replace("@@", chr(92)))),
     ("why", _r(r"\b(weakest|weak) (part|spot|point|link)\b|@@b(main|biggest|top|key|major|worst)@@s+(risks?|problems?|weak(ness)?es)@@b|@@brisks? in my@@b".replace("@@", chr(92)))),
     ("xray", _r(r"\bhow is everything\b|\b(big picture|bird.s eye|how my (investments|money|portfolio) (are|is) doing)\b|\b(check-?up|health ?check|overview|status)\b.{0,25}\b(my|of my)\b.{0,15}\b(investments?|portfolio|money|holdings)\b|@@b(in good shape|doing well|state of my (money|portfolio|investments)|my overall (position|picture)|how (am|are) (i|you) doing with)@@b".replace("@@", chr(92)))),
     ("chitchat", _r(r"^\s*(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|thanks?( you)?|thank you|ok(ay)?|cool|great|nice|bye|goodbye|see you)\W*$")),
 ]
 
-LEGACY = {"define", "stress", "fix", "why", "xray", "correlation", "diversification", "should_buy", "simplify"}
+LEGACY = {"define", "stress", "fix", "why", "xray", "correlation", "diversification", "simplify"}
 NEW_KINDS = {"digest", "ledger", "my_funds_add", "my_funds_remove", "my_funds_show", "fund_vs_direct", "fund_overlap",
              "fund_list", "fund_info", "fee_drag", "emergency", "goal", "panic", "tip_scan", "scam_help", "predict",
              "help", "chitchat", "clarify", "out_of_scope", "scam_recovery"}
@@ -1035,12 +1035,153 @@ def h_ledger(text: str, ctx: Ctx) -> Answer:
     return _done(a, ctx, _chips("xray", "help"), "ledger")
 
 
+
+# ---- "can I buy X?" --------------------------------------------------------------------
+def _median(xs: list[float]) -> float | None:
+    xs = sorted(xs)
+    return xs[len(xs) // 2] if xs else None
+
+
+def h_buy_advice(text: str, ctx: Ctx) -> Answer:
+    """Can I buy X? Two separate, plainly-labelled facts: is the business sound (its numbers against
+    sector peers) and does it fit THIS portfolio (room under the person's own limits). Never a price
+    prediction, never an order; the decision is left to the person."""
+    from backend.intents import resolve_ticker
+    t = _t(ctx.lang)
+    tk = resolve_ticker(text)
+    if not tk:
+        a = Answer(headline=t("Which company do you mean?", "आप किस कंपनी की बात कर रहे हैं?"),
+                   bullets=[t("Name it, for example: can I buy HDFC Bank?", "नाम बताइए, जैसे: क्या मैं HDFC बैंक ले सकता हूँ?")])
+        return _done(a, ctx, _chips("xray"), "should_buy")
+    name, sector = universe.name(tk), universe.sector(tk)
+    sec_label = universe.sector_label(sector)
+    prices, pf, lim = ctx.prices, ctx.portfolio, ctx.policy.limits
+    nav = pf.nav(prices) or 0.0
+    price = prices.get(tk) or ctx.pit.last_close(tk) or 0.0
+
+    # --- 1. the business, against its sector peers -------------------------------------
+    def val(x: str, kind: str) -> float | None:
+        s_ = ctx.pit.latest(x, kind)
+        return s_.value_num if s_ and s_.value_num is not None else None
+    peers = [x for x in universe.tickers() if x != tk and universe.sector(x) == sector]
+    def vs_peers(kind: str) -> tuple[float | None, float | None]:
+        return val(tk, kind), _median([v for v in (val(p, kind) for p in peers) if v is not None])
+    pe, pe_m = vs_peers("pe_ratio")
+    roe, roe_m = vs_peers("roe")
+    mar, mar_m = vs_peers("profit_margin")
+    good, weak, rows = [], [], []
+    if pe:
+        cheap = pe_m and pe < pe_m * 0.9
+        dear = pe_m and pe > pe_m * 1.15
+        rows.append([t("Price vs earnings (P/E)", "भाव बनाम कमाई (P/E)"), f"{pe:.1f}", f"{pe_m:.1f}" if pe_m else "–",
+                     t("cheaper than peers", "साथियों से सस्ता") if cheap else t("dearer than peers", "साथियों से महँगा") if dear else t("in line", "बराबर")])
+        (good if cheap else weak if dear else []).append(t(f"valued at {pe:.0f}x earnings vs about {pe_m:.0f}x for its sector peers",
+                                                           f"भाव कमाई का {pe:.0f} गुना, जबकि सेक्टर के साथियों का लगभग {pe_m:.0f} गुना"))
+    if roe is not None:
+        strong, low = roe >= 0.15 or (roe_m and roe > roe_m * 1.1), roe < 0.10
+        rows.append([t("Return on equity (ROE)", "इक्विटी पर रिटर्न (ROE)"), f"{roe*100:.1f}%", f"{roe_m*100:.1f}%" if roe_m else "–",
+                     t("strong", "मज़बूत") if strong else t("weak", "कमज़ोर") if low else t("average", "औसत")])
+        (good if strong else weak if low else []).append(t(f"earns {roe*100:.0f}% a year on shareholders' money", f"शेयरधारकों के पैसे पर साल में {roe*100:.0f}% कमाती है"))
+    if mar is not None:
+        strong, low = bool(mar_m and mar > mar_m * 1.1), bool(mar_m and mar < mar_m * 0.8)
+        rows.append([t("Profit margin", "मुनाफ़ा मार्जिन"), f"{mar*100:.1f}%", f"{mar_m*100:.1f}%" if mar_m else "–",
+                     t("strong", "मज़बूत") if strong else t("weak", "कमज़ोर") if low else t("average", "औसत")])
+        (good if strong else weak if low else []).append(t(f"keeps {mar*100:.0f} paise of profit from every rupee of sales", f"हर रुपये की बिक्री में से {mar*100:.0f} पैसे मुनाफ़ा बचता है"))
+    if not rows:
+        biz = t("I have no fundamentals saved for this company yet (run 'analyse' on it first).", "इस कंपनी के आँकड़े अभी सहेजे नहीं हैं (पहले इसका 'विश्लेषण' चलाइए)।")
+        biz_tone = ""
+    elif len(good) > len(weak):
+        biz, biz_tone = t("Its numbers look healthy for its sector.", "सेक्टर के हिसाब से इसके आँकड़े अच्छे दिखते हैं।"), "good"
+    elif len(weak) > len(good):
+        biz, biz_tone = t("Its numbers look weaker than its sector.", "सेक्टर के हिसाब से इसके आँकड़े कमज़ोर दिखते हैं।"), "bad"
+    else:
+        biz, biz_tone = t("Its numbers look average for its sector.", "सेक्टर के हिसाब से इसके आँकड़े औसत हैं।"), "warn"
+
+    # --- 2. the fit with YOUR portfolio ------------------------------------------------
+    held_val = pf.positions.get(tk, 0) * price
+    cur_w = held_val / nav if nav else 0.0
+    sec_val = pf.sector_value(sector, prices, universe.sectors())
+    sec_w = sec_val / nav if nav else 0.0
+    room_pos = max(0.0, lim.max_position_pct * nav - held_val)
+    room_sec = max(0.0, lim.max_sector_pct * nav - sec_val)
+    room_cash = max(0.0, pf.cash - getattr(lim, "min_cash_pct", 0.0) * nav)
+    room = min(room_pos, room_sec, room_cash)
+    binding = ("position" if room == room_pos else "sector" if room == room_sec else "cash")
+    inr_ = tools.inr_hi if ctx.lang == "hi" else tools.inr
+    pct = lambda x: f"{x*100:.1f}%"
+    corr = None
+    others = [x for x in pf.positions if x != tk]
+    if others:
+        try:
+            from analysis import factors
+            m = factors.correlation_matrix(ctx.pit, others + [tk])
+            pairs = [(x, m.get(tk, {}).get(x)) for x in others]
+            pairs = [(x, r) for x, r in pairs if r is not None]
+            corr = max(pairs, key=lambda kv: kv[1]) if pairs else None
+        except Exception:  # noqa: BLE001
+            corr = None
+
+    small = nav * 0.02
+    if room < small:
+        fit_tone = "bad"
+        why = {"position": t(f"you already hold {pct(cur_w)} in {name}, which is at or near your {pct(lim.max_position_pct)} single-stock limit",
+                             f"आपके पास {name} में पहले से {pct(cur_w)} है, जो आपकी {pct(lim.max_position_pct)} की सीमा के पास या ऊपर है"),
+               "sector": t(f"{sec_label} is already {pct(sec_w)} of your money, against your {pct(lim.max_sector_pct)} sector limit",
+                           f"{sec_label} पहले से आपके पैसे का {pct(sec_w)} है, जबकि आपकी सेक्टर सीमा {pct(lim.max_sector_pct)} है"),
+               "cash": t("you do not have enough free cash", "आपके पास पर्याप्त खाली नक़द नहीं है")}[binding]
+        fit = t(f"It does not fit your portfolio right now: {why}.", f"अभी यह आपके पोर्टफ़ोलियो में फ़िट नहीं बैठता: {why}।")
+    else:
+        fit_tone = "good" if room >= nav * 0.05 else "warn"
+        fit = t(f"It fits your portfolio. You could add up to about {inr_(room)} before hitting one of your own limits.",
+                f"यह आपके पोर्टफ़ोलियो में फ़िट बैठता है। अपनी सीमा तक पहुँचने से पहले आप लगभग {inr_(room)} तक जोड़ सकते हैं।")
+
+    bullets = [t(f"The company: {biz}", f"कंपनी: {biz}")]
+    if good or weak:
+        bullets.append(t("Why: " + "; ".join((good + weak)[:3]) + ".", "क्यों: " + "; ".join((good + weak)[:3]) + "।"))
+    bullets.append(t(f"Your portfolio: {fit}", f"आपका पोर्टफ़ोलियो: {fit}"))
+    if held_val:
+        bullets.append(t(f"You already hold {name} at {pct(cur_w)} of your money; {sec_label} is {pct(sec_w)} in total.",
+                         f"आपके पास {name} पहले से {pct(cur_w)} है; {sec_label} कुल {pct(sec_w)} है।"))
+    else:
+        bullets.append(t(f"You do not hold {name} today; {sec_label} is already {pct(sec_w)} of your money.",
+                         f"आपके पास अभी {name} नहीं है; {sec_label} पहले से आपके पैसे का {pct(sec_w)} है।"))
+    if corr and corr[1] >= 0.7:
+        bullets.append(t(f"It tends to move with {universe.name(corr[0])} (correlation {corr[1]:.2f}), so it adds less variety than it looks.",
+                         f"यह {universe.name(corr[0])} के साथ चलता है (सहसंबंध {corr[1]:.2f}), इसलिए उतनी विविधता नहीं जुड़ती जितनी लगती है।"))
+
+    if fit_tone == "bad":
+        head = t(f"Not now: {name} would over-concentrate your portfolio.", f"अभी नहीं: {name} से आपका पोर्टफ़ोलियो एक जगह ज़्यादा केंद्रित हो जाएगा।")
+        action = t("If you still want it, first reduce a heavy holding in the same sector, or add other sectors. The choice is yours.",
+                   "फिर भी लेना चाहें तो पहले इसी सेक्टर का कोई भारी हिस्सा घटाइए, या दूसरे सेक्टर जोड़िए। फ़ैसला आपका है।")
+    elif biz_tone == "bad":
+        head = t(f"It fits your portfolio, but {name}'s numbers are weaker than its sector.", f"{name} आपके पोर्टफ़ोलियो में फ़िट है, पर इसके आँकड़े सेक्टर से कमज़ोर हैं।")
+        action = t("If you buy, keep it small and compare it with stronger peers first. The choice is yours.", "ख़रीदें तो छोटी मात्रा रखिए और पहले मज़बूत साथियों से तुलना कीजिए। फ़ैसला आपका है।")
+    else:
+        if not biz_tone:
+            head = t(f"{name} fits your portfolio, but I have no company numbers for it yet.", f"{name} आपके पोर्टफ़ोलियो में फ़िट है, पर अभी इसके कंपनी-आँकड़े मेरे पास नहीं हैं।")
+        else:
+            head = t(f"Yes, {name} can fit: {('numbers look healthy' if biz_tone == 'good' else 'numbers look average')} and you have room.",
+                     f"हाँ, {name} फ़िट हो सकता है: {('आँकड़े अच्छे हैं' if biz_tone == 'good' else 'आँकड़े औसत हैं')} और आपके पास जगह है।")
+        action = t(f"A sensible size is up to about {inr_(min(room, nav * 0.05))}. I cannot say whether the price will rise; nobody can. The choice is yours.",
+                   f"समझदारी की मात्रा लगभग {inr_(min(room, nav * 0.05))} तक है। भाव बढ़ेगा या नहीं, यह मैं नहीं बता सकता; कोई नहीं बता सकता। फ़ैसला आपका है।")
+
+    a = Answer(headline=head, bullets=bullets, action=action, subject=tk,
+               detail=t("Peers = other companies in the same sector in this app's list. Room = the smallest gap to your position, sector and cash limits.",
+                        "साथी = इस ऐप की सूची में उसी सेक्टर की दूसरी कंपनियाँ। जगह = आपकी पोज़िशन, सेक्टर और नक़द सीमाओं में सबसे छोटा अंतर।"),
+               facts=[_fact(t("Company numbers", "कंपनी के आँकड़े"), {"good": t("Healthy", "अच्छे"), "warn": t("Average", "औसत"), "bad": t("Weaker", "कमज़ोर"), "": "–"}[biz_tone], biz_tone),
+                      _fact(t("Fit with you", "आपके साथ फ़िट"), t("Fits", "फ़िट") if fit_tone != "bad" else t("Does not fit", "फ़िट नहीं"), fit_tone),
+                      _fact(t("Room to add", "जोड़ने की जगह"), inr_(room) if room >= small else "₹0")],
+               table={"columns": [t("Measure", "पैमाना"), name, t("Sector peers", "सेक्टर के साथी"), t("Reading", "मतलब")], "rows": rows} if rows else None)
+    a.data = {"ticker": tk, "room": room, "binding": binding, "fit": fit_tone, "company": biz_tone}
+    return _done(a, ctx, [(f"Analyse {name}", f"{name} का विश्लेषण"), _FU["xray"] if "xray" in _FU else _FU["digest"]], "should_buy")
+
+
 HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "help": h_help, "chitchat": h_chitchat, "clarify": h_clarify, "out_of_scope": h_out_of_scope, "predict": h_predict,
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 

@@ -233,13 +233,22 @@ async def do_propose(session: Session, bus: EventBus, ticker: str | None,
 
     session.counters.violations_blocked += len(decision.violations)
     session.pending = None          # nothing is approved after a breach
-    first = decision.violations[0].message if decision.violations else "Policy breach."
-    spoken = f"Blocked. {first}"
+    from core import universe as _u
+    nm = _u.name(ticker)
+    why = {"POSITION_LIMIT": f"it would put more than {decision.violations[0].limit*100:.0f}% of your money in {nm}, your single-stock limit",
+           "SECTOR_LIMIT": f"it would put more than {decision.violations[0].limit*100:.0f}% of your money in one sector, your sector limit",
+           "CASH_RESERVE": "it would leave you with less cash than your safety reserve",
+           "INSUFFICIENT_HOLDING": f"you do not hold that many shares of {nm}"}
+    code = decision.violations[0].code if decision.violations else ""
+    spoken = (f"I have not placed this order: {why.get(code, 'it breaks one of your own limits')}. "
+              f"({decision.violations[0].message})" if decision.violations else "I have not placed this order: it breaks one of your own limits.")
     if decision.remedy and decision.remedy.max_shares > 0:
         session.remedy = {"ticker": ticker, "side": side,
                           "shares": decision.remedy.max_shares, "price": proposal.price}
-        spoken += (f" {decision.remedy.explanation} Say 'accept the remedy' to take "
-                   f"that instead.")
+        spoken += (f" The most that fits is {decision.remedy.max_shares} shares instead of {shares}. "
+                   f"Say 'accept the remedy' to buy {decision.remedy.max_shares}, or ask 'can I buy {nm}?' for a full opinion. The choice is yours.")
+    else:
+        spoken += f" Nothing of this order fits right now. Ask 'can I buy {nm}?' to see why and what would make room."
     say(bus, spoken)
     save_decision(session.conn, session.last_run_id or "-",
                   _blank_verdict(session), ticker, side, shares, proposal.price,
