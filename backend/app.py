@@ -9,6 +9,7 @@ never leaves the machine.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import contextlib
 import contextvars
@@ -1353,6 +1354,26 @@ async def kiosk_reset(b: KioskResetIn) -> dict:
     guide_mod.forget(b.cid or "default")
     convo = explain.Conversation()
     return {"ok": True}
+
+
+@app.get("/offline/assets")
+async def offline_assets() -> dict:
+    """Every file the app needs to open with no network, so the browser can keep a copy."""
+    files, h = [], hashlib.sha1()
+    for p in sorted(FRONTEND.rglob("*")):
+        if p.is_file() and p.name != "sw.js" and p.suffix in {".js", ".css", ".html", ".svg", ".png", ".jpg", ".ico", ".json", ".woff2", ".webmanifest"}:
+            rel = "/" + p.relative_to(FRONTEND).as_posix()
+            files.append({"url": rel, "bytes": p.stat().st_size}); h.update(rel.encode()); h.update(str(p.stat().st_size).encode())
+    files.append({"url": "/offline/rural.py", "bytes": (Path(__file__).parent / "rural.py").stat().st_size})
+    return {"version": h.hexdigest()[:12], "files": files, "bytes": sum(f["bytes"] for f in files)}
+
+
+@app.get("/offline/rural.py")
+async def offline_rural_source():
+    """The calculators' own source: the browser runs this very file (via Pyodide) when offline, so
+    online and offline answers cannot disagree."""
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse((Path(__file__).parent / "rural.py").read_text(encoding="utf-8"))
 
 
 @app.get("/rural/schemes")

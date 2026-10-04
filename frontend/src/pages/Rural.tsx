@@ -9,6 +9,8 @@ import { useLang } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { usePilot } from "../lib/pilot";
 import { pstore } from "../lib/pstore";
+import { ruralFetch } from "../lib/offline";
+import { OfflineBar } from "../components/OfflineBar";
 
 /** While the guide is still asking for something, the page shows what it has so far and holds the result back. */
 function Waiting({ tool }: { tool: string }) {
@@ -32,8 +34,7 @@ function usePost<T>(url: string, body: unknown, enabled = true, delay = 250): T 
   useEffect(() => {
     if (!enabled) { setOut(null); return; }
     const id = window.setTimeout(() => {
-      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: key })
-        .then((r) => r.json()).then(setOut).catch(() => {});
+      ruralFetch(url, JSON.parse(key)).then(setOut).catch(() => {});
     }, delay);
     return () => window.clearTimeout(id);
   }, [url, key, enabled, delay]);
@@ -218,7 +219,7 @@ function DocsTool({ picked, setPicked, init }: { picked: string[]; setPicked: (x
   const [have, setHave] = useState<string[]>(() => (init.tool === "docs" && init.have !== undefined ? init.have.split(",").filter(Boolean) : store.get("have", [])));
   const [catalog, setCatalog] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => store.set("have", have), [have]);
-  useEffect(() => { fetch(`/rural/schemes?lang=${lang}`).then((r) => r.json()).then((x) => setCatalog(x.schemes)).catch(() => {}); }, [lang]);
+  useEffect(() => { ruralFetch(`/rural/schemes?lang=${lang}`).then((x) => setCatalog(x.schemes)).catch(() => {}); }, [lang]);
   const r = usePost<Ready>("/rural/readiness", { schemes: picked, have, lang }, true, 100);
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   return (
@@ -327,6 +328,7 @@ export default function Rural() {
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
       "खेती और दिहाड़ी वाले परिवारों के लिए काम के औज़ार: ज़्यादा ब्याज देना बंद कीजिए, अपना हक़ मत छोड़िए, और एकमुश्त आने वाले पैसे की योजना बनाइए।")}>
+      <OfflineBar />
       <div ref={top} className="rural-tabs" role="tablist">
         {TABS.map(([id, ic, en, hi]) => <button key={id} role="tab" aria-selected={tool === id} className={tool === id ? "on" : ""} onClick={() => setTool(id)}><span aria-hidden>{ic}</span>{t(en, hi)}</button>)}
       </div>

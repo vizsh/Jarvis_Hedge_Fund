@@ -39,3 +39,12 @@ For a village helper, SHG leader or panchayat desk where one phone or tablet ser
 - **Print my results:** because everything is wiped afterwards, each person can print or save a clean one-page copy of what is on screen (date, results, the "confirm at the place shown / never share OTP" note); navigation, buttons and the assistant box are hidden in print.
 - Larger type and touch targets in this mode; a counter shows how many people have been served this session (a number only).
 - Limit: it cannot stop someone photographing the screen or reading the browser's history; use a private/guest browser profile on the device if that matters.
+
+## Offline pack — D4
+For weak or no signal. On the **Rural** page press **⬇ Download offline pack** once, while online (about 12 MB: the app files, the calculators, and a Python runtime).
+- A service worker (`frontend/public/sw.js`, registered only when you press the button) keeps a copy of the app files and serves them with no network; the page itself is network-first so updates still arrive when online.
+- The five Rural tools (moneylender check, offer checker, scheme finder, papers, harvest planner) then run **inside the browser**: `backend/rural.py` itself is executed by Pyodide (Python compiled to WebAssembly) — not a re-write in another language — so offline answers equal server answers, in English and Hindi. `GET /offline/rural.py` serves that file; `GET /offline/assets` lists what to save.
+- The page shows "No internet right now · these tools work without internet" and keeps working; typed Hindi/English forms and results are unchanged.
+- Not available offline: the voice assistant and guided conversation (they run on the server), stock research, portfolio pages, WhatsApp/SMS. The Rural page's own forms are the offline way to do the same tasks.
+- Tests: `tests/test_offline.py` (rural.py is standard-library only and gives identical results when run standalone).
+- Verified: the in-browser Python engine, all five tools offline (with the connection reported as down). Not verifiable in the built-in preview browser: service-worker registration (that pane refuses it). Please try the full "download, then disconnect" path in Chrome or Edge.

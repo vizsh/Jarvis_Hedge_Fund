@@ -161,10 +161,16 @@ def scheme_check(text: str = "", put: float | None = None, get: float | None = N
     low = (text or "").lower()
     if put is None and get is None and months is None and text:
         # "pay 10000, get 20000 in 6 months" written in words: read the figures from the sentence
-        from analysis import tools
-        q = tools.quantities(text)
-        money = [x["v"] for x in q["money"] if x["v"] >= 100]
-        mo = q["months"][0]["v"] if q["months"] else (q["years"][0]["v"] * 12 if q["years"] else None)
+        try:
+            from analysis import tools          # not available inside the offline (in-browser) copy
+            q = tools.quantities(text)
+            money = [x["v"] for x in q["money"] if x["v"] >= 100]
+            mo = q["months"][0]["v"] if q["months"] else (q["years"][0]["v"] * 12 if q["years"] else None)
+        except ImportError:
+            nums = [float(x.replace(",", "")) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", text)]
+            money = [x for x in nums if x >= 100]
+            m = re.search(r"(\d+(?:\.\d+)?)\s*(months?|years?|महीने|साल)", text, re.I)
+            mo = (float(m.group(1)) * (12 if re.match(r"y|सा", m.group(2), re.I) else 1)) if m else None
         if len(money) >= 2 and mo and money[1] > money[0]:
             put, get, months = money[0], money[1], mo
     hits = [(fid, w, en, hi) for fid, (w, en, hi, rx) in FLAGS.items() if re.search(rx, low)]
