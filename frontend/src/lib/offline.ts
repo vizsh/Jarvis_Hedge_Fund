@@ -88,6 +88,7 @@ const CALLS: Record<string, (b: any) => [string, unknown[]]> = {
   "/rural/scheme": (b) => ["scheme_check", [b.text, b.put, b.get, b.months, b.lang]],
   "/rural/entitlements": (b) => ["entitlements", [b.profile, b.lang]],
   "/rural/readiness": (b) => ["readiness", [b.schemes, b.have, b.lang]],
+  "/rural/policy": (b) => ["policy_check", [b.premium, b.pay_years, b.term_years, b.maturity, b.sum_assured ?? null, b.term_quote ?? null, b.text ?? "", b.lang]],
   "/rural/income": (b) => ["income_plan", [b.income, b.monthly_cost, b.one_offs, b.savings, b.borrow_rate ?? 36, b.lang]],
 };
 

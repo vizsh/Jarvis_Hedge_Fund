@@ -120,6 +120,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
                   r"\bsunday (summary|update|brief)\b")),
     ("ledger", _r(r"\b(transaction|trade|order) history\b.{0,30}\b(edit|alter|chang|tamper|modif)\w*|\b(change|alter|edit|modify|rewrite|tamper|fake|backdate)\w*\b.{0,30}\b(past|old|previous|earlier|my)\b.{0,15}\b(trades?|entries|records?|ledger|history)\b|\b(ledger|audit (trail|log)|tamper\w*|hash[- ]?chain|trade history|trade log|trail of (my )?trades|"
                   r"record of (my )?(trades|decisions)|records? (been )?(changed|altered|edited))\b")),
+    ("policy_check", _r(r"@@b(endowment|money ?back|ulip|surrender value|bima agent)@@b|@@b(lic|insurance|policy|bima)@@b.{0,50}@@b(premium|maturity|agent|returns?|worth|good|bonus|surrender|lapse|stop paying|sold|savings?|invest@@w*)@@b|@@b(premium|maturity)@@b.{0,50}@@b(policy|insurance|lic)@@b|@@bagent@@b.{0,40}@@b(policy|insurance|lic)@@b".replace("@@", chr(92)))),
     ("moneylender", _r(r"@@b(money ?lender|sahukar|sahukaar|saahukar|arhtiya|arthiya|adhatiya|loan shark|local lender|private lender)@@b|@@b(byaj|vyaj|sood)@@b|@@b(rupees?|rs|₹)@@s*@@d*@@s*(per|a|for every|on every|in every)@@s+(hundred|100)@@b|@@b(per|a|on every)@@s+(hundred|100)@@s+(rupees?|rs)@@b|@@b(sainkda|saikda|sekda)@@b|@@breal (rate|interest)@@b.{0,25}@@b(loan|lender|borrow)@@b|@@bhow much (interest|byaj) (am i|do i|will i)@@b|@@bcost of (my |this )?(loan|borrowing)@@b|@@binterest (rate )?of (@@d+) ?(rupees?|rs)@@b".replace("@@", chr(92)))),
     ("scheme_check", _r(r"@@b(double|triple|multiply) (my|the|your) money@@b|@@bmoney (will )?(double|triple)@@b|@@b(chit ?fund|ponzi|pyramid|mlm|network marketing|kameti|committee scheme)@@b|@@b(guaranteed|assured|fixed) (monthly|daily|weekly|high) (returns?|income|profit)@@b|@@b(is|are) (this|that|the) (scheme|offer|company|plan|app|business|investment|girvi|group)@@b.{0,25}@@b(real|genuine|legit|legitimate|fake|safe|a scam|true|trustworthy)@@b|@@b(scheme|offer|plan|company)@@b.{0,40}@@b(genuine|legit|fake|scam|fraud)@@b|@@bpay@@b.{0,25}@@bget@@b.{0,40}@@b(months?|weeks?|days?|years?)@@b|@@bjoining fee@@b|@@bbring (your )?(friends|members|people)@@b|@@brefer@@b.{0,15}@@bearn@@b|@@bmoney back in@@b.{0,15}@@b(months?|weeks?|days?)@@b".replace("@@", chr(92)))),
     ("entitlements", _r(r"@@b(government|govt|sarkari|central|state) (schemes?|yojana|benefits?|subsid@@w+)@@b|@@bschemes?@@b.{0,35}@@b(eligible|entitled|qualify|for me|can i get|available|am i missing|i can)@@b|@@bwhat (benefits|schemes|subsid@@w+|help|yojanas?)@@b.{0,30}@@b(can i|do i|am i|for)@@b|@@b(eligible|entitled) (for|to)@@b|@@bpm[- ]?kisan@@b|@@bayushman@@b|@@bujjwala@@b|@@bm?gnrega@@b|@@bnrega@@b|@@bpm[- ]?awas@@b|@@bpension (scheme|yojana)@@b|@@bam i (missing|not getting)@@b|@@bmoney (i am|i.m|we are) owed@@b|@@bbenefits? (i|we) (can|should|could) (get|claim)@@b".replace("@@", chr(92)))),
@@ -440,7 +441,7 @@ _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "li
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
                 "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
-                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
+                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
 
 
 def suggestions(text: str, n: int = 3) -> list[tuple[str, str]]:
@@ -1182,6 +1183,60 @@ def h_buy_advice(text: str, ctx: Ctx) -> Answer:
 
 
 
+
+# ---- insurance policy check (backend/rural.py: policy_check) ---------------------------------
+def _policy_args(text: str) -> dict:
+    """premium, pay_years, term_years, maturity, cover from a sentence in English (digits) -- Hindi arrives already
+    rewritten into an English sentence by hindi_input."""
+    q = tools.quantities(text)
+    out: dict = {}
+    for m in q["money"]:
+        c = m["ctx"]
+        if re.search(r"(cover|assured|death benefit)", c[-14:]) and "cover" not in out:
+            out["cover"] = m["v"]
+        elif re.search(r"(maturity|get back|receive|payout|returns?|bonus)", c) and "maturity" not in out:
+            out["maturity"] = m["v"]
+        elif re.search(r"(premium|pay|paying|instal)", c) and "premium" not in out:
+            out["premium"] = m["v"]
+    yrs = q["years"]
+    for y in yrs:
+        c = y["ctx"]
+        if re.search(r"(after|term|policy of|for the next|matur)", c) and "term_years" not in out:
+            out["term_years"] = int(y["v"])
+        elif "pay_years" not in out:
+            out["pay_years"] = int(y["v"])
+    if "term_years" in out and "pay_years" not in out and len(yrs) == 1:
+        out["pay_years"] = out["term_years"]
+    if "pay_years" in out and "term_years" not in out and len(yrs) == 1:
+        out["term_years"] = out["pay_years"]
+    return out
+
+
+def h_policy_check(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    p = _policy_args(text)
+    need = [k for k in ("premium", "pay_years", "term_years", "maturity") if k not in p]
+    flags = rural.policy_check(1, 1, 1, 1, None, None, text, ctx.lang)
+    if need and not flags["scam"]:
+        a = Answer(headline=t("Tell me the premium, how many years you pay, the policy term and the maturity amount, and I will work out what it really returns.",
+                              "प्रीमियम, कितने साल भरते हैं, पॉलिसी कितने साल की है और मैच्योरिटी रक़म बताइए, मैं निकालूँगा कि असल में कितना रिटर्न है।"),
+                   bullets=[t("For example: premium 50000 a year for 10 years, 10 lakh after 20 years, cover 5 lakh.", "जैसे: साल का प्रीमियम 50000, 10 साल तक, 20 साल बाद 10 लाख, कवर 5 लाख।")],
+                   visual={"page": "rural", "label": t("Open the policy checker", "पॉलिसी जाँचक खोलें"), "params": {"tool": "policy"}})
+        return _done(a, ctx, [_RURAL_FU["policy"], _RURAL_FU["loan"]], "policy_check")
+    r = rural.policy_check(p.get("premium", 1), p.get("pay_years", 1), p.get("term_years", 1), p.get("maturity", 1), p.get("cover"), None, text, ctx.lang)
+    money = tools.inr_hi if ctx.lang == "hi" else tools.inr
+    bullets = [*r["bullets"][:3], *[f["text"] for f in r["flags"][:2]]]
+    a = Answer(headline=r["headline"], bullets=bullets, action=r["verdict"] if not r["scam"] else r["flags"][0]["text"],
+               detail=r["note"],
+               facts=[_fact(t("Yearly return", "सालाना रिटर्न"), "–" if r["irr_pct"] is None else f"{r['irr_pct']:.1f}%", {"red": "bad", "amber": "warn", "green": "good"}[r["band"]]),
+                      _fact(t("You pay", "आप भरते हैं"), money(r["total_paid"])), _fact(t("You get", "आपको मिलेगा"), money(r["maturity"]))],
+               visual={"page": "rural", "label": t("Open the policy checker", "पॉलिसी जाँचक खोलें"),
+                       "params": {"tool": "policy", "premium": p.get("premium", 0), "pay_years": p.get("pay_years", 0), "term_years": p.get("term_years", 0),
+                                  "maturity": p.get("maturity", 0), **({"cover": p["cover"]} if p.get("cover") else {}), "run": 1}})
+    a.data = {"policy": r}
+    return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["schemes"]], "policy_check")
+
 # ---- rural / low-income tools (backend/rural.py) ---------------------------------------
 def _open_rural(tool: str, label_en: str, label_hi: str, ctx: Ctx, params: dict | None = None) -> dict:
     return {"page": "rural", "label": _t(ctx.lang)(label_en, label_hi), "params": {"tool": tool, **(params or {})}}
@@ -1305,6 +1360,7 @@ def h_income_plan(text: str, ctx: Ctx) -> Answer:
 
 
 _RURAL_FU = {
+    "policy": ("Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?"),
     "loan": ("What does 5 rupees per hundred a month really cost?", "5 रुपये सैकड़ा महीने का असल में कितना पड़ता है?"),
     "schemes": ("Which government schemes can I get?", "मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं?"),
     "docs": ("Why has my payment not come?", "मेरा पैसा क्यों नहीं आया?"),
@@ -1317,7 +1373,7 @@ HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "should_buy": h_buy_advice, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1357,6 +1413,7 @@ INTENT_DOC = {
     "diversification": "is the portfolio spread out enough",
     "correlation": "which holdings move together",
     "should_buy": "should the user buy / add a specific stock",
+    "policy_check": "is an insurance policy / endowment / agent-sold plan a good deal, or a bonus-refund scam",
     "moneylender": "what a moneylender / private loan interest really costs per year",
     "scheme_check": "is a double-your-money / chit fund / pay-and-earn offer a scam",
     "entitlements": "which government schemes / benefits the user may qualify for",

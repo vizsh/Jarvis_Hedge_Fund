@@ -21,7 +21,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -145,6 +145,54 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
+      </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ A3 insurance policy */
+type Pol = { irr_pct: number | null; band: string; headline: string; verdict: string; bullets: string[]; total_paid: number; maturity: number;
+  alt_safe_fv: number; alt_gap: number; flags: { id: string; text: string }[]; advice: string[]; verify: string[]; note: string; scam: boolean };
+
+function PolicyTool({ init }: { init: Record<string, string> }) {
+  const { t } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "policy";
+  const waiting = useWaiting("policy");
+  const [f, setF] = useState(() => guided
+    ? { premium: init.premium ?? "", pay: init.pay_years ?? "", term: init.term_years ?? "", maturity: init.maturity ?? "", cover: init.cover ?? "", quote: "" }
+    : store.get("policy", { premium: "50000", pay: "10", term: "20", maturity: "1000000", cover: "500000", quote: "" }));
+  const [text, setText] = useState("");
+  useEffect(() => { if (!guided) store.set("policy", f); }, [f, guided]);
+  const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const n = (v: string) => Number(v) || 0;
+  const ok = !waiting && n(f.premium) > 0 && n(f.pay) > 0 && n(f.term) >= n(f.pay) && n(f.maturity) > 0;
+  const r = usePost<Pol>("/rural/policy", { premium: n(f.premium), pay_years: n(f.pay), term_years: n(f.term), maturity: n(f.maturity),
+    sum_assured: n(f.cover) || null, term_quote: n(f.quote) || null, text, lang }, ok || (!waiting && text.length > 8), 300);
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?")}</h2>
+      <Waiting tool="policy" />
+      <p className="muted">{t("Many endowment and money-back policies are sold as savings but return little. Enter what is on your policy paper: I work out what it really earns and compare it with a safe deposit.", "कई एंडोमेंट और मनी-बैक पॉलिसियाँ बचत बताकर बेची जाती हैं पर रिटर्न कम देती हैं। अपनी पॉलिसी के काग़ज़ की बातें भरिए: मैं निकालूँगा कि असल में कितना कमाती है और सुरक्षित जमा से तुलना दिखाऊँगा।")}</p>
+      <div className="rural-form">
+        <label>{t("Premium each year (₹)", "साल का प्रीमियम (₹)")}<input inputMode="numeric" value={f.premium} onChange={set("premium")} /></label>
+        <label>{t("Years you pay", "कितने साल भरते हैं")}<input inputMode="numeric" value={f.pay} onChange={set("pay")} /></label>
+        <label>{t("Policy ends after (years)", "पॉलिसी कितने साल की")}<input inputMode="numeric" value={f.term} onChange={set("term")} /></label>
+        <label>{t("Total you get at the end (₹)", "अंत में कुल मिलेगा (₹)")}<input inputMode="numeric" value={f.maturity} onChange={set("maturity")} /></label>
+        <label>{t("Life cover / sum assured (₹, optional)", "जीवन कवर / बीमित राशि (₹, वैकल्पिक)")}<input inputMode="numeric" value={f.cover} onChange={set("cover")} /></label>
+        <label>{t("Quote for a pure term plan with that cover (₹ a year, optional)", "उतने कवर के शुद्ध टर्म प्लान का भाव (₹ साल, वैकल्पिक)")}<input inputMode="numeric" value={f.quote} onChange={set("quote")} /></label>
+      </div>
+      <label className="rural-form" style={{ display: "block" }}>{t("What did the seller or caller say? (optional)", "बेचने वाले या कॉल करने वाले ने क्या कहा? (वैकल्पिक)")}
+        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("e.g. bank manager said it is better than an FD, guaranteed returns", "जैसे: बैंक मैनेजर ने कहा एफ़डी से बेहतर है, गारंटीड रिटर्न")} /></label>
+      {r && (<>
+        <div className={`rural-big ${r.band}`}><span>{r.irr_pct === null ? "–" : `${r.irr_pct.toFixed(1)}%`}</span><small>{t("a year", "साल में")}</small></div>
+        <p className="rural-head">{r.headline} {r.verdict}</p>
+        <ul className="rural-flags good">{r.bullets.map((b) => <li key={b}>{b}</li>)}</ul>
+        {r.flags.length > 0 && <><h3>{t("Warning signs in what you were told", "आपको जो बताया गया उसमें चेतावनी-संकेत")}</h3><ul className="rural-flags">{r.flags.map((x) => <li key={x.id}>{x.text}</li>)}</ul></>}
+        <h3>{t("What to do", "क्या करें")}</h3>
+        <ul className="rural-flags good">{r.advice.map((a) => <li key={a}>{a}</li>)}</ul>
+        <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
+        <p className="rural-note">{r.note}</p>
+        <Say text={`${r.headline} ${r.verdict}`} />
       </>)}
     </section>
   );
@@ -323,7 +371,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -338,6 +386,7 @@ export default function Rural() {
         {tool === "schemes" && <SchemesTool init={params} onPick={(ids) => { setPicked(ids); setTool("docs"); window.scrollTo(0, 0); }} />}
         {tool === "docs" && <DocsTool picked={picked} setPicked={setPicked} init={params} />}
         {tool === "income" && <IncomeTool init={params} />}
+        {tool === "policy" && <PolicyTool init={params} />}
       </div>
     </Page>
   );

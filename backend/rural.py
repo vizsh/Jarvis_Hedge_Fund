@@ -530,3 +530,114 @@ def income_plan(income: list[dict[str, Any]], monthly_cost: float, one_offs: lis
             "plan": plan, "tips": tips,
             "note": t("Add every large cost you know is coming (seed and fertiliser, school fees, a wedding, festivals) under 'one-off costs' so the plan can see it.",
                       "जो बड़े ख़र्च आने वाले हैं (बीज-खाद, स्कूल फ़ीस, शादी, त्योहार) उन्हें 'एकमुश्त ख़र्च' में जोड़िए ताकि योजना उन्हें देख सके।")}
+
+
+# =============================================================================== A3 insurance policy check
+INS_FLAGS: dict[str, tuple[int, str, str, str]] = {
+    "sold_as_fd": (30, "Described like a fixed deposit or savings account. An insurance policy is not one, and early exit usually costs you.",
+                   "फ़िक्स्ड डिपॉज़िट या बचत खाते की तरह बताई गई। बीमा पॉलिसी वह नहीं है, और बीच में छोड़ने पर आम तौर पर नुक़सान होता है।",
+                   r"like (an? )?(fd|fixed deposit|savings)|better than (an? )?(fd|fixed deposit|bank)|fd (jaisa|se behtar)|एफ़?डी जैसा|एफ़?डी से (बेहतर|ज़्यादा)|बैंक से ज़्यादा"),
+    "bank_sold": (15, "Sold by a bank or post-office staff member as a 'scheme' or 'investment'. Staff earn commission on insurance; the bank does not guarantee it.",
+                  "बैंक या डाकघर के कर्मचारी ने 'योजना' या 'निवेश' कहकर बेची। बीमा पर उन्हें कमीशन मिलता है; बैंक इसकी गारंटी नहीं देता।",
+                  r"bank (manager|staff|officer|person) (told|said|sold|suggested)|sold (me )?(at|in|by) (the )?bank|बैंक (वाले|मैनेजर|कर्मचारी)|बैंक में (बेची|बताया|कहा)"),
+    "guaranteed_high": (25, "Promises guaranteed or very high returns.", "गारंटी या बहुत ऊँचे रिटर्न का वादा।",
+                        r"guarantee|assured return|fixed return|double|दोगुना|गारंटी|पक्का (रिटर्न|मुनाफ़ा|मुनाफा)"),
+    "pay_few_get_many": (15, "Pay for a few years and get a large sum or income for life: check the exact figures in writing.",
+                         "कुछ साल भरें और बड़ी रक़म या उम्र भर आमदनी: सही आँकड़े लिखित में माँगिए।",
+                         r"pay (only )?\d+ years? (and )?get|limited pay|कुछ साल (भरो|भरें)|सिर्फ़? \d+ साल"),
+    "pressure": (15, "Pressure to sign today ('offer ends', 'last day', 'bonus lapses').", "आज ही दस्तख़त करने का दबाव ('ऑफ़र ख़त्म', 'आख़िरी दिन', 'बोनस ख़त्म')।",
+                 r"last day|offer ends|limited offer|only today|today only|hurry|आखिरी दिन|आख़िरी दिन|ऑफर खत्म|सिर्फ़? आज"),
+    "refund_scam": (45, "A caller says an old policy has a bonus or refund waiting and asks you to pay a fee or tax to release it. That is a scam: real insurers never ask for money to pay you.",
+                    "कोई फ़ोन पर कहता है कि पुरानी पॉलिसी का बोनस या रिफ़ंड रुका है और छुड़ाने को फ़ीस या टैक्स माँगता है। यह ठगी है: असली बीमा कंपनी पैसे देने के लिए पैसे नहीं माँगती।",
+                    r"(bonus|refund|maturity|claim|lapsed?).{0,50}(pay|fee|gst|tax|charges|processing).{0,40}(release|unlock|get|receive|transfer)|(pay|fee|gst|tax).{0,50}(bonus|refund|maturity).{0,30}(release|unlock)|बोनस.{0,40}(फ़ीस|फीस|टैक्स|चार्ज)|रिफ़ंड.{0,40}(फ़ीस|फीस|टैक्स)"),
+    "cheque_to_agent": (40, "Asked to pay by cash, or by cheque or UPI to a person instead of the insurance company.",
+                        "नक़द में, या बीमा कंपनी की जगह किसी व्यक्ति को चेक/UPI से भुगतान करने को कहा।",
+                        r"cash only|pay cash|in cash|cheque (in|to) (my|the agent|his|her) name|pay (me|the agent) (directly|personally)|personal (account|upi)|नक़द में|नकद में|एजेंट के (नाम|खाते)|मेरे खाते में"),
+    "market_hidden": (15, "Market-linked (ULIP) but sold with fixed-sounding promises. Ask for the charges table in writing.",
+                      "बाज़ार से जुड़ी (यूलिप) पर तय रिटर्न जैसे वादे के साथ बेची। ख़र्चों की तालिका लिखित में माँगिए।",
+                      r"ulip|unit.?linked|market.?linked|यूलिप"),
+}
+INS_VERIFY = [
+    ("IRDAI Bima Bharosa (complaints and checking an insurer or agent): bimabharosa.irdai.gov.in", "IRDAI बीमा भरोसा (शिकायत और बीमा कंपनी/एजेंट की जाँच): bimabharosa.irdai.gov.in"),
+    ("Call the insurer's own number printed on the policy, never a number the caller gives; ask for the surrender-value table in writing.", "पॉलिसी पर छपे बीमा कंपनी के अपने नंबर पर फ़ोन कीजिए, फ़ोन करने वाले के दिए नंबर पर नहीं; सरेंडर वैल्यू की तालिका लिखित में माँगिए।"),
+    ("Unresolved after the insurer's reply: Insurance Ombudsman (cioins.co.in).", "बीमा कंपनी के जवाब से संतुष्ट न हों तो: बीमा लोकपाल (cioins.co.in)।"),
+]
+FREE_LOOK = {"en": "A new policy can usually be returned within the free-look period (about 15 to 30 days from receipt; check your document) for a refund of the premium minus small charges. Use it if you feel misled.",
+             "hi": "नई पॉलिसी आम तौर पर 'फ़्री-लुक' अवधि (मिलने से लगभग 15 से 30 दिन; अपने काग़ज़ में देखिए) में लौटाई जा सकती है, थोड़ी कटौती के साथ प्रीमियम वापस। भ्रमित महसूस करें तो इसका इस्तेमाल कीजिए।"}
+SAFE_RATE = 7.1          # a plain PPF-like rate, used only as a comparison; the screen says so
+
+
+def irr_pct(premium: float, pay_years: int, term_years: int, maturity: float) -> float | None:
+    """Yearly return of paying `premium` at the start of each of `pay_years` years and receiving `maturity`
+    at the end of `term_years`."""
+    if premium <= 0 or pay_years < 1 or term_years < pay_years or maturity <= 0:
+        return None
+
+    def f(r: float) -> float:
+        return sum(premium / (1 + r) ** t for t in range(pay_years)) - maturity / (1 + r) ** term_years
+    lo, hi = -0.9, 2.0
+    if f(lo) * f(hi) > 0:
+        return None
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if f(lo) * f(mid) <= 0:
+            hi = mid
+        else:
+            lo = mid
+    return round(((lo + hi) / 2) * 100, 2)
+
+
+def _fv_deposits(amount: float, years: int, term: int, rate_pct: float) -> float:
+    r = rate_pct / 100
+    return sum(amount * (1 + r) ** (term - t) for t in range(years))
+
+
+def policy_check(premium: float, pay_years: int, term_years: int, maturity: float, sum_assured: float | None = None,
+                 term_quote: float | None = None, text: str = "", lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    pay_years, term_years = int(pay_years), int(term_years)
+    paid = premium * pay_years
+    irr = irr_pct(premium, pay_years, term_years, maturity)
+    alt_fv = _fv_deposits(premium, pay_years, term_years, SAFE_RATE)
+    real_today = maturity / (1.06 ** term_years) if term_years else maturity
+    ratio = (sum_assured / premium) if (sum_assured and premium) else None
+    band = "red" if (irr is None or irr < 4) else "amber" if irr < 6.5 else "green"
+    if irr is None:
+        head = t("These figures do not add up to a return. Check the maturity amount and the years.", "इन आँकड़ों से रिटर्न नहीं निकलता। मैच्योरिटी रक़म और साल दोबारा देखिए।")
+    else:
+        head = t(f"You pay {_inr(paid)} and get {_inr(maturity)} back after {term_years} years. That is about {irr:.1f}% a year.",
+                 f"आप {_inr(paid, 'hi')} भरते हैं और {term_years} साल बाद {_inr(maturity, 'hi')} पाते हैं। यह साल का लगभग {irr:.1f}% है।")
+    verdict = {"red": t("This is a poor saving product. A bank or post-office deposit would very likely give you more, with no early-exit penalty.", "यह बचत के हिसाब से कमज़ोर है। बैंक या डाकघर की जमा से आपको लगभग निश्चित ही ज़्यादा मिलता, बिना बीच में छोड़ने के नुक़सान के।"),
+               "amber": t("This returns less than safe deposits (about 7%). It may still be worth it only if you value the life cover.", "यह सुरक्षित जमा (लगभग 7%) से कम देती है। जीवन कवर को आप क़ीमती मानें तभी ठीक है।"),
+               "green": t("The return is in line with safe deposits. Check the cover and the exit terms.", "रिटर्न सुरक्षित जमा के बराबर है। कवर और बीच में छोड़ने की शर्तें जाँचिए।")}[band]
+    more = alt_fv > maturity
+    bullets = [t(f"The same {_inr(premium)} a year for {pay_years} years in a safe deposit at about {SAFE_RATE}% would grow to about {_inr(alt_fv)} by year {term_years}: {_inr(abs(alt_fv - maturity))} {'more' if more else 'less'} than the policy.",
+                 f"यही {_inr(premium, 'hi')} साल के, {pay_years} साल तक, लगभग {SAFE_RATE}% की सुरक्षित जमा में रखें तो {term_years} साल में लगभग {_inr(alt_fv, 'hi')} होते: पॉलिसी से {_inr(abs(alt_fv - maturity), 'hi')} {'ज़्यादा' if more else 'कम'}।"),
+               t(f"In today's money (at 6% a year price rise) the {_inr(maturity)} is worth about {_inr(real_today)}.", f"आज के पैसे में (6% सालाना महँगाई मानें तो) {_inr(maturity, 'hi')} की क़ीमत लगभग {_inr(real_today, 'hi')} है।")]
+    if ratio is not None:
+        low = ratio < 30
+        bullets.append(t(f"Life cover is {_inr(sum_assured)}, about {ratio:.0f} times one year's premium. " + ("That is low: a pure term plan gives many times more cover per rupee." if low else "That is a reasonable cover for the premium."),
+                         f"जीवन कवर {_inr(sum_assured, 'hi')} है, यानी एक साल के प्रीमियम का लगभग {ratio:.0f} गुना। " + ("यह कम है: शुद्ध टर्म प्लान में प्रति रुपया कई गुना ज़्यादा कवर मिलता है।" if low else "प्रीमियम के हिसाब से यह ठीक कवर है।")))
+    split = None
+    if term_quote and sum_assured and 0 < term_quote < premium:
+        invest = premium - term_quote
+        fv = _fv_deposits(invest, pay_years, term_years, SAFE_RATE)
+        split = {"term_quote": term_quote, "invest": invest, "fv": round(fv), "cover": sum_assured}
+        bullets.append(t(f"Option: buy a pure term plan for {_inr(sum_assured)} at {_inr(term_quote)} a year and put the other {_inr(invest)} a year in a safe deposit: about {_inr(fv)} by year {term_years}, plus the same cover.",
+                         f"विकल्प: {_inr(sum_assured, 'hi')} का शुद्ध टर्म प्लान {_inr(term_quote, 'hi')} साल में लें और बाक़ी {_inr(invest, 'hi')} साल की सुरक्षित जमा में रखें: {term_years} साल में लगभग {_inr(fv, 'hi')}, साथ में वही कवर।"))
+    low_t = (text or "").lower()
+    hits = [(fid, en, hi) for fid, (w, en, hi, rx) in INS_FLAGS.items() if re.search(rx, low_t)]
+    score = sum(INS_FLAGS[f][0] for f, _e, _h in hits)
+    scam = any(f == "refund_scam" for f, _e, _h in hits)
+    if scam:
+        head = t("This sounds like a refund scam, not a policy question. Do not pay anything.", "यह पॉलिसी का सवाल नहीं, रिफ़ंड ठगी जैसा लगता है। कुछ भी पैसा मत दीजिए।")
+        band = "red"
+    advice = [t("Do not stop paying in a panic: leaving early can cost you. First ask the insurer for the surrender-value table in writing, then decide.", "घबराकर प्रीमियम बंद मत कीजिए: बीच में छोड़ना महँगा पड़ सकता है। पहले बीमा कंपनी से सरेंडर वैल्यू की तालिका लिखित में माँगिए, फिर तय कीजिए।"),
+              FREE_LOOK[lang]]
+    return {"irr_pct": irr, "total_paid": round(paid), "maturity": round(maturity), "gain": round(maturity - paid), "alt_safe_fv": round(alt_fv),
+            "alt_gap": round(alt_fv - maturity), "real_today": round(real_today), "cover_ratio": None if ratio is None else round(ratio, 1),
+            "band": band, "headline": head, "verdict": verdict, "bullets": bullets, "split": split, "scam": scam,
+            "flags": [{"id": f, "text": hi if lang == "hi" else en} for f, en, hi in hits], "flag_score": min(100, score),
+            "advice": advice, "verify": [hi if lang == "hi" else en for en, hi in INS_VERIFY],
+            "note": t(f"The safe-deposit comparison uses about {SAFE_RATE}% for illustration; today's rates differ. A policy also gives life cover, which a deposit does not, so weigh both.",
+                      f"सुरक्षित जमा की तुलना उदाहरण के लिए लगभग {SAFE_RATE}% से है; आज की दरें अलग हो सकती हैं। पॉलिसी जीवन कवर भी देती है जो जमा नहीं देती, इसलिए दोनों तौलिए।")}

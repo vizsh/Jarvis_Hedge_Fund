@@ -273,6 +273,41 @@ def _b_own(t: str, q: Q, raw: str) -> str:
 
 
 
+def _b_policy(t: str, q: Q, raw: str) -> str:
+    toks = t.split()
+    got: dict[str, float] = {}
+    for x in q:
+        w = " ".join(toks[max(0, int(x["at"]) - 4): int(x["at"]) + 4])
+        if x["kind"] == "money":
+            if re.search(norm("कवर|बीमा राशि|सम एश्योर"), w):
+                got.setdefault("cover", x["v"])
+            elif re.search(norm("मैच्योरिटी|मिलेंगे|मिलेगा|वापस|मिलता|पाऊँगा|पाता"), w):
+                got.setdefault("maturity", x["v"])
+            elif re.search(norm("प्रीमियम|किस्त|भरता|भरती|भरना"), w):
+                got.setdefault("premium", x["v"])
+        elif x["kind"] == "years":
+            if re.search(norm("बाद|अवधि|टर्म|साल की पॉलिसी"), w):
+                got.setdefault("term", x["v"])
+            else:
+                got.setdefault("pay", x["v"])
+    parts = ["My insurance policy"]
+    if "premium" in got:
+        parts.append(f"premium {_m(got['premium'])} a year")
+    if "pay" in got:
+        parts.append(f"for {_fmt(got['pay'])} years")
+    if "maturity" in got:
+        parts.append(f"maturity {_m(got['maturity'])}")
+    if "term" in got:
+        parts.append(f"after {_fmt(got['term'])} years")
+    if "cover" in got:
+        parts.append(f"cover {_m(got['cover'])}")
+    if "pay" in got and "term" not in got and "maturity" in got:
+        parts.append(f"after {_fmt(got['pay'])} years")
+    if re.search(norm("बोनस|रिफंड"), t) and re.search(norm("फीस|टैक्स|चार्ज"), t):
+        parts.append("bonus refund pay fee to release it")
+    return " ".join(parts)
+
+
 def _b_loan(t: str, q: Q, raw: str) -> str:
     saikda = bool(re.search(r"सैकड", t))
     if saikda:                       # "सैकड़ा" (per hundred) is not the number 100 or a duration
@@ -301,6 +336,7 @@ def _b_loan(t: str, q: Q, raw: str) -> str:
 
 BUILD: dict[str, Callable[[str, Q, str], str]] = {
     "moneylender": _b_loan,
+    "policy_check": _b_policy,
     "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
     "entitlements": lambda *a: "Which government schemes can I get?",
     "docs_ready": lambda *a: "Why has my payment not come? Which documents do I need?",
@@ -323,6 +359,7 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("policy_check", r"((बीमा|पॉलिसी|एलआईसी|प्रीमियम|मैच्योरिटी).{0,40}(प्रीमियम|मैच्योरिटी|एजेंट|रिटर्न|फायदा|बोनस|बंद|सरेंडर|लायक|अच्छी|सही)|(एजेंट).{0,30}(पॉलिसी|बीमा)|(पॉलिसी|बीमा).{0,30}(बोनस|रिफंड).{0,40}(फीस|टैक्स|चार्ज))"),
     ("moneylender", r"(साहूकार|आढ़तिया|आढ़ती|सैकड़ा|सैकड़े|सूद|ब्याज.{0,25}(महीने|रुपये|रुपए|कितना|कितनी)|(कर्ज|क़र्ज़|कर्जा|उधार).{0,25}(ब्याज|सैकड़ा))"),
     ("scheme_check", r"((पैसा|पैसे|रुपये|रकम|निवेश|पूंजी).{0,20}(दोगुना|दुगना|दुगुना|दोगुने|तिगुना|डबल)|चिट ?फंड|कमेटी|पोंजी|पिरामिड|(गारंटी|पक्का).{0,25}(मुनाफा|कमाई|रिटर्न)|पैसा.{0,15}(डबल|दोगुना)|(स्कीम|योजना|कंपनी|ऐप).{0,30}(असली|नकली|ठगी|सही है|भरोसे)|सदस्य बनाइ|दोस्तों को जोड़)"),
     ("entitlements", r"(सरकारी (योजना|मदद|लाभ)|योजनाओं?|योजनाएं|पीएम किसान|आयुष्मान|उज्ज्वला|मनरेगा|पेंशन योजना|आवास योजना|मुझे क्या.{0,20}मिल|हक का पैसा)"),
@@ -455,7 +492,7 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
-    "moneylender": "साहूकार के ब्याज का असली हिसाब", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
     "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",

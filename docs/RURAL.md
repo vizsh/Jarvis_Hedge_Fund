@@ -10,6 +10,8 @@ Five tools for farming and daily-wage households, under the **Rural / ग्र�
 | **Are my papers ready?** (B2) | Applications stall on missing documents. Pick schemes, tick what you have; it names the **one fix that unblocks the most schemes first** (Aadhaar-bank seeding, name mismatch, dormant account) with how to fix each. | "why has my subsidy not come" | `POST /rural/readiness` |
 | **Plan my year** (C1) | Income arrives in lumps. Month-by-month balance, the lean months, how much of each lump to keep aside for the months until the next income, and what a moneylender would cost to cover the gap. | "my income comes only after harvest, how do I manage" | `POST /rural/income` |
 
+| **Is my policy good?** (A3) | Endowment / money-back / agent-sold policies sold as "savings". Works out the policy's real yearly return (IRR) from premium, years paid, term and maturity, compares it with the same money in a safe ~7.1% deposit and in today's money, checks cover per rupee, and (if you enter a term quote) shows the term-plan-plus-deposit alternative. Flags how it was sold ("better than an FD", bank staff, pressure, cash to an agent) and detects the **"your old policy has a bonus, pay a fee to release it"** scam. Points to IRDAI Bima Bharosa, the free-look period and the ombudsman. | "my LIC policy premium is 50000 a year for 10 years, maturity 10 lakh after 20 years" | `POST /rural/policy` |
+
 ## Honest limits
 - **Scheme facts change.** The list carries a review date (`rural.CHECKED`), every screen says to confirm at the place shown, and nobody should pay anyone to apply.
 - Eligibility is a guide to *what to ask about*, not a decision; state schemes are not covered beyond a pointer.

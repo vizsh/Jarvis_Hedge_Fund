@@ -1370,6 +1370,23 @@ async def kiosk_reset(b: KioskResetIn) -> dict:
     return {"ok": True}
 
 
+class PolicyIn(BaseModel):
+    premium: float
+    pay_years: int
+    term_years: int
+    maturity: float
+    sum_assured: float | None = None
+    term_quote: float | None = None
+    text: str = ""
+    lang: str = "en"
+
+
+@app.post("/rural/policy")
+async def rural_policy(b: PolicyIn) -> dict:
+    from backend import rural
+    return rural.policy_check(b.premium, b.pay_years, b.term_years, b.maturity, b.sum_assured, b.term_quote, b.text, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

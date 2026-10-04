@@ -155,3 +155,41 @@ def test_hindi_loan_figures_are_read_by_code():
     english, _ = asyncio.run(H.convert("साहूकार पाँच रुपये सैकड़ा महीने पर पचास हज़ार रुपये दस महीने के लिए", use_model=False))
     a = A.answer(english, _ctx("hi"))
     assert a.data["loan"]["interest"] == 25000 and a.lang == "hi"
+
+
+# ---- A3: insurance policy check -------------------------------------------------------------
+def test_policy_irr_is_the_rate_that_equates_premiums_and_payout():
+    r = rural.irr_pct(50000, 10, 20, 1000000)
+    pv_p = sum(50000 / (1 + r / 100) ** t for t in range(10)); pv_m = 1000000 / (1 + r / 100) ** 20
+    assert abs(pv_p - pv_m) / pv_m < 1e-3            # the rate is rounded to 2 decimals
+    assert rural.irr_pct(100000, 1, 1, 110000) == 10.0
+    assert rural.irr_pct(1000, 5, 5, 4000) < 0                  # getting back less than you paid
+    assert rural.irr_pct(1000, 5, 3, 9000) is None             # term shorter than the paying years
+
+
+def test_policy_verdict_bands_and_safe_deposit_comparison():
+    low = rural.policy_check(50000, 10, 20, 1000000, 500000)
+    assert low["band"] == "amber" and low["alt_gap"] > 0 and low["cover_ratio"] == 10.0
+    assert rural.policy_check(50000, 10, 20, 600000)["band"] == "red"
+    assert rural.policy_check(1000, 5, 5, 4000)["band"] == "red"
+
+
+def test_policy_term_plus_deposit_split_is_computed_not_asserted():
+    r = rural.policy_check(24000, 12, 12, 400000, 5000000, 3000)
+    assert r["split"]["invest"] == 21000 and r["split"]["cover"] == 5000000
+    assert r["split"]["fv"] == round(rural._fv_deposits(21000, 12, 12, rural.SAFE_RATE))
+
+
+def test_policy_refund_call_is_flagged_as_a_scam():
+    r = rural.policy_check(1, 1, 1, 1, text="your policy bonus is pending, pay GST fee to release it")
+    assert r["scam"] and r["band"] == "red" and "Do not pay" in r["headline"]
+    assert not rural.policy_check(50000, 10, 20, 1000000, text="my agent explained the policy clearly and gave me a written illustration")["scam"]
+
+
+def test_policy_questions_route_and_numbers_match_the_calculator():
+    q = "my LIC endowment premium is 50000 a year for 10 years and maturity is 10 lakh after 20 years, cover 5 lakh"
+    a = A.answer(q, _ctx())
+    assert a.data["intent"] == "policy_check" and a.data["policy"]["irr_pct"] == rural.irr_pct(50000, 10, 20, 1000000)
+    assert A.answer("bank manager sold me a policy, is it worth it", _ctx()).data["intent"] == "policy_check"
+    english, _ = asyncio.run(H.convert("मेरी बीमा पॉलिसी का प्रीमियम पचास हज़ार रुपये साल का है, दस साल तक भरता हूँ, बीस साल बाद दस लाख रुपये मिलेंगे", use_model=False))
+    assert A.rule_intent(english) == "policy_check" and "50000" in english and "10 lakh" in english

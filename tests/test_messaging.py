@@ -67,7 +67,7 @@ def test_portfolio_questions_are_not_answered_over_messaging():
 
 def test_cancel_clears_the_open_question():
     say("whatsapp:+917", "1")
-    r = say("whatsapp:+917", "cancel", "50000")
+    r = say("whatsapp:+917", "cancel")
     assert "stopped" in r[0][0]
     assert not guide.active("m:" + M.sender_key("whatsapp:+917"))
 

@@ -237,6 +237,12 @@ def slot(name, en, hi, ex_en, ex_hi, parse, choices=None, optional=False):
 
 
 TOOLS: dict[str, dict[str, Any]] = {
+    "policy": dict(title=("Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"), kind="policy_check", slots=[
+        slot("premium", "How much premium do you pay each year?", "आप साल में कितना प्रीमियम भरते हैं?", "For example: 50000", "जैसे: 50000", p_money),
+        slot("pay_years", "For how many years do you pay it?", "कितने साल तक भरते हैं?", "For example: 10", "जैसे: 10", p_years),
+        slot("term_years", "After how many years does the policy end and pay you?", "कितने साल बाद पॉलिसी पूरी होकर पैसा मिलता है?", "For example: 20", "जैसे: 20", p_years),
+        slot("maturity", "How much will you get back at the end, in total?", "अंत में कुल कितना वापस मिलेगा?", "For example: 10 lakh", "जैसे: 10 लाख", p_money),
+        slot("cover", "How much life cover (sum assured) does it give? Say skip if you do not know.", "जीवन कवर (बीमित राशि) कितना है? पता न हो तो 'छोड़ो' कहिए।", "For example: 5 lakh", "जैसे: 5 लाख", p_money, optional=True)]),
     "loan": dict(title=("Moneylender check", "साहूकार का हिसाब"), kind="moneylender", slots=[
         slot("principal", "How much money did you borrow?", "आपने कितनी रक़म उधार ली?", "For example: 50000, or 1 lakh", "जैसे: 50000, या 1 लाख", p_money),
         slot("rate", "What interest does the lender charge?", "साहूकार कितना ब्याज लेता है?", "For example: 5 rupees per hundred a month, or 24% a year", "जैसे: 5 रुपये सैकड़ा महीना, या 24% साल", p_rate),
@@ -279,7 +285,7 @@ TOOLS.update({
         slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
 })
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
-RURAL = {"loan", "scheme", "schemes", "docs", "income"}
+RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
 CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
@@ -302,7 +308,7 @@ PAGES = [
     ("research", "/research", ("Research", "शोध"), r"\bresearch\b|stock analysis|शोध", ["Analyse TCS", "Which stock will double?"]),
     ("assistant", "/assistant", ("Assistant", "सहायक"), r"\bassistant\b|\bchat\b|सहायक", ["What can you do?"]),
 ]
-TOOL_NAV = [("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
+TOOL_NAV = [("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
@@ -387,6 +393,12 @@ def _prefill(tool: str, st: dict[str, Any], text: str) -> None:
             big = [m["v"] for m in q["money"] if m["v"] != roles["monthly"]]
             if big:
                 p["target"] = max(big)
+    elif tool == "policy":
+        from backend import assistant
+        a = assistant._policy_args(text)
+        for k in ("premium", "pay_years", "term_years", "maturity", "cover"):
+            if k in a:
+                p[k] = a[k]
     elif tool == "scheme":
         if len(text.strip()) > 25 and re.search(r"\d|scheme|offer|double|chit|गारंटी|दोगुना|योजना", text, re.I):
             p["text"] = text.strip()
@@ -418,6 +430,9 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         money = tools.inr_hi if lang == "hi" else tools.inr
         say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
                                         f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
+    elif tool == "policy":
+        r = rural.policy_check(p["premium"], p["pay_years"], p["term_years"], p["maturity"], p.get("cover"), None, "", lang)
+        say = f"{r['headline']} {r['verdict']}"
     elif tool == "scheme":
         r = rural.scheme_check(p["text"], lang=lang)
         say = f"{r['verdict']} " + (r["flags"][0]["text"] if r["flags"] else "")
@@ -452,7 +467,8 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
                 "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
-    nxt = {"loan": ["Which government schemes can I get?", "Plan my money around the harvest"],
+    nxt = {"policy": ["Check my moneylender interest", "Which government schemes can I get?"],
+           "loan": ["Which government schemes can I get?", "Plan my money around the harvest"],
            "scheme": ["Check my moneylender interest", "I already lost money in a scam"],
            "schemes": ["Are my papers ready?", "Check my moneylender interest"],
            "docs": ["Which government schemes can I get?", "Check my moneylender interest"],
