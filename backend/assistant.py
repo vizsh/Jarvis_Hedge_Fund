@@ -124,8 +124,9 @@ _RULES: list[tuple[str, re.Pattern]] = [
     ("policy_check", _r(r"@@b(endowment|money ?back|ulip|surrender value|bima agent)@@b|@@b(lic|insurance|policy|bima)@@b.{0,50}@@b(premium|maturity|agent|returns?|worth|good|bonus|surrender|lapse|stop paying|sold|savings?|invest@@w*)@@b|@@b(premium|maturity)@@b.{0,50}@@b(policy|insurance|lic)@@b|@@bagent@@b.{0,40}@@b(policy|insurance|lic)@@b".replace("@@", chr(92)))),
     ("moneylender", _r(r"@@b(money ?lender|sahukar|sahukaar|saahukar|arhtiya|arthiya|adhatiya|loan shark|local lender|private lender)@@b|@@b(byaj|vyaj|sood)@@b|@@b(rupees?|rs|₹)@@s*@@d*@@s*(per|a|for every|on every|in every)@@s+(hundred|100)@@b|@@b(per|a|on every)@@s+(hundred|100)@@s+(rupees?|rs)@@b|@@b(sainkda|saikda|sekda)@@b|@@breal (rate|interest)@@b.{0,25}@@b(loan|lender|borrow)@@b|@@bhow much (interest|byaj) (am i|do i|will i)@@b|@@bcost of (my |this )?(loan|borrowing)@@b|@@binterest (rate )?of (@@d+) ?(rupees?|rs)@@b".replace("@@", chr(92)))),
     ("scheme_check", _r(r"@@b(double|triple|multiply) (my|the|your) money@@b|@@bmoney (will )?(double|triple)@@b|@@b(chit ?fund|ponzi|pyramid|mlm|network marketing|kameti|committee scheme)@@b|@@b(guaranteed|assured|fixed) (monthly|daily|weekly|high) (returns?|income|profit)@@b|@@b(is|are) (this|that|the) (scheme|offer|company|plan|app|business|investment|girvi|group)@@b.{0,25}@@b(real|genuine|legit|legitimate|fake|safe|a scam|true|trustworthy)@@b|@@b(scheme|offer|plan|company)@@b.{0,40}@@b(genuine|legit|fake|scam|fraud)@@b|@@bpay@@b.{0,25}@@bget@@b.{0,40}@@b(months?|weeks?|days?|years?)@@b|@@bjoining fee@@b|@@bbring (your )?(friends|members|people)@@b|@@brefer@@b.{0,15}@@bearn@@b|@@bmoney back in@@b.{0,15}@@b(months?|weeks?|days?)@@b".replace("@@", chr(92)))),
+    ("dbt_trace", _r(r"@@b(payment|subsidy|instal?lment|pension|scholarship|wages?|dbt|benefit|refund)@@b.{0,30}@@b(not (come|came|arrive@@w*|receiv@@w*|credited|reach@@w*)|stuck|stopped|pending|rejected|failed|has not|hasn.t|never)@@b|@@bwhy (did|has|have|is|was) (my )?(payment|subsidy|money|instal?lment|pension|scholarship|wages?)@@b|@@b(pm.?kisan|kisan)@@b.{0,30}@@b(not|stuck|pending|rejected|status|instal?lment)@@b|@@bdbt@@b".replace("@@", chr(92)))),
     ("entitlements", _r(r"@@b(government|govt|sarkari|central|state) (schemes?|yojana|benefits?|subsid@@w+)@@b|@@bschemes?@@b.{0,35}@@b(eligible|entitled|qualify|for me|can i get|available|am i missing|i can)@@b|@@bwhat (benefits|schemes|subsid@@w+|help|yojanas?)@@b.{0,30}@@b(can i|do i|am i|for)@@b|@@b(eligible|entitled) (for|to)@@b|@@bpm[- ]?kisan@@b|@@bayushman@@b|@@bujjwala@@b|@@bm?gnrega@@b|@@bnrega@@b|@@bpm[- ]?awas@@b|@@bpension (scheme|yojana)@@b|@@bam i (missing|not getting)@@b|@@bmoney (i am|i.m|we are) owed@@b|@@bbenefits? (i|we) (can|should|could) (get|claim)@@b".replace("@@", chr(92)))),
-    ("docs_ready", _r(r"@@b(documents?|papers?|dastavez|kagaz|paperwork)@@b.{0,35}@@b(need|needed|required|ready|missing|checklist|do i have)@@b|@@baadhaar@@b.{0,35}@@b(link@@w*|seed@@w*|not (linked|working))@@b.{0,40}@@b(bank|account|dbt|subsid@@w*|pension|payment)@@b|@@b(bank|account)@@b.{0,35}@@b(link@@w*|seed@@w*)@@w*@@b.{0,20}@@baadhaar@@b|@@b(link|seed)@@w*@@b.{0,25}@@baadhaar@@b.{0,20}@@b(to|with)@@b.{0,12}@@b(bank|account)@@b|@@b(payment|subsidy|money|instal?lment|pension|scholarship)@@b.{0,25}@@b(not (come|came|arrive@@w*|receiv@@w*|credited)|stuck|stopped|rejected|failed|has not|hasn.t)@@b|@@bwhy (did|has|have|is|was) (my )?(payment|subsidy|money|instal?lment|pension)@@b|@@bdbt@@b|@@bready to apply@@b".replace("@@", chr(92)))),
+    ("docs_ready", _r(r"@@b(documents?|papers?|dastavez|kagaz|paperwork)@@b.{0,35}@@b(need|needed|required|ready|missing|checklist|do i have)@@b|@@baadhaar@@b.{0,35}@@b(link@@w*|seed@@w*|not (linked|working))@@b.{0,40}@@b(bank|account|dbt|subsid@@w*|pension|payment)@@b|@@b(bank|account)@@b.{0,35}@@b(link@@w*|seed@@w*)@@w*@@b.{0,20}@@baadhaar@@b|@@b(link|seed)@@w*@@b.{0,25}@@baadhaar@@b.{0,20}@@b(to|with)@@b.{0,12}@@b(bank|account)@@b|@@bready to apply@@b".replace("@@", chr(92)))),
     ("income_plan", _r(r"@@b(harvest|crop|seasonal?|lumpy|irregular|daily[- ]wage|wage work|casual work)@@b.{0,55}@@b(income|money|earn@@w*|plan|budget|save|saving|manage)@@b|@@b(income|money|pay|payment) (comes|arrives|is received) (only )?(once|in lumps|after (the )?harvest|seasonally|twice)@@b|@@bmanage.{0,30}@@bbetween (harvests?|seasons?|crops?)@@b|@@bplan (my )?(year|season|harvest)@@b|@@blean (months?|season|period)@@b|@@brun(ning)? out of money (before|until)@@b|@@bmoney (finishes|ends|runs out) (before|until)@@b".replace("@@", chr(92)))),
     ("my_funds_remove", _r(r"\b(remove|delete|drop|forget|clear)\b.{0,40}\b(funds?|mutual)\b|\bno longer (own|hold)\b.{0,40}\bfund|"
                            r"\b(sold|exited|redeemed)\b.{0,30}\b(my )?\w*\s?fund\b")),
@@ -442,7 +443,7 @@ _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "li
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
                 "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
-                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "upi_check": "scam", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
+                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "upi_check": "scam", "dbt_trace": "docs", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
 
 
 def suggestions(text: str, n: int = 3) -> list[tuple[str, str]]:
@@ -1252,6 +1253,49 @@ def h_upi_check(text: str, ctx: Ctx) -> Answer:
     a.data = {"upi": r}
     return _done(a, ctx, [_RURAL_FU["upi_recover"], _RURAL_FU["policy"]], "upi_check")
 
+
+# ---- DBT / subsidy tracer (backend/rural.py: dbt_trace) ---------------------------------------
+def _dbt_args(text: str) -> dict:
+    """Whatever the sentence already says about the scheme and the break; the rest is asked."""
+    low = text.lower()
+    out: dict = {}
+    for sid, rx in (("pm_kisan", r"kisan|किसान"), ("pension", r"pension|पेंशन"), ("scholarship", r"scholar|छात्रवृत्ति"), ("lpg", r"\blpg\b|gas|गैस"),
+                    ("mgnrega", r"nrega|मनरेगा|wages"), ("ration", r"ration|राशन")):
+        if re.search(rx, low):
+            out["scheme"] = sid
+            break
+    for st, rx in (("rejected", r"reject|failed|रिजेक्ट"), ("other_account", r"another account|other account|different account|दूसरे खाते|अनजान खाते"),
+                   ("pending", r"pending|under process|पेंडिंग"), ("not_applied", r"never applied|not registered|आवेदन नहीं")):
+        if re.search(rx, low):
+            out["status"] = st
+            break
+    if re.search(r"aadhaa?r.{0,25}(not|isn.t|is not).{0,12}(linked|seeded)|आधार.{0,20}(लिंक|जुड़ा) नहीं", low):
+        out["linked"] = "no"
+    if re.search(r"name.{0,25}(different|mismatch|not (the )?same|spell)|नाम.{0,20}(अलग|गलत)", low):
+        out["name_same"] = "no"
+    if re.search(r"(bank|branch).{0,25}(merged|merger|changed)|बैंक.{0,15}(विलय|मर्ज)", low):
+        out["merged"] = "yes"
+    if re.search(r"(not used|unused|dormant|inactive).{0,25}(year|years|long)|साल.{0,20}से.{0,10}नहीं", low):
+        out["last_used"] = "old"
+    return out
+
+
+def h_dbt_trace(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    p = _dbt_args(text)
+    r = rural.dbt_trace(p.get("scheme", "other"), p.get("status", "no_status"), p.get("linked", "unsure"), p.get("name_same", "unsure"),
+                        p.get("merged", "unsure"), p.get("last_used", "recent"), "unsure", text, ctx.lang)
+    top = r["causes"][:3]
+    bullets = [f"{i + 1}. {c['title']}: {c['steps'][0]}" for i, c in enumerate(top)]
+    if r["scam"]:
+        bullets.insert(0, r["scam_note"])
+    a = Answer(headline=r["headline"], bullets=bullets, action=r["complain"][0], detail=r["note"],
+               facts=[_fact(t("Check status at", "स्टेटस कहाँ देखें"), r["check_at"][:40])],
+               visual={"page": "rural", "label": t("Trace my payment", "मेरा भुगतान खोजें"), "params": {"tool": "dbt", **p}})
+    a.data = {"dbt": r}
+    return _done(a, ctx, [_RURAL_FU["docs"], _RURAL_FU["schemes"]], "dbt_trace")
+
 # ---- rural / low-income tools (backend/rural.py) ---------------------------------------
 def _open_rural(tool: str, label_en: str, label_hi: str, ctx: Ctx, params: dict | None = None) -> dict:
     return {"page": "rural", "label": _t(ctx.lang)(label_en, label_hi), "params": {"tool": tool, **(params or {})}}
@@ -1389,7 +1433,7 @@ HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "should_buy": h_buy_advice, "upi_check": h_upi_check, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "dbt_trace": h_dbt_trace, "upi_check": h_upi_check, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1429,6 +1473,7 @@ INTENT_DOC = {
     "diversification": "is the portfolio spread out enough",
     "correlation": "which holdings move together",
     "should_buy": "should the user buy / add a specific stock",
+    "dbt_trace": "a government payment / subsidy / pension / instalment has not arrived, why, and how to fix it",
     "upi_check": "is a UPI request / QR / link / call asking for PIN or payment safe, or a UPI scam trick",
     "policy_check": "is an insurance policy / endowment / agent-sold plan a good deal, or a bonus-refund scam",
     "moneylender": "what a moneylender / private loan interest really costs per year",

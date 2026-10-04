@@ -125,7 +125,7 @@ def test_income_plan_flags_structural_deficit():
     ("my sahukar charges 5 rupees per hundred a month on 50000 for 10 months", "moneylender"),
     ("someone says pay 10000 and get 20000 in 6 months, is this scheme genuine", "scheme_check"),
     ("which government schemes can I get", "entitlements"),
-    ("why has my subsidy not come", "docs_ready"),
+    ("why has my subsidy not come", "dbt_trace"),
     ("my income comes only after harvest, how do I manage", "income_plan"),
 ])
 def test_assistant_routes_rural_questions(q, intent):
@@ -142,7 +142,7 @@ def test_assistant_loan_numbers_match_calculator():
     ("साहूकार पाँच रुपये सैकड़ा महीने पर पचास हज़ार रुपये दस महीने के लिए", "moneylender"),
     ("किसी ने कहा पैसा दोगुना होगा गारंटी, क्या यह योजना असली है", "scheme_check"),
     ("मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं", "entitlements"),
-    ("मेरा पैसा क्यों नहीं आया आधार लिंक नहीं है", "docs_ready"),
+    ("मेरा पैसा क्यों नहीं आया आधार लिंक नहीं है", "dbt_trace"),
     ("फसल के बाद ही पैसा आता है आमदनी का हिसाब कैसे रखूँ", "income_plan"),
 ])
 def test_hindi_questions_reach_the_same_intents(hi, intent):
@@ -240,3 +240,53 @@ def test_upi_questions_route_to_the_coach_but_after_a_loss_to_the_recovery_coach
     assert A.answer("I lost 50000 rupees on UPI to a fake bank officer", _ctx()).kind == "scam_recovery"
     english, _ = asyncio.run(H.convert("कोई कहता है पैसा पाने के लिए पिन डालो फोनपे पर", use_model=False))
     assert A.rule_intent(english) == "upi_check"
+
+
+# ---- B3: DBT / subsidy tracer ---------------------------------------------------------------
+def _top(**kw):
+    base = dict(scheme="pm_kisan", status="no_status", linked="yes", name_same="yes", merged="no", last_used="recent", aadhaar_mobile="yes")
+    base.update(kw)
+    return rural.dbt_trace(**base)["causes"][0]["id"]
+
+
+def test_dbt_names_the_obvious_break_first():
+    assert _top(linked="no") == "not_seeded"
+    assert _top(name_same="no") == "name_mismatch"
+    assert _top(status="not_applied") == "not_registered"
+    assert _top(status="other_account") == "wrong_account"
+    assert _top(status="rejected") == "rejected"
+    assert _top(last_used="old") == "dormant"
+    assert _top(merged="yes") == "merged_bank"
+    assert _top(status="pending") == "pending"
+
+
+def test_dbt_every_cause_has_steps_in_both_languages_and_ranking_is_sorted():
+    for lang in ("en", "hi"):
+        r = rural.dbt_trace("pension", "pending", "no", "no", "yes", "old", "no", "", lang)
+        assert len(r["causes"]) >= 4 and all(c["steps"] and c["why"] for c in r["causes"])
+        scores = [c["score"] for c in r["causes"]]
+        assert scores == sorted(scores, reverse=True)
+
+
+def test_dbt_fee_demand_is_called_a_fraud_or_bribe():
+    assert rural.dbt_trace(text="he asked me a fee to release the money")["scam"]
+    assert rural.dbt_trace(text="स्टेटस पेंडिंग है, किसी ने फ़ीस माँगी")["scam"]
+    assert not rural.dbt_trace(text="my status says pending")["scam"]
+
+
+def test_dbt_letters_fill_the_persons_details_and_keep_blanks_otherwise():
+    r = rural.dbt_full("pm_kisan", name="Ramesh", village="Rampur", block="Sadar", bank="SBI Rampur", lang="en")
+    assert "Ramesh" in r["letters"]["office"] and "Rampur" in r["letters"]["office"] and "SBI Rampur" in r["letters"]["bank"]
+    assert "________" in rural.dbt_full("pm_kisan")["letters"]["office"]
+    assert "निवेदन" not in rural.dbt_full("pm_kisan", lang="hi")["letters"]["office"] and "सेवा में" in rural.dbt_full("pm_kisan", lang="hi")["letters"]["office"]
+
+
+def test_dbt_questions_route_and_prefill():
+    from backend import guide as G
+    assert A.answer("my pm kisan installment is stuck", _ctx()).data["intent"] == "dbt_trace"
+    assert A.answer("my pension has not come", _ctx()).data["intent"] == "dbt_trace"
+    assert A.answer("are my papers ready", _ctx()).data["intent"] == "docs_ready"
+    G.STATE.clear()
+    g = G.begin("dbt", "my pm kisan installment is pending and the name is different on the bank passbook", "en", "t")
+    assert g["params"]["scheme"] == "pm_kisan" and g["params"]["status"] == "pending" and g["params"]["name_same"] == "no"
+    assert g["ask"]["slot"] == "linked"

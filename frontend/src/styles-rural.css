@@ -73,3 +73,7 @@
 .upi-opts button.wrong { border-color: var(--red); background: rgba(255,71,107,.14); }
 .upi-opts button.dim { opacity: .45; }
 .rural-rule.bad { border-left-color: var(--red); background: rgba(255,71,107,.08); }
+
+.rural-letter { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); }
+.rural-letter summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+.rural-letter pre { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line-height: 1.55; margin: 10px 0; }

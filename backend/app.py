@@ -1404,6 +1404,28 @@ async def rural_upi_drills(lang: str = "en") -> dict:
     return rural.upi_drills(lang)
 
 
+class DbtIn(BaseModel):
+    scheme: str = "other"
+    status: str = "no_status"
+    linked: str = "unsure"
+    name_same: str = "unsure"
+    merged: str = "unsure"
+    last_used: str = "recent"
+    aadhaar_mobile: str = "unsure"
+    text: str = ""
+    name: str = ""
+    village: str = ""
+    block: str = ""
+    bank: str = ""
+    lang: str = "en"
+
+
+@app.post("/rural/dbt")
+async def rural_dbt(b: DbtIn) -> dict:
+    from backend import rural
+    return rural.dbt_full(b.scheme, b.status, b.linked, b.name_same, b.merged, b.last_used, b.aadhaar_mobile, b.text, b.name, b.village, b.block, b.bank, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

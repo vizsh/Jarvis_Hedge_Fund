@@ -21,7 +21,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -145,6 +145,67 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
+      </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ B3 why the payment did not come */
+type Dbt = { headline: string; check_at: string; scam: boolean; scam_note: string; complain: string[]; note: string;
+  causes: { id: string; score: number; title: string; why: string; steps: string[] }[]; letters: { office: string; bank: string } };
+
+function DbtTool({ init }: { init: Record<string, string> }) {
+  const { t } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "dbt";
+  const waiting = useWaiting("dbt");
+  const [f, setF] = useState(() => ({ scheme: "pm_kisan", status: "pending", linked: "unsure", name_same: "unsure", merged: "unsure", last_used: "recent", aadhaar_mobile: "unsure",
+    ...(guided ? Object.fromEntries(["scheme", "status", "linked", "name_same", "merged", "last_used"].filter((k) => init[k]).map((k) => [k, init[k]])) : {}) }));
+  const [who, setWho] = useState({ name: "", village: "", block: "", bank: "" });
+  const [text, setText] = useState("");
+  const [go, setGo] = useState(guided && !!init.run);
+  const set = (k: string) => (e: { target: { value: string } }) => { setF({ ...f, [k]: e.target.value }); setGo(true); };
+  const r = usePost<Dbt>("/rural/dbt", { ...f, text, ...who, lang }, go && !waiting, 200);
+  const [copied, setCopied] = useState("");
+  const copy = async (k: string, s: string) => { try { await navigator.clipboard.writeText(s); setCopied(k); setTimeout(() => setCopied(""), 1500); } catch { /* clipboard blocked */ } };
+  const yn = (k: string, en: string, hi: string) => (
+    <label>{t(en, hi)}<select value={(f as Record<string, string>)[k]} onChange={set(k)}><option value="yes">{t("Yes", "हाँ")}</option><option value="no">{t("No", "नहीं")}</option><option value="unsure">{t("Not sure", "पक्का नहीं")}</option></select></label>);
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Why has my government payment not come?", "मेरा सरकारी पैसा क्यों नहीं आया?")}</h2>
+      <Waiting tool="dbt" />
+      <p className="muted">{t("A payment passes through a short chain: registered, approved, Aadhaar linked to one bank account, names match, account active. Almost every missing payment is a break at one link. Answer what you know: I rank the likely breaks and give the fix and a letter.", "भुगतान एक छोटी कड़ी से गुज़रता है: पंजीकरण, मंज़ूरी, आधार का एक बैंक खाते से जुड़ाव, नाम का मेल, चालू खाता। लगभग हर रुका भुगतान किसी एक कड़ी पर टूटता है। जो जानते हैं बताइए: मैं संभावित टूट क्रम से और उसका इलाज और चिट्ठी दूँगा।")}</p>
+      <div className="rural-form">
+        <label>{t("Which payment", "कौन सा भुगतान")}<select value={f.scheme} onChange={set("scheme")}>
+          {[["pm_kisan", "PM-KISAN", "पीएम-किसान"], ["pension", "Pension", "पेंशन"], ["scholarship", "Scholarship", "छात्रवृत्ति"], ["lpg", "LPG subsidy", "गैस सब्सिडी"], ["mgnrega", "MGNREGA wages", "मनरेगा मज़दूरी"], ["ration", "Ration", "राशन"], ["other", "Something else", "कुछ और"]].map(([v, en, hi]) => <option key={v} value={v}>{t(en, hi)}</option>)}</select></label>
+        <label>{t("What does the status say", "स्टेटस में क्या लिखा है")}<select value={f.status} onChange={set("status")}>
+          {[["not_applied", "I never applied / not sure I am registered", "आवेदन नहीं किया / पता नहीं पंजीकृत हूँ"], ["pending", "Pending or under process", "पेंडिंग या प्रक्रिया में"], ["rejected", "Rejected or failed", "रिजेक्ट या फ़ेल"], ["approved", "Approved or paid, but nothing came", "मंज़ूर या भुगतान, पर पैसा नहीं आया"], ["other_account", "Paid to an account I do not know", "किसी अनजान खाते में भुगतान"], ["no_status", "I cannot see any status", "कोई स्टेटस नहीं दिख रहा"]].map(([v, en, hi]) => <option key={v} value={v}>{t(en, hi)}</option>)}</select></label>
+        {yn("linked", "Aadhaar linked to this bank account for benefit transfer?", "आधार इस बैंक खाते से लाभ हस्तांतरण के लिए जुड़ा है?")}
+        {yn("name_same", "Name spelled exactly the same on Aadhaar, passbook and scheme?", "आधार, पासबुक और योजना में नाम हूबहू एक है?")}
+        {yn("merged", "Has your bank merged with another or changed its codes?", "क्या आपका बैंक किसी में मिला या कोड बदले?")}
+        {yn("aadhaar_mobile", "Is your mobile number linked to Aadhaar?", "क्या आपका मोबाइल नंबर आधार से जुड़ा है?")}
+        <label>{t("When did you last use the account yourself", "खाता आख़िरी बार कब चलाया")}<select value={f.last_used} onChange={set("last_used")}>
+          <option value="recent">{t("In the last few months", "पिछले कुछ महीनों में")}</option><option value="old">{t("Over a year ago", "एक साल से ज़्यादा पहले")}</option><option value="never">{t("Never since opening", "खुलने के बाद कभी नहीं")}</option></select></label>
+      </div>
+      <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => setGo(true)} placeholder={t("Anything else? e.g. someone asked me for a fee to release it", "और कुछ? जैसे: किसी ने छुड़ाने के लिए फ़ीस माँगी")} />
+      <div className="rural-actions"><button className="btn go" onClick={() => setGo(true)}>{t("Find the break", "टूट खोजिए")}</button></div>
+      {r && go && (<>
+        <div className="rural-big amber"><span style={{ fontSize: 22 }}>{r.headline}</span></div>
+        {r.scam && <div className="rural-rule bad">⚠ {r.scam_note}</div>}
+        <ol className="rural-steps">{r.causes.map((c) => (
+          <li key={c.id}><b>{c.title}</b><span className="tag">{t("likelihood", "संभावना")} {c.score}</span>
+            <p>{c.why}</p><ul className="rural-flags good">{c.steps.map((s) => <li key={s}>{s}</li>)}</ul></li>))}</ol>
+        <h3>{t("If it is still stuck", "फिर भी अटका रहे तो")}</h3>
+        <ul className="rural-links">{r.complain.map((x) => <li key={x}>{x}</li>)}<li>{t("Check status at: ", "स्टेटस यहाँ देखिए: ")}{r.check_at}</li></ul>
+        <h3>{t("Letters you can hand in", "चिट्ठियाँ जो आप दे सकते हैं")}</h3>
+        <div className="rural-form three">
+          {([["name", "Your name", "आपका नाम"], ["village", "Village", "गाँव"], ["block", "Block / office", "ब्लॉक / कार्यालय"], ["bank", "Bank and branch", "बैंक और शाखा"]] as const).map(([k, en, hi]) => (
+            <label key={k}>{t(en, hi)}<input value={who[k]} onChange={(e) => setWho({ ...who, [k]: e.target.value })} /></label>))}
+        </div>
+        {(["office", "bank"] as const).map((k) => (
+          <details key={k} className="rural-letter"><summary>{k === "office" ? t("To the block / scheme office", "ब्लॉक / योजना कार्यालय को") : t("To the bank manager", "बैंक प्रबंधक को")}</summary>
+            <pre>{r.letters[k]}</pre><button className="btn ghost sm" onClick={() => void copy(k, r.letters[k])}>{copied === k ? t("Copied ✓", "कॉपी हुआ ✓") : t("Copy", "कॉपी")}</button></details>))}
+        <p className="rural-note">{r.note}</p>
+        <Say text={r.headline} />
       </>)}
     </section>
   );
@@ -435,7 +496,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -452,6 +513,7 @@ export default function Rural() {
         {tool === "income" && <IncomeTool init={params} />}
         {tool === "policy" && <PolicyTool init={params} />}
         {tool === "upi" && <UpiTool init={params} />}
+        {tool === "dbt" && <DbtTool init={params} />}
       </div>
     </Page>
   );

@@ -240,9 +240,29 @@ def slot(name, en, hi, ex_en, ex_hi, parse, choices=None, optional=False):
     return dict(name=name, en=en, hi=hi, ex_en=ex_en, ex_hi=ex_hi, parse=parse, choices=choices, optional=optional)
 
 
+DBT_SCHEME = _c(("pm_kisan", "PM-KISAN", "पीएम-किसान", r"kisan|किसान"), ("pension", "Pension", "पेंशन", r"pension|पेंशन"),
+                ("scholarship", "Scholarship", "छात्रवृत्ति", r"scholar|छात्रवृत्ति|वजीफ"), ("lpg", "LPG subsidy", "गैस सब्सिडी", r"lpg|gas|गैस|pahal"),
+                ("mgnrega", "MGNREGA wages", "मनरेगा मज़दूरी", r"nrega|मनरेगा|wage"), ("ration", "Ration", "राशन", r"ration|राशन"),
+                ("other", "Something else", "कुछ और", r"other|else|कुछ और"))
+DBT_STATUS_CH = _c(("other_account", "It says paid, but to an account I do not know", "भुगतान दिखा रहा है, पर किसी अनजान खाते में", r"account i do not know|another account|other account|अनजान खाते"),
+                   ("approved", "It says approved or paid, but nothing came", "मंज़ूर या भुगतान दिखा रहा है, पर पैसा नहीं आया", r"approved|paid|मंज़ूर|मंजूर|भुगतान"),
+                   ("rejected", "It says rejected or failed", "रिजेक्ट या फ़ेल दिखा रहा है", r"reject|fail|रिजेक्ट|फ़ेल|फेल"),
+                   ("pending", "It says pending or under process", "पेंडिंग या प्रक्रिया में दिखा रहा है", r"pending|process|पेंडिंग|प्रक्रिया"),
+                   ("not_applied", "I never applied or I am not sure I am registered", "आवेदन नहीं किया या पता नहीं कि पंजीकृत हूँ", r"never applied|not registered|registered|आवेदन नहीं|पंजीकृत"),
+                   ("no_status", "I cannot see any status", "कोई स्टेटस नहीं दिख रहा", r"cannot see|no status|कोई स्टेटस|नहीं दिख"))
+DBT_USED_CH = _c(("recent", "I used the account in the last few months", "पिछले कुछ महीनों में खाता चलाया", r"last few months|recent|हाल|कुछ महीनों"),
+                 ("old", "Not used for over a year", "एक साल से ज़्यादा से नहीं चलाया", r"over a year|not used|एक साल|नहीं चलाया"),
+                 ("never", "Never used since opening", "खुलने के बाद कभी नहीं चलाया", r"never|कभी नहीं"))
 UPI_CHOICES = [(str(i), en, hi, re.compile(re.escape(en), re.I)) for i, (en, hi) in enumerate(rural.UPI_MENU)]
 
 TOOLS: dict[str, dict[str, Any]] = {
+    "dbt": dict(title=("Why no money?", "पैसा क्यों नहीं आया?"), kind="dbt_trace", slots=[
+        slot("scheme", "Which payment has not come?", "कौन सा भुगतान नहीं आया?", "Tap one", "एक चुनिए", parse_choice(DBT_SCHEME), DBT_SCHEME),
+        slot("status", "What does the status say?", "स्टेटस में क्या लिखा है?", "Tap the closest", "सबसे क़रीबी चुनिए", parse_choice(DBT_STATUS_CH), DBT_STATUS_CH),
+        slot("linked", "Is your Aadhaar linked to this bank account for benefit transfers?", "क्या आपका आधार इस बैंक खाते से लाभ हस्तांतरण के लिए जुड़ा है?", "Tap one", "एक चुनिए", parse_choice(YESNO), YESNO),
+        slot("name_same", "Is your name spelled exactly the same on Aadhaar, the bank passbook and the scheme?", "क्या आधार, बैंक पासबुक और योजना में आपके नाम की वर्तनी हूबहू एक है?", "Tap one", "एक चुनिए", parse_choice(YESNO), YESNO),
+        slot("merged", "Has your bank merged with another bank, or changed its codes?", "क्या आपका बैंक किसी दूसरे बैंक में मिला या उसके कोड बदले?", "Tap one", "एक चुनिए", parse_choice(YESNO), YESNO),
+        slot("last_used", "When did you last use this account yourself?", "आपने यह खाता आख़िरी बार कब चलाया?", "Tap one", "एक चुनिए", parse_choice(DBT_USED_CH), DBT_USED_CH)]),
     "upi": dict(title=("UPI safety", "UPI सुरक्षा"), kind="upi_check", slots=[
         slot("text", "What is happening? Tap the closest, or tell me in your own words.", "क्या हो रहा है? सबसे क़रीबी चुनिए, या अपने शब्दों में बताइए।",
              "For example: someone says I must enter my PIN to receive money", "जैसे: कोई कहता है पैसा पाने के लिए पिन डालो", p_upi, UPI_CHOICES)]),
@@ -294,7 +314,7 @@ TOOLS.update({
         slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
 })
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
-RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi"}
+RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi", "dbt"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
 CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
@@ -317,7 +337,7 @@ PAGES = [
     ("research", "/research", ("Research", "शोध"), r"\bresearch\b|stock analysis|शोध", ["Analyse TCS", "Which stock will double?"]),
     ("assistant", "/assistant", ("Assistant", "सहायक"), r"\bassistant\b|\bchat\b|सहायक", ["What can you do?"]),
 ]
-TOOL_NAV = [("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
+TOOL_NAV = [("dbt", r"(trace|track) (my )?(payment|subsidy)|why no money|dbt (tracer|trace)|भुगतान खोज"), ("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
@@ -408,6 +428,10 @@ def _prefill(tool: str, st: dict[str, Any], text: str) -> None:
         for k in ("premium", "pay_years", "term_years", "maturity", "cover"):
             if k in a:
                 p[k] = a[k]
+    elif tool == "dbt":
+        from backend import assistant
+        for k, v in assistant._dbt_args(text).items():
+            p[k] = v
     elif tool == "upi":
         if rural.upi_check(text)["matched"]:
             p["text"] = text.strip()
@@ -442,6 +466,11 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         money = tools.inr_hi if lang == "hi" else tools.inr
         say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
                                         f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
+    elif tool == "dbt":
+        r = rural.dbt_trace(p.get("scheme", "other"), p.get("status", "no_status"), p.get("linked", "unsure"), p.get("name_same", "unsure"),
+                            p.get("merged", "unsure"), p.get("last_used", "recent"), "unsure", "", lang)
+        c = r["causes"][0]
+        say = f"{r['headline']} " + (c["steps"][0] if c["steps"] else "")
     elif tool == "upi":
         r = rural.upi_check(p["text"], lang)
         say = f"{r['headline']} {r['why']} " + (r["do"][0] if r["do"] else "")
@@ -483,7 +512,8 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
                 "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
-    nxt = {"upi": ["I already paid a scammer on UPI, what do I do?", "Which government schemes can I get?"],
+    nxt = {"dbt": ["Are my papers ready?", "Which government schemes can I get?"],
+           "upi": ["I already paid a scammer on UPI, what do I do?", "Which government schemes can I get?"],
            "policy": ["Check my moneylender interest", "Which government schemes can I get?"],
            "loan": ["Which government schemes can I get?", "Plan my money around the harvest"],
            "scheme": ["Check my moneylender interest", "I already lost money in a scam"],

@@ -775,3 +775,163 @@ def upi_drills(lang: str = "en") -> dict[str, Any]:
                         "options": [{"text": o[i], "right": bool(o[2])} for o in d["o"]]} for d in UPI_DRILLS],
             "menu": [{"text": en, "label": hi if lang == "hi" else en} for en, hi in UPI_MENU],
             "rules": [hi if lang == "hi" else en for en, hi in UPI_RULES], "recover": UPI_RECOVER[lang]}
+
+
+# =============================================================================== B3 DBT / subsidy tracer
+# Why a government payment (DBT: direct benefit transfer) did not arrive. Money moves through a short
+# chain: you are registered -> your record is approved -> your Aadhaar is linked to ONE bank account in
+# NPCI's mapper -> the name and account details match -> the account is active -> the bank credits it.
+# Almost every "it never came" is a break at one of those links. This ranks the likely breaks from
+# what the person tells us and gives the exact fix for each. Scores are likelihood weights, not
+# probabilities, and the screen says so.
+DBT_SCHEMES = {  # id: (English, Hindi, needs_ekyc, where to check status)
+    "pm_kisan": ("PM-KISAN", "पीएम-किसान", True, "pmkisan.gov.in → Know Your Status; helpline 155261 or 1800-115-526"),
+    "pension": ("Pension (old-age, widow, disability)", "पेंशन (वृद्धावस्था, विधवा, दिव्यांग)", True, "your state social-welfare portal or the block / panchayat office"),
+    "scholarship": ("Scholarship", "छात्रवृत्ति", True, "scholarships.gov.in → Check Status"),
+    "lpg": ("LPG subsidy", "गैस सब्सिडी", False, "your gas distributor or the LPG company's app (PAHAL)"),
+    "mgnrega": ("MGNREGA wages", "मनरेगा मज़दूरी", False, "nrega.nic.in → your panchayat's muster roll and payment status"),
+    "ration": ("Ration / food subsidy", "राशन / खाद्य सब्सिडी", False, "your state food department portal or the ration shop"),
+    "other": ("Another scheme", "कोई और योजना", False, "the scheme's own website or the block / panchayat office"),
+}
+DBT_STATUS = [("not_applied", "I never applied or I am not sure I am registered", "आवेदन नहीं किया या पता नहीं कि पंजीकृत हूँ"),
+              ("pending", "It says pending or under process", "पेंडिंग या प्रक्रिया में दिखा रहा है"),
+              ("rejected", "It says rejected or failed", "रिजेक्ट या फ़ेल दिखा रहा है"),
+              ("approved", "It says approved or paid, but nothing came", "मंज़ूर या भुगतान दिखा रहा है, पर पैसा नहीं आया"),
+              ("other_account", "It says paid, but to an account I do not know", "भुगतान दिखा रहा है, पर किसी अनजान खाते में"),
+              ("no_status", "I cannot see any status", "कोई स्टेटस नहीं दिख रहा")]
+DBT_YNU = ("yes", "no", "unsure")
+DBT_USED = [("recent", "I used the account in the last few months", "पिछले कुछ महीनों में खाता चलाया"),
+            ("old", "Not used for over a year", "एक साल से ज़्यादा से नहीं चलाया"),
+            ("never", "Never used since opening", "खुलने के बाद कभी नहीं चलाया")]
+FEE_SCAM = r"fee|commission|charge|bribe|pay (him|her|them|someone)|इनाम|फीस|फ़ीस|कमीशन|रिश्वत|पैसे माँग"
+
+
+def _cause(cid: str, score: int, en: str, hi: str, why_en: str, why_hi: str, steps_en: list[str], steps_hi: list[str]) -> dict[str, Any]:
+    return {"id": cid, "score": score, "en": en, "hi": hi, "why_en": why_en, "why_hi": why_hi, "steps_en": steps_en, "steps_hi": steps_hi}
+
+
+def dbt_trace(scheme: str = "other", status: str = "no_status", linked: str = "unsure", name_same: str = "unsure",
+              merged: str = "unsure", last_used: str = "recent", aadhaar_mobile: str = "unsure", text: str = "",
+              lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    sch = DBT_SCHEMES.get(scheme, DBT_SCHEMES["other"])
+    needs_ekyc = sch[2]
+    causes: list[dict[str, Any]] = []
+
+    def add(*a):
+        causes.append(_cause(*a))
+
+    if status == "not_applied":
+        add("not_registered", 95, "You may not be registered, or the application was never completed",
+            "आप पंजीकृत नहीं हो सकते, या आवेदन पूरा नहीं हुआ",
+            "A payment cannot be sent to a record that does not exist.", "जो रिकॉर्ड है ही नहीं उस पर भुगतान नहीं भेजा जा सकता।",
+            [f"Check or apply: {sch[3]}", "Ask the panchayat / block office or a Common Service Centre to look up your name with your Aadhaar number.", "Apply yourself or at a CSC. Nobody may charge a fee to register you."],
+            [f"जाँचिए या आवेदन कीजिए: {sch[3]}", "पंचायत / ब्लॉक कार्यालय या कॉमन सर्विस सेंटर से अपने आधार नंबर से नाम खोजवाइए।", "आवेदन ख़ुद या CSC पर कीजिए। पंजीकरण के लिए किसी को फ़ीस देने की ज़रूरत नहीं।"])
+    if status == "other_account":
+        add("wrong_account", 92, "The money went to a different bank account linked to your Aadhaar",
+            "पैसा आपके आधार से जुड़े किसी दूसरे बैंक खाते में गया",
+            "DBT goes to the account most recently linked to your Aadhaar in NPCI's mapper, which may be an old or other account (for example a new Jan Dhan or a bank you tried once).",
+            "DBT आपके आधार से सबसे हाल में जुड़े खाते में जाता है (NPCI मैपर में), जो कोई पुराना या दूसरा खाता हो सकता है (जैसे नया जन धन या एक बार खोला गया बैंक)।",
+            ["Ask the bank where the credit went and for the account number's last 4 digits.", "Get the right account made the active one: fill the Aadhaar-seeding form for the account you want, at that bank branch.", "Keep the written acknowledgement. Next payments go to the newest linked account."],
+            ["बैंक से पूछिए कि पैसा कहाँ गया और खाते के आख़िरी 4 अंक क्या हैं।", "जो खाता चाहिए उसी बैंक शाखा में आधार-सीडिंग फ़ॉर्म भरकर उसे चालू खाता बनवाइए।", "लिखित पावती रखिए। आगे का भुगतान सबसे नए जुड़े खाते में जाएगा।"])
+    if status == "rejected":
+        add("rejected", 85, "The record was rejected, usually for a data error", "रिकॉर्ड रिजेक्ट हुआ है, आम तौर पर डेटा की गलती से",
+            "Common reasons: name or account number does not match, wrong IFSC, Aadhaar not verified, or the account is closed.", "आम वजहें: नाम या खाता नंबर नहीं मिलता, गलत IFSC, आधार सत्यापित नहीं, या खाता बंद।",
+            [f"Open the status page and read the exact reason: {sch[3]}", "Correct that item (usually at the bank or the block office), then ask for the record to be re-submitted.", "Ask for the correction in writing and keep the receipt."],
+            [f"स्टेटस पेज खोलकर सही वजह पढ़िए: {sch[3]}", "वही चीज़ ठीक कराइए (अक्सर बैंक या ब्लॉक कार्यालय में), फिर रिकॉर्ड दोबारा भिजवाने को कहिए।", "सुधार लिखित में माँगिए और रसीद रखिए।"])
+    if status == "pending":
+        add("pending", 60, "It is still waiting for approval, or for a step on your side", "यह अभी मंज़ूरी का, या आपकी तरफ़ के किसी चरण का इंतज़ार कर रहा है",
+            "Records wait at the block or state level, and some need an e-KYC, land or bank check from you before moving on.", "रिकॉर्ड ब्लॉक या राज्य स्तर पर रुकते हैं, और कुछ को आगे बढ़ने से पहले आपका e-KYC, ज़मीन या बैंक सत्यापन चाहिए।",
+            [f"Read the status page for a pending item: {sch[3]}", "Ask the block / panchayat office who the record is pending with, and by when.", "If it is an e-KYC or similar step, complete it at a CSC (free or a small government-set fee)."],
+            [f"स्टेटस पेज पर लंबित चरण देखिए: {sch[3]}", "ब्लॉक / पंचायत कार्यालय से पूछिए कि रिकॉर्ड किसके पास रुका है और कब तक चलेगा।", "e-KYC जैसा कोई चरण हो तो CSC पर पूरा कीजिए (मुफ़्त या सरकार की तय छोटी फ़ीस)।"])
+    if status == "approved":
+        add("credit_failed", 55, "Approved, but the bank did not credit it", "मंज़ूर हो गया, पर बैंक ने जमा नहीं किया",
+            "The state sent it but the bank returned it: wrong or changed IFSC, closed or frozen account, or Aadhaar not linked.", "राज्य ने भेजा पर बैंक ने लौटा दिया: गलत या बदला हुआ IFSC, बंद या फ़्रीज़ खाता, या आधार नहीं जुड़ा।",
+            ["Ask the bank in writing: was a credit received against my Aadhaar, and if returned, what was the reason code.", "Fix that reason (see the items below), then ask the scheme office to re-send."],
+            ["बैंक से लिखित में पूछिए: मेरे आधार पर क्रेडिट आया था क्या, और लौटा तो कारण कोड क्या था।", "वह कारण ठीक कीजिए (नीचे की बातें देखिए), फिर योजना कार्यालय से दोबारा भिजवाने को कहिए।"])
+    if linked == "no":
+        add("not_seeded", 90, "Your Aadhaar is not linked to the bank account for benefit transfers", "आपका आधार लाभ हस्तांतरण के लिए बैंक खाते से जुड़ा नहीं है",
+            "Without this link the payment has nowhere to go. Having an Aadhaar and a bank account separately is not enough.", "इस जुड़ाव के बिना भुगतान जाएगा कहाँ? आधार और बैंक खाता अलग-अलग होना काफ़ी नहीं।",
+            ["Check: myaadhaar.uidai.gov.in → Bank Seeding Status (login with Aadhaar and OTP).", "If not linked: fill the Aadhaar-seeding form at your bank branch and get a stamped copy.", "Wait about a week, then ask the scheme office to re-send."],
+            ["जाँचिए: myaadhaar.uidai.gov.in → Bank Seeding Status (आधार और OTP से लॉग-इन)।", "जुड़ा न हो तो बैंक शाखा में आधार-सीडिंग फ़ॉर्म भरिए और मुहर लगी प्रति लीजिए।", "लगभग एक हफ़्ते बाद योजना कार्यालय से दोबारा भिजवाने को कहिए।"])
+    elif linked == "unsure":
+        add("not_seeded", 55, "Check whether your Aadhaar is really linked to this bank account", "जाँचिए कि आपका आधार सच में इस बैंक खाते से जुड़ा है",
+            "Many people think it is linked because the bank has their Aadhaar, but benefit-transfer linking is a separate step.", "कई लोग मानते हैं कि जुड़ा है क्योंकि बैंक के पास आधार है, पर लाभ हस्तांतरण का जुड़ाव अलग चरण है।",
+            ["Check: myaadhaar.uidai.gov.in → Bank Seeding Status.", "Or ask the bank: is my Aadhaar seeded for DBT with the NPCI mapper?"],
+            ["जाँचिए: myaadhaar.uidai.gov.in → Bank Seeding Status।", "या बैंक से पूछिए: क्या मेरा आधार NPCI मैपर में DBT के लिए सीडेड है?"])
+    if name_same == "no":
+        add("name_mismatch", 85, "Your name is spelled differently on Aadhaar, the bank and the scheme", "आधार, बैंक और योजना में आपके नाम की वर्तनी अलग है",
+            "The match is checked by computer. Initials, a missing surname or a spelling difference makes it fail.", "मिलान कंप्यूटर करता है। इनिशियल, छूटा हुआ सरनेम या वर्तनी का फ़र्क़ इसे फ़ेल कर देता है।",
+            ["Compare the three exactly: Aadhaar, bank passbook, scheme record.", "Correct the one that is different. The bank passbook is usually the quickest: take Aadhaar to the branch.", "Then ask the scheme office to update its record to match."],
+            ["तीनों को अक्षर-अक्षर मिलाइए: आधार, बैंक पासबुक, योजना का रिकॉर्ड।", "जो अलग है उसे ठीक कराइए। बैंक पासबुक अक्सर सबसे जल्दी होती है: आधार लेकर शाखा जाइए।", "फिर योजना कार्यालय से अपना रिकॉर्ड भी वैसा ही कराइए।"])
+    elif name_same == "unsure":
+        add("name_mismatch", 40, "Check that your name matches exactly in all three places", "तीनों जगह नाम का हूबहू मिलना जाँचिए",
+            "A small spelling difference is a very common reason for silent failure.", "वर्तनी का छोटा फ़र्क़ चुपचाप फ़ेल होने की बहुत आम वजह है।",
+            ["Lay the Aadhaar, passbook and any scheme slip side by side and compare each letter."], ["आधार, पासबुक और योजना की पर्ची साथ रखकर हर अक्षर मिलाइए।"])
+    if last_used in ("old", "never"):
+        add("dormant", 70 if last_used == "old" else 60, "The account may be inactive (dormant) or have pending KYC", "खाता निष्क्रिय (डॉर्मेंट) हो सकता है या उसका KYC लंबित हो सकता है",
+            "Banks stop credits to accounts with no customer-made transaction for a long time (often 1 to 2 years) until KYC is refreshed.", "लंबे समय (अक्सर 1 से 2 साल) तक ग्राहक का कोई लेन-देन न हो तो बैंक KYC नया होने तक जमा रोक देते हैं।",
+            ["Go to the branch with Aadhaar and ask to reactivate the account and update KYC.", "Make a small deposit or withdrawal to show it is in use.", "Ask the scheme office to re-send once it is active."],
+            ["आधार लेकर शाखा जाइए और खाता दोबारा चालू कराने और KYC अपडेट करने को कहिए।", "थोड़ी रक़म जमा या निकालकर खाते को चालू दिखाइए।", "चालू होने के बाद योजना कार्यालय से दोबारा भिजवाने को कहिए।"])
+    if merged == "yes":
+        add("merged_bank", 65, "Your bank merged or changed its codes, so the old IFSC may be dead", "आपके बैंक का विलय हुआ या कोड बदले, इसलिए पुराना IFSC बेकार हो सकता है",
+            "After bank mergers many branches got new IFSC and account details. A scheme record with the old ones fails.", "बैंक विलय के बाद कई शाखाओं के IFSC और खाता विवरण बदल गए। पुराने विवरण वाला रिकॉर्ड फ़ेल हो जाता है।",
+            ["Read the IFSC printed on your latest passbook or cheque.", "Ask the scheme office to update the bank details in your record to the current IFSC."],
+            ["अपनी ताज़ा पासबुक या चेक पर छपा IFSC देखिए।", "योजना कार्यालय से अपने रिकॉर्ड में बैंक विवरण नए IFSC से अपडेट करवाइए।"])
+    elif merged == "unsure":
+        add("merged_bank", 20, "If your bank has merged with another, update the IFSC in your record", "आपका बैंक किसी में मिला हो तो अपने रिकॉर्ड में IFSC अपडेट कराइए",
+            "Merged banks changed many IFSC codes.", "विलय वाले बैंकों के कई IFSC बदले।", ["Compare the IFSC on your passbook with the one in your scheme record."], ["पासबुक का IFSC और योजना के रिकॉर्ड का IFSC मिलाइए।"])
+    if aadhaar_mobile in ("no", "unsure"):
+        add("mobile", 50 if (aadhaar_mobile == "no" and needs_ekyc) else 25, "Your Aadhaar may not have a working mobile number", "आपके आधार में चालू मोबाइल नंबर न हो सकता है",
+            "e-KYC and many checks send an OTP to the number on your Aadhaar. Without it they cannot be completed.", "e-KYC और कई जाँचों में आधार वाले नंबर पर OTP आता है। उसके बिना वे पूरे नहीं होते।",
+            ["Update the mobile number at an Aadhaar centre (a small fee applies).", "Then redo the e-KYC / verification step."], ["आधार केंद्र पर मोबाइल नंबर अपडेट कराइए (छोटी फ़ीस लगती है)।", "फिर e-KYC / सत्यापन दोबारा कीजिए।"])
+    if needs_ekyc and status in ("pending", "approved", "no_status") and aadhaar_mobile != "no":
+        add("ekyc", 45, "An e-KYC or verification step may be pending", "e-KYC या सत्यापन का कोई चरण लंबित हो सकता है",
+            "Some schemes stop paying until e-KYC (OTP or fingerprint) is done.", "कुछ योजनाएँ e-KYC (OTP या फ़िंगरप्रिंट) होने तक भुगतान रोक देती हैं।", [f"Check on the scheme site and finish e-KYC at a CSC: {sch[3]}"], [f"योजना की साइट देखिए और CSC पर e-KYC पूरा कीजिए: {sch[3]}"])
+    add("timing", 20, "Payments are released in batches, so it may simply not be your turn yet", "भुगतान बैचों में जारी होते हैं, हो सकता है अभी आपकी बारी न आई हो",
+        "Even a correct record can wait a few weeks inside a payment period.", "सही रिकॉर्ड भी भुगतान अवधि में कुछ हफ़्ते रुक सकता है।", ["Check the status page for the date of the last release.", "Check your passbook and SMS, not only the app: it may already be there."],
+        ["स्टेटस पेज पर पिछली रिलीज़ की तारीख़ देखिए।", "सिर्फ़ ऐप नहीं, पासबुक और SMS भी देखिए: पैसा आ चुका हो सकता है।"])
+    causes.sort(key=lambda c: -c["score"])
+    i = 1 if lang == "hi" else 0
+    scam = bool(re.search(FEE_SCAM, (text or "").lower()))
+    out = [{"id": c["id"], "score": c["score"], "title": c["hi" if i else "en"], "why": c["why_hi" if i else "why_en"], "steps": c["steps_hi" if i else "steps_en"]} for c in causes[:5]]
+    first = out[0]
+    head = t(f"Most likely: {first['title']}.", f"सबसे संभावित: {first['title']}।")
+    return {"scheme": sch[1] if i else sch[0], "check_at": sch[3], "headline": head, "causes": out, "top": first["id"],
+            "scam": scam,
+            "scam_note": t("If anyone asks you for a fee, commission or gift to release or speed up a government payment, that is a fraud or a bribe. Real DBT never needs it. Report it to 1930 or the district officer.",
+                           "कोई सरकारी भुगतान जारी या तेज़ करने के बदले फ़ीस, कमीशन या तोहफ़ा माँगे तो वह ठगी या रिश्वत है। असली DBT में इसकी ज़रूरत नहीं। 1930 या ज़िला अधिकारी को बताइए।"),
+            "complain": [t("Scheme grievance portal: pgportal.gov.in (CPGRAMS), free. Keep the registration number.", "शिकायत पोर्टल: pgportal.gov.in (CPGRAMS), मुफ़्त। पंजीकरण संख्या रखिए।"),
+                         t("Also tell the block development office / gram panchayat and your bank branch manager, in writing.", "ब्लॉक विकास कार्यालय / ग्राम पंचायत और बैंक शाखा प्रबंधक को भी लिखित में बताइए।")],
+            "note": t("Scores are rough likelihood weights from the answers you gave, not probabilities. Rules and portals change: confirm on the official site.", "स्कोर आपके जवाबों से बने मोटे संभावना-भार हैं, संभावनाएँ नहीं। नियम और पोर्टल बदलते हैं: आधिकारिक साइट पर पक्का कीजिए।")}
+
+
+def dbt_letter(scheme: str = "other", name: str = "", village: str = "", block: str = "", bank: str = "", top: str = "", lang: str = "en") -> dict[str, str]:
+    """A short written complaint the person can hand in or send. Their own details are dropped into blanks."""
+    sch = DBT_SCHEMES.get(scheme, DBT_SCHEMES["other"])
+    nm, vl, bk, bn = name or "________", village or "________", block or "________", bank or "________"
+    if lang == "hi":
+        body = (f"सेवा में,\nखंड विकास अधिकारी / संबंधित कार्यालय, {bk}\n\nविषय: {sch[1]} का भुगतान प्राप्त न होने की शिकायत\n\n"
+                f"महोदय,\nमैं {nm}, ग्राम {vl}, {sch[1]} का लाभार्थी हूँ। मुझे अपना भुगतान प्राप्त नहीं हुआ है। मेरा बैंक खाता {bn} में है और आधार से जुड़ा है। "
+                f"कृपया मेरे रिकॉर्ड की स्थिति बताएँ, कमी (यदि कोई हो) का कारण लिखित में दें, और उसे ठीक कर भुगतान जारी करवाएँ।\n\n"
+                f"मेरे पास आधार, बैंक पासबुक और पंजीकरण की रसीद है। मैं किसी प्रकार का शुल्क नहीं दूँगा/दूँगी।\n\nभवदीय,\n{nm}\nदिनांक: ________   मोबाइल: ________")
+        bank_letter = (f"सेवा में,\nशाखा प्रबंधक, {bn}\n\nविषय: DBT क्रेडिट की जानकारी और आधार सीडिंग की पुष्टि\n\n"
+                       f"महोदय,\nमैं {nm}, इस शाखा का खाताधारक हूँ। कृपया लिखित में बताएँ: (1) क्या मेरा आधार NPCI मैपर में इस खाते से DBT के लिए जुड़ा है; "
+                       f"(2) क्या {sch[1]} के नाम पर कोई क्रेडिट आया या लौटाया गया, और लौटाया तो कारण कोड क्या है; (3) क्या खाता चालू है और KYC पूरा है।\n\nभवदीय,\n{nm}\nदिनांक: ________")
+    else:
+        body = (f"To,\nThe Block Development Officer / concerned office, {bk}\n\nSubject: Complaint of non-receipt of {sch[0]} payment\n\n"
+                f"Sir/Madam,\nI am {nm} of village {vl}, a beneficiary of {sch[0]}. I have not received my payment. My bank account is with {bn} and is linked with my Aadhaar. "
+                f"Please tell me the status of my record, give me in writing the reason for any problem, and have it corrected and the payment released.\n\n"
+                f"I hold my Aadhaar, bank passbook and registration receipt. I will not pay any fee.\n\nYours faithfully,\n{nm}\nDate: ________   Mobile: ________")
+        bank_letter = (f"To,\nThe Branch Manager, {bn}\n\nSubject: Request for DBT credit details and Aadhaar-seeding confirmation\n\n"
+                       f"Sir/Madam,\nI am {nm}, an account holder at this branch. Please confirm in writing: (1) whether my Aadhaar is linked to this account for DBT in the NPCI mapper; "
+                       f"(2) whether any credit for {sch[0]} was received or returned, and if returned, the reason code; (3) whether the account is active with KYC complete.\n\nYours faithfully,\n{nm}\nDate: ________")
+    return {"office": body, "bank": bank_letter}
+
+
+def dbt_full(scheme: str = "other", status: str = "no_status", linked: str = "unsure", name_same: str = "unsure", merged: str = "unsure",
+             last_used: str = "recent", aadhaar_mobile: str = "unsure", text: str = "", name: str = "", village: str = "", block: str = "",
+             bank: str = "", lang: str = "en") -> dict[str, Any]:
+    out = dbt_trace(scheme, status, linked, name_same, merged, last_used, aadhaar_mobile, text, lang)
+    out["letters"] = dbt_letter(scheme, name, village, block, bank, out["top"], lang)
+    return out
