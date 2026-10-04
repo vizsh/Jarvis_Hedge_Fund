@@ -10,6 +10,7 @@ import { setVoiceFor, useLang, voiceFor } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
+import { KioskToggle } from "./KioskBar";
 import { usePilot } from "../lib/pilot";
 import { send } from "../lib/socket";
 
@@ -37,6 +38,7 @@ function LangSwitch() {
   const set = useLang((s) => s.set);
   return (
     <div className="langsw" role="group" aria-label="Answer language">
+      <KioskToggle />
       <button className={lang === "en" ? "on" : ""} onClick={() => set("en")}>EN</button>
       <button className={lang === "hi" ? "on" : ""} onClick={() => set("hi")} title="उत्तर हिन्दी में">हिन्दी</button>
     </div>

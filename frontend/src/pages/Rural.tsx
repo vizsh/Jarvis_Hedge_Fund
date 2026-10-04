@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import "../styles-rural.css";
+import "../styles-kiosk.css";
 import { Page } from "./Page";
 import { hashParams } from "../lib/router";
 import { useT } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { usePilot } from "../lib/pilot";
+import { pstore } from "../lib/pstore";
 
 /** While the guide is still asking for something, the page shows what it has so far and holds the result back. */
 function Waiting({ tool }: { tool: string }) {
@@ -20,8 +22,8 @@ const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON
 type Tool = "loan" | "scheme" | "schemes" | "docs" | "income";
 
 const store = {
-  get<T>(k: string, d: T): T { try { const v = localStorage.getItem("jarvis.rural." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k: string, v: unknown) { try { localStorage.setItem("jarvis.rural." + k, JSON.stringify(v)); } catch { /* storage blocked */ } },
+  get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
+  set(k: string, v: unknown) { pstore.set("rural.", k, v); },
 };
 
 function usePost<T>(url: string, body: unknown, enabled = true, delay = 250): T | null {
@@ -60,7 +62,7 @@ function LoanTool({ init }: { init: Record<string, string> }) {
   const r = usePost<Loan>("/rural/loan", { principal: Number(f.principal), rate: Number(f.rate), unit: f.unit, months: Number(f.months), mode: f.mode, lang }, ok);
   const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   return (
-    <section className="card wide rural-card">
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
       <h2>{t("What does the moneylender's interest really cost?", "साहूकार का ब्याज असल में कितना पड़ता है?")}</h2>
       <Waiting tool="loan" />
       <p className="muted">{t("Enter what you were told. I turn it into a yearly rate and rupees, and show what a bank or group would charge.", "जो आपको बताया गया वह भरिए। मैं उसे साल की दर और रुपयों में बदलूँगा, और बैंक या समूह की दर से तुलना दिखाऊँगा।")}</p>
@@ -118,7 +120,7 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
     ["Bank says our recurring deposit pays 6.8% a year, passbook and receipt provided.", "बैंक की आवर्ती जमा साल का 6.8% देती है, पासबुक और रसीद मिलेगी।", "An ordinary bank offer"],
   ];
   return (
-    <section className="card wide rural-card">
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
       <h2>{t("Is this scheme or offer real?", "क्या यह योजना या ऑफ़र असली है?")}</h2>
       <Waiting tool="scheme" />
       <p className="muted">{t("Write what they promised you, in your own words. I check it against the signs every fraud scheme shares.", "उन्होंने जो वादा किया वह अपने शब्दों में लिखिए। मैं उसे उन संकेतों से मिलाता हूँ जो हर ठगी योजना में एक जैसे होते हैं।")}</p>
@@ -168,7 +170,7 @@ function SchemesTool({ onPick, init }: { onPick: (ids: string[]) => void; init: 
   const chk = (k: keyof typeof p, en: string, hi: string) => <label className="rural-check"><input type="checkbox" checked={!!p[k]} onChange={(e) => { setP({ ...p, [k]: e.target.checked }); }} />{t(en, hi)}</label>;
   const sel = (k: keyof typeof p) => (e: { target: { value: string } }) => setP({ ...p, [k]: e.target.value });
   return (
-    <section className="card wide rural-card">
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
       <h2>{t("Which government schemes am I missing?", "मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं?")}</h2>
       <Waiting tool="schemes" />
       <p className="muted">{t("Answer about the person who is applying. Nothing is saved on a server.", "जो व्यक्ति आवेदन करेगा उसके बारे में जवाब दीजिए। कुछ भी सर्वर पर नहीं रखा जाता।")}</p>
@@ -220,7 +222,7 @@ function DocsTool({ picked, setPicked, init }: { picked: string[]; setPicked: (x
   const r = usePost<Ready>("/rural/readiness", { schemes: picked, have, lang }, true, 100);
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   return (
-    <section className="card wide rural-card">
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
       <h2>{t("Are my papers ready?", "क्या मेरे काग़ज़ तैयार हैं?")}</h2>
       <Waiting tool="docs" />
       <p className="muted">{t("Pick the schemes, tick what you already have. I tell you the one thing to fix first.", "योजनाएँ चुनिए, और जो काग़ज़ आपके पास हैं उन पर निशान लगाइए। मैं बताऊँगा सबसे पहले क्या ठीक करना है।")}</p>
@@ -277,7 +279,7 @@ function IncomeTool({ init }: { init: Record<string, string> }) {
   const r = usePost<Plan>("/rural/income", { income: clean(inc), monthly_cost: Number(cost) || 0, one_offs: clean(out), savings: Number(sav) || 0, lang }, !waiting && clean(inc).length > 0 && Number(cost) > 0);
   const max = useMemo(() => Math.max(1, ...(r?.months ?? []).flatMap((m) => [Math.abs(m.balance)])), [r]);
   return (
-    <section className="card wide rural-card">
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
       <h2>{t("Plan my money around harvest and wage seasons", "फ़सल और मज़दूरी के मौसम के हिसाब से पैसे की योजना")}</h2>
       <Waiting tool="income" />
       <p className="muted">{t("Tell me when money comes in and what you must spend. I show which months you run short and how much to keep aside from each good month.", "बताइए पैसा कब आता है और क्या ख़र्च करना ही है। मैं दिखाऊँगा किन महीनों में कमी पड़ती है और हर अच्छे महीने में से कितना अलग रखना है।")}</p>

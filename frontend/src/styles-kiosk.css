@@ -1,0 +1,19 @@
+.kiosk-toggle { background: none; border: 1px solid var(--rule); color: var(--text-dim); border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer; margin-right: 4px; }
+.kiosk-toggle:hover { color: var(--text); border-color: var(--cyan-dim); }
+.kiosk-bar { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 16px; background: #0d3b2e; border-bottom: 2px solid var(--green); }
+.kiosk-bar.warn { background: #5a3a00; border-color: var(--amber); }
+.kiosk-msg { flex: 1 1 260px; font-size: 16px; font-weight: 600; }
+.kiosk-bar button { min-height: 44px; padding: 8px 18px; font-size: 16px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.08); color: inherit; }
+.kiosk-bar .kiosk-next { background: var(--green); color: #04110b; font-weight: 800; border-color: var(--green); }
+.kiosk-bar .kiosk-exit { min-width: 44px; padding: 8px; }
+.app.kiosk { font-size: 18px; }
+.app.kiosk .rural-tabs button, .app.kiosk .dock-chips button, .app.kiosk .btn { min-height: 48px; }
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .kiosk-bar, .topnav, nav, .dock, .stop-float, .rural-tabs, .rural-actions, .page-head, .rural-wait, .btn.ghost, .dock-guide { display: none !important; }
+  .rural-card { border: 0 !important; background: #fff !important; color: #000 !important; box-shadow: none !important; }
+  .rural-card * { color: #000 !important; background: transparent !important; border-color: #888 !important; }
+  .rural-card::before { content: "JARVIS \2014  my results (printed " attr(data-date) ")"; display: block; font-weight: 700; margin-bottom: 8px; }
+  .rural-card::after { content: "General information, not financial advice. Rules and amounts change: confirm at the place shown. Never share your OTP or PIN."; display: block; font-size: 11px; margin-top: 14px; }
+  .rural-bar i.pos { background: #2a7 !important; } .rural-bar i.neg { background: #c33 !important; }
+}

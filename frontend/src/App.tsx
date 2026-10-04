@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 
 import { connect } from "./lib/socket";
 import { installBargeIn } from "./lib/bargein";
@@ -14,6 +14,8 @@ import { ReportView } from "./components/Report";
 import { PortfolioBuilder } from "./components/Portfolio";
 import Protect from "./pages/Protect";
 import Rural from "./pages/Rural";
+import { KioskBar } from "./components/KioskBar";
+import { useKiosk } from "./lib/kiosk";
 import Govern from "./pages/Govern";
 import Practice from "./pages/Practice";
 import { Assistant, Home, Learn, Portfolio, Research } from "./pages/Pages";
@@ -31,6 +33,8 @@ const PANEL_ROUTE: Record<string, string> = {
 export default function App() {
   const route = useRoute();
   const hash = useHash();
+  const epoch = useKiosk((s) => s.epoch);
+  const kiosk = useKiosk((s) => s.on);
   const builder = useUI((s) => s.builder);
   const setBuilder = useUI((s) => s.setBuilder);
   const setReport = useGuide((s) => s.setReport);
@@ -60,10 +64,11 @@ export default function App() {
     : <Home />;
 
   return (
-    <div className={`app ${route === "/assistant" ? "is-assistant" : ""}`}>
+    <div className={`app ${route === "/assistant" ? "is-assistant" : ""} ${kiosk ? "kiosk" : ""}`}>
+      <KioskBar />
       <TopNav />
-      <div className="app-body">{page}</div>
-      <Dock />
+      <div className="app-body"><Fragment key={epoch}>{page}</Fragment></div>
+      <Dock key={epoch} />
       {builder && <PortfolioBuilder onClose={() => setBuilder(false)} />}
       <FlowRunner />
       <Palette />

@@ -30,3 +30,12 @@ Say or type what you want. [`backend/guide.py`](../backend/guide.py) picks the t
 - Deterministic, as everywhere: the conversation state lives on the server per browser tab (`cid`); the front end only follows the `guide` payload (`route`, `params`, `ask`, `next`).
 - **Also guided:** the fee calculator (once or monthly → amount → years → fee, optional), the emergency meter (savings → monthly spending) and the goal chart (target → monthly amount → years). Their numbers come from the same assistant handlers as typed questions, so the spoken result and the page agree. A vague question ("what does the fund fee cost me") is asked about, not answered with guessed defaults. These pages open at the start and again at the end with the result showing (not at every step, since a half-filled calculator would show misleading defaults).
 - Tests: `tests/test_guide.py`.
+
+## Shared-device (kiosk) mode — D3
+For a village helper, SHG leader or panchayat desk where one phone or tablet serves many people. Press **👥 Shared** in the top bar (it stays on for that device until you press ✕).
+- **Nothing is saved.** Figures typed into the tools and the scam-recovery checklist live in memory only (`frontend/src/lib/pstore.ts`); switching the mode on also deletes anything already saved on the device. Voice and language settings stay (they are the device's, not a person's).
+- **Next person** (big green button): stops the voice and mic, wipes the entries, the chat thread and the guide's open question, tells the server to forget that conversation (`POST /kiosk/reset`: guide state, schemes found, chat memory), and returns to the Rural page, empty.
+- **Idle timer:** after 3 minutes of no touch (setting `jarvis.kiosk.idle`) a 20-second warning appears ("Clearing for the next person… touch the screen to keep going"), then it wipes the same way.
+- **Print my results:** because everything is wiped afterwards, each person can print or save a clean one-page copy of what is on screen (date, results, the "confirm at the place shown / never share OTP" note); navigation, buttons and the assistant box are hidden in print.
+- Larger type and touch targets in this mode; a counter shows how many people have been served this session (a number only).
+- Limit: it cannot stop someone photographing the screen or reading the browser's history; use a private/guest browser profile on the device if that matters.

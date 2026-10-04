@@ -482,6 +482,12 @@ def begin(tool: str, text: str, lang: str, cid: str) -> dict[str, Any]:
     return _payload(cid, st, lang, navigate=True)
 
 
+def forget(cid: str) -> None:
+    """Drop everything remembered about one conversation (shared-device "next person")."""
+    STATE.pop(cid, None)
+    LAST_SCHEMES.pop(cid, None)
+
+
 def active(cid: str) -> bool:
     return bool(STATE.get(cid, {}).get("awaiting"))
 

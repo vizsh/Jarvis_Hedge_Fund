@@ -1342,6 +1342,19 @@ async def messaging_sim():
     return HTMLResponse(PAGE)
 
 
+class KioskResetIn(BaseModel):
+    cid: str | None = None
+
+
+@app.post("/kiosk/reset")
+async def kiosk_reset(b: KioskResetIn) -> dict:
+    """Shared device, next person: forget the guide's open question and the previous person's results."""
+    global convo
+    guide_mod.forget(b.cid or "default")
+    convo = explain.Conversation()
+    return {"ok": True}
+
+
 @app.get("/rural/schemes")
 async def rural_schemes(lang: str = "en") -> dict:
     from backend import rural

@@ -4,6 +4,7 @@ import "../styles-recovery.css";
 import { useT } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import { allowSpeech, speak } from "../lib/speak";
+import { pstore } from "../lib/pstore";
 
 type Step = { id: string; n: number; title: string; detail: string; mins: number };
 type Plan = { type: string; label: string; steps: Step[] };
@@ -14,8 +15,8 @@ const WHEN: [string, string, number][] = [
 ];
 
 const key = (type: string) => `jarvis.recovery.${type}`;
-const load = (type: string): string[] => { try { return JSON.parse(localStorage.getItem(key(type)) || "[]"); } catch { return []; } };
-const save = (type: string, done: string[]) => { try { localStorage.setItem(key(type), JSON.stringify(done)); } catch { /* storage blocked */ } };
+const load = (type: string): string[] => pstore.get("recovery.", type, [] as string[]);
+const save = (type: string, done: string[]) => pstore.set("recovery.", type, done);
 
 function whenLabel(mins: number, hi: boolean): string {
   if (mins <= 0) return hi ? "अभी" : "now";

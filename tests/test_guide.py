@@ -119,3 +119,11 @@ def test_sentences_with_everything_prefill_all_slots(ctx_factory):
 def test_vague_fee_question_asks_instead_of_guessing(ctx_factory):
     g = G.begin("fee", "what does the fund fee cost me", "en", "c")
     assert not g["done"] and g["ask"]["slot"] == "mode"
+
+
+def test_forget_clears_one_conversation_only(ctx_factory):
+    G.begin("loan", "my sahukar charges 5 rupees per hundred a month", "en", "a")
+    G.begin("loan", "", "en", "b")
+    G.LAST_SCHEMES["a"] = ["pm_kisan"]
+    G.forget("a")
+    assert not G.active("a") and "a" not in G.LAST_SCHEMES and G.active("b")
