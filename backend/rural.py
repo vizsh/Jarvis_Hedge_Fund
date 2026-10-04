@@ -1174,3 +1174,154 @@ def daily_saving(goal: str = "other", target: float | None = None, months: int |
                 "note": t(f"Rates shown ({rate_pct}%) and the 6% price rise are illustrations: deposit rates change. A deposit is safe but locked; if you stop early you may lose some interest.",
                           f"दिखाई गई दर ({rate_pct}%) और 6% दाम-वृद्धि उदाहरण हैं: जमा दरें बदलती हैं। जमा सुरक्षित है पर बँधी रहती है; बीच में तोड़ने पर कुछ ब्याज जा सकता है।")})
     return out
+
+
+# =============================================================================== E2 self-help group ledger
+# A self-help group's whole bookkeeping: monthly savings, internal loans, repayments, fines. Paper registers
+# go wrong in the same few places (interest worked out by guess, a member who quietly stopped paying, a loan
+# larger than the fund, a year-end share nobody can explain). This computes all of it from the plain list of
+# entries, the same way every time, and writes the statements the group reads out at the meeting.
+# The ledger itself is kept on the leader's device and sent only to be calculated; nothing is stored here.
+import datetime as _dt
+
+
+def _d(s: str) -> _dt.date | None:
+    try:
+        return _dt.date.fromisoformat(str(s)[:10])
+    except ValueError:
+        return None
+
+
+def _fmt_rs(x: float) -> str:
+    return f"₹{x:,.0f}"
+
+
+def shg_summary(ledger: dict[str, Any], as_of: str | None = None, lang: str = "en") -> dict[str, Any]:
+    """`ledger` = {"group": str, "rate": % per month on the loan balance, "loan_multiple": max loan as a multiple of savings,
+    "members": [{"id","name"}], "entries": [{"date","member","type","amount","note"}]}; types: saving, withdraw, loan, repay, fine."""
+    t = _tr(lang)
+    rate = float(ledger.get("rate", 1.5))
+    multiple = float(ledger.get("loan_multiple", 3))
+    members = {m["id"]: m for m in ledger.get("members", [])}
+    entries = []
+    for e in ledger.get("entries", []):
+        d = _d(e.get("date", ""))
+        if d and e.get("member") in members and e.get("type") in ("saving", "withdraw", "loan", "repay", "fine") and float(e.get("amount", 0)) > 0:
+            entries.append((d, e["member"], e["type"], float(e["amount"]), e.get("note", "")))
+    entries.sort(key=lambda x: x[0])
+    end = _d(as_of) if as_of else (entries[-1][0] if entries else _dt.date.today())
+    end = end or _dt.date.today()
+    entries = [e for e in entries if e[0] <= end]
+
+    acct = {mid: dict(savings=0.0, loans=0.0, prin_paid=0.0, outstanding=0.0, int_accrued=0.0, int_paid=0.0, fines=0.0, last=None, last_repay=None,
+                      first_loan=None, overpaid=0.0, saved_months=set()) for mid in members}
+    for d, mid, typ, amt, _n in entries:
+        a = acct[mid]
+        if a["outstanding"] > 0 and a["last"]:                                   # interest runs on the balance since the last event
+            a["int_accrued"] += a["outstanding"] * rate / 100 * (d - a["last"]).days / 30
+        a["last"] = d
+        if typ == "saving":
+            a["savings"] += amt; a["saved_months"].add((d.year, d.month))
+        elif typ == "withdraw":
+            a["savings"] -= amt
+        elif typ == "fine":
+            a["fines"] += amt
+        elif typ == "loan":
+            a["loans"] += amt; a["outstanding"] += amt; a["first_loan"] = a["first_loan"] or d
+            if a["last_repay"] is None:
+                a["last_repay"] = d
+        elif typ == "repay":
+            due_int = a["int_accrued"] - a["int_paid"]
+            to_int = min(amt, max(0.0, due_int))
+            a["int_paid"] += to_int
+            rest = amt - to_int
+            to_prin = min(rest, a["outstanding"])
+            a["prin_paid"] += to_prin; a["outstanding"] -= to_prin
+            a["overpaid"] += rest - to_prin
+            a["last_repay"] = d
+    for a in acct.values():                                                      # accrue to the report date
+        if a["outstanding"] > 0 and a["last"]:
+            a["int_accrued"] += a["outstanding"] * rate / 100 * (end - a["last"]).days / 30
+            a["last"] = end
+
+    tot_sav = sum(a["savings"] for a in acct.values())
+    tot_int = sum(a["int_paid"] for a in acct.values())
+    tot_fine = sum(a["fines"] for a in acct.values())
+    tot_out = sum(a["outstanding"] for a in acct.values())
+    cash = tot_sav + tot_int + tot_fine - tot_out                                # money that should be in hand / bank
+    # who has not saved in the last 3 months, when others have
+    months_back = [((end.year * 12 + end.month - 1 - k) // 12, (end.year * 12 + end.month - 1 - k) % 12 + 1) for k in range(3)]
+    active_months = {m for a in acct.values() for m in a["saved_months"]}
+    rows, alerts = [], []
+    for mid, m in members.items():
+        a = acct[mid]
+        missed = sum(1 for mo in months_back if mo in active_months and mo not in a["saved_months"])
+        due_int = max(0.0, a["int_accrued"] - a["int_paid"])
+        overdue = bool(a["outstanding"] > 0 and a["last_repay"] and (end - a["last_repay"]).days > 60)
+        mult = (a["outstanding"] / a["savings"]) if a["savings"] > 0 else (None if a["outstanding"] == 0 else float("inf"))
+        status = "overdue" if overdue else "missed" if missed >= 2 else "ok"
+        share = (tot_int * a["savings"] / tot_sav) if tot_sav > 0 else 0.0
+        rows.append({"id": mid, "name": m["name"], "savings": round(a["savings"]), "loans_taken": round(a["loans"]), "principal_repaid": round(a["prin_paid"]),
+                     "outstanding": round(a["outstanding"]), "interest_due": round(due_int), "interest_paid": round(a["int_paid"]), "fines": round(a["fines"]),
+                     "total_due": round(a["outstanding"] + due_int), "loan_multiple": None if mult is None else (None if mult == float("inf") else round(mult, 1)),
+                     "missed_months": missed, "overdue": overdue, "status": status, "year_end_share": round(share), "overpaid": round(a["overpaid"])})
+        if overdue:
+            alerts.append(t(f"{m['name']} has not repaid for over 2 months and owes {_fmt_rs(a['outstanding'] + due_int)}.", f"{m['name']} ने 2 महीने से ज़्यादा से किस्त नहीं दी और {_fmt_rs(a['outstanding'] + due_int)} बाक़ी है।"))
+        if missed >= 2:
+            alerts.append(t(f"{m['name']} has missed saving in {missed} of the last 3 months.", f"{m['name']} ने पिछले 3 में से {missed} महीने बचत जमा नहीं की।"))
+        if mult is not None and (mult == float("inf") or mult > multiple) and a["outstanding"] > 0:
+            alerts.append(t(f"{m['name']}'s loan is more than {multiple:g} times their savings: the group is carrying the risk.", f"{m['name']} का ऋण उनकी बचत के {multiple:g} गुना से ज़्यादा है: जोखिम पूरा समूह उठा रहा है।"))
+        if a["overpaid"] > 0:
+            alerts.append(t(f"{m['name']} paid {_fmt_rs(a['overpaid'])} more than was due: treat it as savings or return it.", f"{m['name']} ने देय से {_fmt_rs(a['overpaid'])} ज़्यादा दिया: उसे बचत मानिए या लौटाइए।"))
+    if cash < 0:
+        alerts.insert(0, t(f"The books show the group has lent {_fmt_rs(-cash)} more than it has. Check every loan entry and the bank passbook.", f"हिसाब के अनुसार समूह ने अपने पास से {_fmt_rs(-cash)} ज़्यादा उधार दिया है। हर ऋण-प्रविष्टि और बैंक पासबुक जाँचिए।"))
+
+    ym = (end.year, end.month)
+    month = {"saving": 0.0, "withdraw": 0.0, "loan": 0.0, "repay": 0.0, "fine": 0.0}
+    savers = set()
+    for d, mid, typ, amt, _n in entries:
+        if (d.year, d.month) == ym:
+            month[typ] += amt
+            if typ == "saving":
+                savers.add(mid)
+    mname = end.strftime("%B %Y")
+    g = ledger.get("group") or t("Our group", "हमारा समूह")
+    report = t(
+        f"{g}: meeting report for {mname}\nSavings collected: {_fmt_rs(month['saving'])} from {len(savers)} of {len(members)} members\nLoans given: {_fmt_rs(month['loan'])}\nRepayments received: {_fmt_rs(month['repay'])}\nFines: {_fmt_rs(month['fine'])}\n"
+        f"Group savings: {_fmt_rs(tot_sav)}   Loans outstanding: {_fmt_rs(tot_out)}\nCash that should be in hand / bank: {_fmt_rs(cash)}\nInterest earned so far: {_fmt_rs(tot_int)}",
+        f"{g}: {mname} की बैठक की रिपोर्ट\nबचत जमा: {_fmt_rs(month['saving'])}, {len(members)} में से {len(savers)} सदस्यों से\nदिया गया ऋण: {_fmt_rs(month['loan'])}\nवापस मिली किस्तें: {_fmt_rs(month['repay'])}\nजुर्माना: {_fmt_rs(month['fine'])}\n"
+        f"समूह की कुल बचत: {_fmt_rs(tot_sav)}   बाक़ी ऋण: {_fmt_rs(tot_out)}\nहाथ / बैंक में होना चाहिए: {_fmt_rs(cash)}\nअब तक कमाया ब्याज: {_fmt_rs(tot_int)}")
+    stmts = {}
+    for r in rows:
+        stmts[r["id"]] = t(
+            f"{g} — statement for {r['name']} (up to {end.isoformat()})\nSavings: {_fmt_rs(r['savings'])}\nLoans taken: {_fmt_rs(r['loans_taken'])}   Principal repaid: {_fmt_rs(r['principal_repaid'])}\n"
+            f"Loan balance: {_fmt_rs(r['outstanding'])}   Interest due: {_fmt_rs(r['interest_due'])}   Total to pay: {_fmt_rs(r['total_due'])}\nInterest paid so far: {_fmt_rs(r['interest_paid'])}   Fines: {_fmt_rs(r['fines'])}",
+            f"{g} — {r['name']} का विवरण ({end.isoformat()} तक)\nबचत: {_fmt_rs(r['savings'])}\nलिया ऋण: {_fmt_rs(r['loans_taken'])}   लौटाई मूल रक़म: {_fmt_rs(r['principal_repaid'])}\n"
+            f"ऋण बाक़ी: {_fmt_rs(r['outstanding'])}   ब्याज देय: {_fmt_rs(r['interest_due'])}   कुल देना: {_fmt_rs(r['total_due'])}\nअब तक दिया ब्याज: {_fmt_rs(r['interest_paid'])}   जुर्माना: {_fmt_rs(r['fines'])}")
+    return {"group": g, "as_of": end.isoformat(), "rate": rate, "loan_multiple": multiple, "members": rows, "alerts": alerts,
+            "totals": {"members": len(members), "savings": round(tot_sav), "loans_out": round(tot_out), "interest_income": round(tot_int), "fines": round(tot_fine), "cash": round(cash),
+                       "lent_total": round(sum(a["loans"] for a in acct.values()))},
+            "month": {"name": mname, **{k: round(v) for k, v in month.items()}, "savers": len(savers)}, "report": report, "statements": stmts,
+            "method": t(f"Interest is {rate:g}% a month on the loan balance, counted per day (30-day months). A repayment pays interest first, then the loan. The year-end share divides interest earned in proportion to savings.",
+                        f"ब्याज ऋण-शेष पर {rate:g}% महीना है, दिन के हिसाब से (30 दिन का महीना)। किस्त पहले ब्याज में, फिर मूल में जाती है। वर्षांत का हिस्सा कमाए ब्याज को बचत के अनुपात में बाँटता है।")}
+
+
+def shg_can_lend(ledger: dict[str, Any], member: str, amount: float, as_of: str | None = None, lang: str = "en") -> dict[str, Any]:
+    """Should the group lend `amount` to `member` now? Three plain checks the group can read out."""
+    t = _tr(lang)
+    s = shg_summary(ledger, as_of, lang)
+    row = next((r for r in s["members"] if r["id"] == member), None)
+    if row is None:
+        return {"ok": False, "checks": [], "headline": t("Unknown member.", "अज्ञात सदस्य।")}
+    new_out = row["outstanding"] + amount
+    limit = s["loan_multiple"] * max(row["savings"], 0)
+    checks = [
+        {"id": "cash", "ok": amount <= s["totals"]["cash"], "text": t(f"The group has {_fmt_rs(s['totals']['cash'])} in hand; the loan is {_fmt_rs(amount)}.", f"समूह के पास {_fmt_rs(s['totals']['cash'])} हैं; ऋण {_fmt_rs(amount)} है।")},
+        {"id": "limit", "ok": new_out <= limit, "text": t(f"{row['name']}'s savings are {_fmt_rs(row['savings'])}; at {s['loan_multiple']:g} times that the most to owe is {_fmt_rs(limit)}, and the loan would take it to {_fmt_rs(new_out)}.",
+                                                        f"{row['name']} की बचत {_fmt_rs(row['savings'])} है; उसके {s['loan_multiple']:g} गुना तक यानी अधिकतम {_fmt_rs(limit)} देय हो सकता है, और यह ऋण उसे {_fmt_rs(new_out)} पर ले जाएगा।")},
+        {"id": "clean", "ok": not row["overdue"] and row["missed_months"] < 2, "text": t("Has no overdue loan and has been saving regularly." if not row["overdue"] and row["missed_months"] < 2 else "Has an overdue loan or missed savings: clear that first.",
+                                                                                         "कोई बकाया किस्त नहीं और बचत नियमित है।" if not row["overdue"] and row["missed_months"] < 2 else "किस्त बकाया है या बचत छूटी है: पहले वह चुकता कीजिए।")},
+    ]
+    ok = all(c["ok"] for c in checks)
+    return {"ok": ok, "checks": checks, "headline": t("Fine to lend on these checks. The group still decides.", "इन जाँचों पर ऋण देना ठीक है। फ़ैसला समूह का है।") if ok else
+            t("Not yet: at least one check fails. The group still decides.", "अभी नहीं: कम से कम एक जाँच विफल है। फ़ैसला समूह का है।")}

@@ -653,6 +653,11 @@ def navigate(text: str, lang: str, cid: str) -> dict[str, Any] | None:
         if re.search(rx, s, re.I):
             return begin(tool, "", lang, cid)
     t = _t(lang)
+    if re.search(r"(group|shg|self.?help).{0,12}(ledger|accounts|register|hisab)|समूह (की )?(बही|हिसाब|खाता)|एसएचजी", s, re.I):
+        STATE.pop(cid, None)
+        return {"tool": "shg", "route": "/rural", "label": t("Group ledger", "समूह की बही"), "navigate": True, "done": True, "ask": None, "params": {"tool": "shg"},
+                "say": t("Opening the group ledger. Add your members, then each meeting's savings and loans.", "समूह की बही खोल रहा हूँ। सदस्य जोड़िए, फिर हर बैठक की बचत और ऋण भरिए।"),
+                "next": ["Daily saving plan for a goal", "Check my moneylender interest"], "step": None}
     for _id, route, title, rx, ideas in PAGES:
         if re.search(rx, s, re.I):
             STATE.pop(cid, None)

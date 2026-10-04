@@ -386,3 +386,77 @@ def test_saving_questions_route_parse_and_do_not_steal_the_portfolio_goal():
     assert g["done"] and g["params"]["goal"] == "daughter" and g["params"]["months"] == "60"
     english, _ = asyncio.run(H.convert("बेटी की शादी के लिए पाँच साल में एक लाख चाहिए, रोज़ कितना बचाऊँ", use_model=False))
     assert A.rule_intent(english) == "saving_goal" and "1 lakh" in english and "5 years" in english
+
+
+# ---- E2: self-help group ledger -------------------------------------------------------------
+def _group():
+    L = {"group": "Jyoti SHG", "rate": 2, "loan_multiple": 3,
+         "members": [{"id": "a", "name": "Sita"}, {"id": "b", "name": "Gita"}, {"id": "c", "name": "Rani"}], "entries": []}
+    E = L["entries"]
+    for mo in ("2025-01", "2025-02", "2025-03"):
+        for m in ("a", "b", "c"):
+            if m == "c" and mo != "2025-01":
+                continue
+            E.append({"date": mo + "-10", "member": m, "type": "saving", "amount": 500})
+    E += [{"date": "2025-01-15", "member": "a", "type": "loan", "amount": 3000}, {"date": "2025-02-14", "member": "a", "type": "repay", "amount": 1000},
+          {"date": "2025-03-01", "member": "b", "type": "fine", "amount": 20}]
+    return L
+
+
+def test_shg_interest_runs_on_the_balance_and_repayments_pay_interest_first():
+    s = rural.shg_summary(_group(), "2025-03-31")
+    sita = next(m for m in s["members"] if m["name"] == "Sita")
+    # 30 days at 2% on 3000 = 60 interest, so the 1000 repayment is 60 interest + 940 principal
+    assert sita["interest_paid"] == 60 and sita["outstanding"] == round(3000 - 940)
+    # then 45 days at 2% a month on 2060
+    assert sita["interest_due"] == round(2060 * 0.02 * 45 / 30) and sita["total_due"] == sita["outstanding"] + sita["interest_due"]
+
+
+def test_shg_cash_identity_and_totals():
+    s = rural.shg_summary(_group(), "2025-03-31")
+    t = s["totals"]
+    assert t["savings"] == 3500 and t["loans_out"] == 2060 and t["interest_income"] == 60 and t["fines"] == 20
+    assert t["cash"] == t["savings"] + t["interest_income"] + t["fines"] - t["loans_out"] == 1520
+    assert s["month"]["saving"] == 1000 and s["month"]["savers"] == 2 and "March 2025" in s["report"]
+
+
+def test_shg_year_end_share_splits_interest_by_savings_and_adds_up():
+    s = rural.shg_summary(_group(), "2025-03-31")
+    shares = {m["name"]: m["year_end_share"] for m in s["members"]}
+    assert shares["Sita"] == shares["Gita"] == 26 and shares["Rani"] == 9
+    assert abs(sum(shares.values()) - s["totals"]["interest_income"]) <= 2
+
+
+def test_shg_flags_missed_saving_overdue_and_overlending():
+    s = rural.shg_summary(_group(), "2025-03-31")
+    assert any("Rani" in a and "missed" in a for a in s["alerts"])
+    L = _group(); L["entries"].append({"date": "2025-03-20", "member": "c", "type": "loan", "amount": 5000})
+    s2 = rural.shg_summary(L, "2025-03-31")
+    assert any("Rani" in a and "times their savings" in a for a in s2["alerts"])
+    L2 = _group()
+    s3 = rural.shg_summary(L2, "2025-06-30")                                # Sita stops repaying
+    assert next(m for m in s3["members"] if m["name"] == "Sita")["overdue"] and any("Sita" in a and "not repaid" in a for a in s3["alerts"])
+    L3 = _group(); L3["entries"].append({"date": "2025-03-25", "member": "b", "type": "loan", "amount": 9000})
+    assert rural.shg_summary(L3, "2025-03-31")["totals"]["cash"] < 0 and "more than it has" in rural.shg_summary(L3, "2025-03-31")["alerts"][0]
+
+
+def test_shg_can_lend_runs_three_checks_and_ignores_bad_entries():
+    L = _group()
+    assert rural.shg_can_lend(L, "b", 1000, "2025-03-31")["ok"]
+    r = rural.shg_can_lend(L, "c", 1000, "2025-03-31")                      # Rani saved only 500 and missed months; 1000 is within cash and 3x savings
+    assert not r["ok"] and [c["id"] for c in r["checks"] if not c["ok"]] == ["clean"]
+    big = rural.shg_can_lend(L, "c", 2000, "2025-03-31")                    # more than the group has in hand and more than 3x her savings
+    assert [c["id"] for c in big["checks"] if not c["ok"]] == ["cash", "limit", "clean"]
+    L["entries"] += [{"date": "bad", "member": "a", "type": "saving", "amount": 99}, {"date": "2025-03-02", "member": "zz", "type": "saving", "amount": 99},
+                     {"date": "2025-03-02", "member": "a", "type": "gift", "amount": 99}, {"date": "2025-03-02", "member": "a", "type": "saving", "amount": -5}]
+    assert rural.shg_summary(L, "2025-03-31")["totals"]["savings"] == 3500
+
+
+def test_shg_statements_exist_for_every_member_in_both_languages_and_route_works():
+    for lang in ("en", "hi"):
+        s = rural.shg_summary(_group(), "2025-03-31", lang)
+        assert set(s["statements"]) == {"a", "b", "c"} and "Sita" in s["statements"]["a"]
+    assert A.answer("how do I keep the accounts of our self help group", _ctx()).data["intent"] == "shg_ledger"
+    from backend import guide as G
+    g = G.intercept("open the group ledger", "en", "x").data["guide"]
+    assert g["route"] == "/rural" and g["params"] == {"tool": "shg"} and g["done"]

@@ -1463,6 +1463,30 @@ async def rural_saving(b: SaveIn) -> dict:
     return rural.daily_saving(b.goal, b.target, b.months, b.daily, b.daily_wage, b.days_per_month, b.rate, 6.0, b.lang)
 
 
+class ShgIn(BaseModel):
+    ledger: dict
+    as_of: str | None = None
+    lang: str = "en"
+
+
+class ShgLendIn(ShgIn):
+    member: str
+    amount: float
+
+
+@app.post("/rural/shg")
+async def rural_shg(b: ShgIn) -> dict:
+    """Stateless: the group's ledger lives on the leader's device and is only calculated here, never stored."""
+    from backend import rural
+    return rural.shg_summary(b.ledger, b.as_of, b.lang)
+
+
+@app.post("/rural/shg/lend")
+async def rural_shg_lend(b: ShgLendIn) -> dict:
+    from backend import rural
+    return rural.shg_can_lend(b.ledger, b.member, b.amount, b.as_of, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

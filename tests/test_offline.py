@@ -5,7 +5,7 @@ import builtins
 import pathlib
 
 SRC = pathlib.Path(__file__).resolve().parent.parent / "backend" / "rural.py"
-STDLIB = {"__future__", "math", "re", "typing"}
+STDLIB = {"__future__", "datetime", "math", "re", "typing"}
 
 
 def test_rural_py_imports_only_the_standard_library_at_module_level():

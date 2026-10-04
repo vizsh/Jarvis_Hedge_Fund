@@ -10,6 +10,7 @@ import { speak } from "../lib/speak";
 import { usePilot } from "../lib/pilot";
 import { pstore } from "../lib/pstore";
 import { ruralFetch } from "../lib/offline";
+import { useKiosk } from "../lib/kiosk";
 import { OfflineBar } from "../components/OfflineBar";
 
 /** While the guide is still asking for something, the page shows what it has so far and holds the result back. */
@@ -21,7 +22,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold" | "saving";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold" | "saving" | "shg";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -146,6 +147,125 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
       </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ E2 self-help group ledger */
+type ShgMember = { id: string; name: string };
+type ShgEntry = { date: string; member: string; type: string; amount: number; note?: string };
+type ShgLedger = { group: string; rate: number; loan_multiple: number; members: ShgMember[]; entries: ShgEntry[] };
+type ShgRow = { id: string; name: string; savings: number; loans_taken: number; outstanding: number; interest_due: number; interest_paid: number; fines: number; total_due: number;
+  loan_multiple: number | null; missed_months: number; overdue: boolean; status: string; year_end_share: number };
+type ShgSum = { group: string; as_of: string; members: ShgRow[]; alerts: string[]; report: string; statements: Record<string, string>; method: string;
+  totals: { members: number; savings: number; loans_out: number; interest_income: number; fines: number; cash: number; lent_total: number } };
+type Lend = { ok: boolean; headline: string; checks: { id: string; ok: boolean; text: string }[] };
+const EMPTY_LEDGER: ShgLedger = { group: "", rate: 1.5, loan_multiple: 3, members: [], entries: [] };
+const today = () => new Date().toISOString().slice(0, 10);
+const TYPES: [string, string, string][] = [["saving", "Savings", "बचत"], ["loan", "Loan given", "ऋण दिया"], ["repay", "Repayment", "किस्त वापस"], ["fine", "Fine", "जुर्माना"], ["withdraw", "Savings withdrawn", "बचत निकाली"]];
+
+function ShgTool() {
+  const { t, hi } = useT(); const lang = useLang((s) => s.lang);
+  const kiosk = useKiosk((s) => s.on);
+  const [led, setLed] = useState<ShgLedger>(() => pstore.get("shg.", "ledger", EMPTY_LEDGER));
+  // own namespace: turning shared-device mode on must never delete a group's books from the leader's device
+  useEffect(() => pstore.set("shg.", "ledger", led), [led]);
+  const [asOf, setAsOf] = useState(today());
+  const [form, setForm] = useState({ date: today(), member: "", type: "saving", amount: "", note: "" });
+  const [newName, setNewName] = useState("");
+  const [all, setAll] = useState("");
+  const [who, setWho] = useState("");
+  const [lend, setLend] = useState({ member: "", amount: "" });
+  const [copied, setCopied] = useState("");
+  const s = usePost<ShgSum>("/rural/shg", { ledger: led, as_of: asOf, lang }, led.members.length > 0, 150);
+  const lendRes = usePost<Lend>("/rural/shg/lend", { ledger: led, member: lend.member, amount: Number(lend.amount), as_of: asOf, lang }, !!lend.member && Number(lend.amount) > 0, 200);
+  const memberId = form.member || led.members[0]?.id || "";
+  const addMember = () => { const nm = newName.trim(); if (!nm) return; setLed({ ...led, members: [...led.members, { id: "m" + Date.now().toString(36) + led.members.length, name: nm }] }); setNewName(""); };
+  const addEntry = () => { const a = Number(form.amount); if (!memberId || !(a > 0)) return; setLed({ ...led, entries: [...led.entries, { date: form.date, member: memberId, type: form.type, amount: a, note: form.note }] }); setForm({ ...form, amount: "", note: "" }); };
+  const collectAll = () => { const a = Number(all); if (!(a > 0) || !led.members.length) return; setLed({ ...led, entries: [...led.entries, ...led.members.map((m) => ({ date: form.date, member: m.id, type: "saving", amount: a, note: "" }))] }); setAll(""); };
+  const copy = async (k: string, text: string) => { try { await navigator.clipboard.writeText(text); setCopied(k); setTimeout(() => setCopied(""), 1500); } catch { /* clipboard blocked */ } };
+  const download = (name: string, text: string, type: string) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); URL.revokeObjectURL(a.href); };
+  const csv = () => ["date,member,type,amount,note", ...led.entries.map((e) => [e.date, led.members.find((m) => m.id === e.member)?.name ?? e.member, e.type, e.amount, (e.note ?? "").replace(/,/g, " ")].join(","))].join("\n");
+  const importFile = async (f: File | undefined) => { if (!f) return; try { const j = JSON.parse(await f.text()); if (Array.isArray(j.members) && Array.isArray(j.entries)) setLed({ ...EMPTY_LEDGER, ...j }); } catch { /* not a ledger file */ } };
+  const nameOf = (id: string) => led.members.find((m) => m.id === id)?.name ?? id;
+  const typeLabel = (k: string) => { const r = TYPES.find((x) => x[0] === k); return r ? (hi ? r[2] : r[1]) : k; };
+  const rs = (v: number) => "₹" + Math.round(v).toLocaleString("en-IN");
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Self-help group ledger", "स्वयं सहायता समूह की बही")}</h2>
+      <p className="muted">{t("Keep the group's savings, loans, repayments and fines. It works out the interest, who owes what, who has missed saving, and writes the meeting report and each member's statement.", "समूह की बचत, ऋण, किस्तें और जुर्माना रखिए। यह ब्याज, किस पर कितना बाक़ी है, किसने बचत छोड़ी, यह निकालता है और बैठक की रिपोर्ट व हर सदस्य का विवरण लिखता है।")}</p>
+      <div className={`offline-bar ${kiosk ? "off" : ""}`}>{kiosk
+        ? t("Shared-device mode: this ledger is NOT saved. Export a backup file before you press Next person.", "साझा-डिवाइस मोड: यह बही सहेजी नहीं जाती। अगला व्यक्ति दबाने से पहले बैकअप फ़ाइल निकालिए।")
+        : t("Saved on this device only (not on any server). Export a backup file after every meeting.", "सिर्फ़ इसी डिवाइस पर सहेजी जाती है (किसी सर्वर पर नहीं)। हर बैठक के बाद बैकअप फ़ाइल निकालिए।")}</div>
+
+      <details className="rural-letter" open={led.members.length === 0}><summary>{t("1. Group and members", "1. समूह और सदस्य")}</summary>
+        <div className="rural-form three">
+          <label>{t("Group name", "समूह का नाम")}<input value={led.group} onChange={(e) => setLed({ ...led, group: e.target.value })} /></label>
+          <label>{t("Interest on loans (% a month)", "ऋण पर ब्याज (% महीना)")}<input inputMode="decimal" value={led.rate} onChange={(e) => setLed({ ...led, rate: Number(e.target.value) || 0 })} /></label>
+          <label>{t("Loan up to (× savings)", "ऋण अधिकतम (× बचत)")}<input inputMode="decimal" value={led.loan_multiple} onChange={(e) => setLed({ ...led, loan_multiple: Number(e.target.value) || 0 })} /></label>
+        </div>
+        <div className="rural-row" style={{ gridTemplateColumns: "1fr auto" }}>
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t("Add a member's name", "सदस्य का नाम जोड़िए")} onKeyDown={(e) => { if (e.key === "Enter") addMember(); }} />
+          <button className="btn go" onClick={addMember}>{t("Add", "जोड़ें")}</button>
+        </div>
+        <p className="rural-note">{led.members.map((m) => m.name).join(", ") || t("No members yet.", "अभी कोई सदस्य नहीं।")}</p>
+      </details>
+
+      {led.members.length > 0 && (<>
+        <h3>{t("2. Enter a meeting", "2. बैठक की प्रविष्टि")}</h3>
+        <div className="rural-form three">
+          <label>{t("Date", "तारीख़")}<input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>
+          <label>{t("Member", "सदस्य")}<select value={memberId} onChange={(e) => setForm({ ...form, member: e.target.value })}>{led.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+          <label>{t("What", "क्या")}<select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{TYPES.map(([v, en, h]) => <option key={v} value={v}>{t(en, h)}</option>)}</select></label>
+          <label>{t("Amount (₹)", "रक़म (₹)")}<input inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") addEntry(); }} /></label>
+          <label>{t("Note (optional)", "टिप्पणी (वैकल्पिक)")}<input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></label>
+        </div>
+        <div className="rural-actions">
+          <button className="btn go" onClick={addEntry}>{t("Add entry", "प्रविष्टि जोड़ें")}</button>
+          <input style={{ width: 130 }} inputMode="numeric" value={all} onChange={(e) => setAll(e.target.value)} placeholder={t("₹ from everyone", "सबसे ₹")} aria-label="amount from everyone" />
+          <button className="btn" onClick={collectAll}>{t("Everyone saved this", "सबने इतनी बचत दी")}</button>
+        </div>
+        {led.entries.length > 0 && <p className="rural-note">{t("Latest: ", "ताज़ा: ")}{led.entries.slice(-4).reverse().map((e, i) => `${e.date} ${nameOf(e.member)} ${typeLabel(e.type)} ${rs(e.amount)}`).join(" · ")}{" "}
+          <button className="btn ghost sm" onClick={() => setLed({ ...led, entries: led.entries.slice(0, -1) })}>↶ {t("Undo last", "आख़िरी हटाएँ")}</button></p>}
+      </>)}
+
+      {s && (<>
+        <label style={{ display: "block", margin: "10px 0" }}>{t("Accounts up to", "हिसाब इस तारीख़ तक")} <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} /></label>
+        <div className="rural-facts">
+          <div><small>{t("Group savings", "समूह की बचत")}</small><b>{rs(s.totals.savings)}</b></div>
+          <div><small>{t("Loans out", "बाहर ऋण")}</small><b>{rs(s.totals.loans_out)}</b></div>
+          <div><small>{t("Interest earned", "कमाया ब्याज")}</small><b>{rs(s.totals.interest_income)}</b></div>
+          <div><small>{t("Should be in hand / bank", "हाथ / बैंक में होना चाहिए")}</small><b className={s.totals.cash < 0 ? "bad" : ""}>{rs(s.totals.cash)}</b></div>
+        </div>
+        {s.alerts.length > 0 && <ul className="rural-flags">{s.alerts.map((a) => <li key={a}>{a}</li>)}</ul>}
+        <div style={{ overflowX: "auto" }}><table className="rural-table"><thead><tr><th>{t("Member", "सदस्य")}</th><th>{t("Savings", "बचत")}</th><th>{t("Loan balance", "ऋण बाक़ी")}</th><th>{t("Interest due", "ब्याज देय")}</th><th>{t("Total to pay", "कुल देना")}</th><th>{t("Year-end share", "वर्षांत हिस्सा")}</th><th></th></tr></thead>
+          <tbody>{s.members.map((m) => (
+            <tr key={m.id} className={m.status === "ok" ? "" : "bad"}><td>{m.name}</td><td>{rs(m.savings)}</td><td>{rs(m.outstanding)}</td><td>{rs(m.interest_due)}</td><td>{rs(m.total_due)}</td><td>{rs(m.year_end_share)}</td>
+              <td>{m.overdue ? t("overdue", "बकाया") : m.missed_months >= 2 ? t("missed saving", "बचत छूटी") : "✓"}</td></tr>))}</tbody></table></div>
+
+        <h3>{t("Can we lend?", "क्या हम ऋण दे सकते हैं?")}</h3>
+        <div className="rural-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <select value={lend.member} onChange={(e) => setLend({ ...lend, member: e.target.value })}><option value="">{t("Choose member", "सदस्य चुनिए")}</option>{led.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+          <input inputMode="numeric" placeholder={t("Loan amount ₹", "ऋण रक़म ₹")} value={lend.amount} onChange={(e) => setLend({ ...lend, amount: e.target.value })} />
+        </div>
+        {lendRes && lend.member && <><p className="rural-head">{lendRes.headline}</p><ul className="rural-flags good">{lendRes.checks.map((c) => <li key={c.id}>{c.ok ? "✓ " : "✗ "}{c.text}</li>)}</ul></>}
+
+        <h3>{t("Share with the group", "समूह के साथ साझा करें")}</h3>
+        <details className="rural-letter"><summary>{t("Meeting report", "बैठक की रिपोर्ट")}</summary><pre>{s.report}</pre>
+          <button className="btn ghost sm" onClick={() => void copy("rep", s.report)}>{copied === "rep" ? t("Copied ✓", "कॉपी हुआ ✓") : t("Copy for WhatsApp", "WhatsApp के लिए कॉपी")}</button></details>
+        <details className="rural-letter"><summary>{t("A member's statement", "किसी सदस्य का विवरण")}</summary>
+          <select value={who || s.members[0].id} onChange={(e) => setWho(e.target.value)}>{s.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+          <pre>{s.statements[who || s.members[0].id]}</pre>
+          <button className="btn ghost sm" onClick={() => void copy("st", s.statements[who || s.members[0].id])}>{copied === "st" ? t("Copied ✓", "कॉपी हुआ ✓") : t("Copy", "कॉपी")}</button></details>
+        <p className="rural-note">{s.method}</p>
+        <div className="rural-actions">
+          <button className="btn" onClick={() => download(`${led.group || "group"}-ledger.json`, JSON.stringify(led, null, 2), "application/json")}>⬇ {t("Backup file", "बैकअप फ़ाइल")}</button>
+          <button className="btn" onClick={() => download(`${led.group || "group"}-entries.csv`, csv(), "text/csv")}>⬇ {t("Entries (CSV)", "प्रविष्टियाँ (CSV)")}</button>
+          <label className="btn" style={{ cursor: "pointer" }}>⬆ {t("Restore backup", "बैकअप वापस लाएँ")}<input type="file" accept=".json,application/json" hidden onChange={(e) => void importFile(e.target.files?.[0])} /></label>
+          <button className="btn ghost sm" onClick={() => window.print()}>🖨 {t("Print", "छापें")}</button>
+        </div>
+      </>)}
+      {!s && led.members.length === 0 && <label className="btn" style={{ cursor: "pointer", display: "inline-block", marginTop: 8 }}>⬆ {t("Restore a backup file", "बैकअप फ़ाइल वापस लाएँ")}<input type="file" accept=".json,application/json" hidden onChange={(e) => void importFile(e.target.files?.[0])} /></label>}
     </section>
   );
 }
@@ -613,7 +733,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"], ["shg", "📒", "Group ledger", "समूह की बही"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -633,6 +753,7 @@ export default function Rural() {
         {tool === "dbt" && <DbtTool init={params} />}
         {tool === "hold" && <HoldTool init={params} />}
         {tool === "saving" && <SavingTool init={params} />}
+        {tool === "shg" && <ShgTool />}
       </div>
     </Page>
   );
