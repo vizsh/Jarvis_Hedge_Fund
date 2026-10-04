@@ -935,3 +935,127 @@ def dbt_full(scheme: str = "other", status: str = "no_status", linked: str = "un
     out = dbt_trace(scheme, status, linked, name_same, merged, last_used, aadhaar_mobile, text, lang)
     out["letters"] = dbt_letter(scheme, name, village, block, bank, out["top"], lang)
     return out
+
+
+# =============================================================================== C3 sell now or hold the crop?
+# The honest version of "mandi price timing". Nobody can predict next season's price, and this does not
+# try. It answers the two questions a farmer can actually settle: (1) how much higher must the price
+# be later just to break even once storage, shrinkage, handling and the cost of money are counted, and
+# (2) in the farmer's OWN past prices (pasted in), how often did the price rise that much between these
+# two months? Prices are never supplied by the app.
+MONTH_NAMES = {m: i for i, names in enumerate(
+    [("jan", "january"), ("feb", "february"), ("mar", "march"), ("apr", "april"), ("may",), ("jun", "june"), ("jul", "july"),
+     ("aug", "august"), ("sep", "sept", "september"), ("oct", "october"), ("nov", "november"), ("dec", "december")], 1) for m in names}
+
+
+def parse_prices(text: str) -> list[tuple[int, int, float]]:
+    """(year, month, price) from lines like '2023-10 2100', '2023-10-14, 2,150', 'Oct 2023: 2100', '10/2023 2100'."""
+    out: list[tuple[int, int, float]] = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        y = m = None
+        mt = re.search(r"\b(20\d\d)[-/.](\d{1,2})(?:[-/.]\d{1,2})?\b", line)
+        rest = line
+        if mt and 1 <= int(mt.group(2)) <= 12:
+            y, m = int(mt.group(1)), int(mt.group(2))
+            rest = line.replace(mt.group(0), " ", 1)
+        else:
+            mt = re.search(r"\b([A-Za-z]{3,9})\.?[ ,\-]*(20\d\d)\b", line)
+            if mt and mt.group(1).lower() in MONTH_NAMES:
+                y, m = int(mt.group(2)), MONTH_NAMES[mt.group(1).lower()]
+                rest = line.replace(mt.group(0), " ", 1)
+            else:
+                mt = re.search(r"\b(\d{1,2})[/\-](20\d\d)\b", line)
+                if mt and 1 <= int(mt.group(1)) <= 12:
+                    y, m = int(mt.group(2)), int(mt.group(1))
+                    rest = line.replace(mt.group(0), " ", 1)
+        if y is None:
+            continue
+        nums = re.findall(r"\d[\d,]*(?:\.\d+)?", rest)
+        if nums:
+            p = float(nums[-1].replace(",", ""))
+            if p > 0:
+                out.append((y, m, p))
+    return out
+
+
+def _median(xs: list[float]) -> float:
+    xs = sorted(xs)
+    n = len(xs)
+    return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
+
+
+def hold_or_sell(qty: float, price_now: float, months: int, price_later: float | None = None, storage_per_q_month: float = 0.0,
+                 shrink_pct_month: float = 0.0, handling_per_q: float = 0.0, rate_pct_year: float = 7.0, history_text: str = "",
+                 from_month: int | None = None, lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    qty, months = max(0.0, float(qty)), max(1, int(months))
+    price_now = float(price_now)
+    keep = (1 - shrink_pct_month / 100) ** months                       # share of the crop left after shrinkage
+    sell_now = qty * price_now
+    now_future = sell_now * (1 + rate_pct_year / 100 * months / 12)       # the cash, put to work, after the same months
+    cost = qty * storage_per_q_month * months + qty * handling_per_q
+    breakeven = (now_future + cost) / (qty * keep) if qty and keep else None
+    rise_needed = ((breakeven / price_now) - 1) * 100 if breakeven else None
+    hold_value = (qty * keep * float(price_later) - cost) if price_later else None
+    gain = (hold_value - now_future) if hold_value is not None else None
+
+    hist = parse_prices(history_text)
+    m0 = int(from_month) if from_month else None
+    years: list[dict[str, Any]] = []
+    season: list[dict[str, Any]] = []
+    hit = None
+    if hist:
+        by: dict[tuple[int, int], list[float]] = {}
+        for y, m, p in hist:
+            by.setdefault((y, m), []).append(p)
+        avg = {k: sum(v) / len(v) for k, v in by.items()}
+        mo_vals: dict[int, list[float]] = {}
+        for (y, m), p in avg.items():
+            mo_vals.setdefault(m, []).append(p)
+        allavg = sum(avg.values()) / len(avg)
+        season = [{"month": m, "avg": round(sum(v) / len(v)), "index": round(sum(v) / len(v) / allavg * 100), "years": len(v)} for m, v in sorted(mo_vals.items())]
+        if m0:
+            m1 = (m0 - 1 + months) % 12 + 1
+            carry = (m0 - 1 + months) // 12
+            for y in sorted({k[0] for k in avg}):
+                a, b = avg.get((y, m0)), avg.get((y + carry, m1))
+                if a and b:
+                    years.append({"year": y, "from": round(a), "to": round(b), "rise_pct": round((b / a - 1) * 100, 1)})
+            if years and rise_needed is not None:
+                hit = {"n": len(years), "enough": sum(1 for y in years if y["rise_pct"] >= rise_needed),
+                       "median_rise": round(_median([y["rise_pct"] for y in years]), 1),
+                       "worst": min(y["rise_pct"] for y in years), "best": max(y["rise_pct"] for y in years)}
+
+    # The verdict never rests on a guess alone: it needs the expected price to clear the break-even, and, if the
+    # farmer's own history was given, for that to have happened in most of those years.
+    if price_later is None and hit is None:
+        band = "amber"
+        head = t(f"To come out ahead by waiting {months} months, the price must reach about ₹{breakeven:,.0f} a quintal: {rise_needed:.1f}% higher than today's ₹{price_now:,.0f}.",
+                 f"{months} महीने रुकने पर फ़ायदे में रहने के लिए भाव लगभग ₹{breakeven:,.0f} प्रति क्विंटल होना चाहिए: आज के ₹{price_now:,.0f} से {rise_needed:.1f}% ऊँचा।")
+        verdict = t("Compare that with what mandi prices usually do in your area (the last few years), then decide.", "इसकी तुलना अपने इलाक़े में मंडी के भाव की आम चाल (पिछले कुछ साल) से कीजिए, फिर तय कीजिए।")
+    else:
+        enough = hit["enough"] / hit["n"] if hit else None
+        good_guess = gain is not None and gain > 0
+        if gain is not None and gain <= 0 and (enough is None or enough < 0.5):
+            band = "red"
+        elif (gain is None or gain > 0) and (enough is None or enough >= 0.7):
+            band = "green"
+        else:
+            band = "amber"
+        head = t((f"If the price reaches ₹{price_later:,.0f}, holding {'gains' if (gain or 0) > 0 else 'loses'} about ₹{abs(gain):,.0f} after all costs. " if gain is not None else "")
+                 + (f"In your own history it rose by enough in {hit['enough']} of {hit['n']} years." if hit else ""),
+                 (f"भाव ₹{price_later:,.0f} तक पहुँचे तो रुकने से सारे ख़र्च के बाद लगभग ₹{abs(gain):,.0f} {'फ़ायदा' if (gain or 0) > 0 else 'नुक़सान'} होगा। " if gain is not None else "")
+                 + (f"आपके अपने इतिहास में {hit['n']} में से {hit['enough']} साल भाव इतना बढ़ा।" if hit else ""))
+        verdict = {"green": t("Holding looks worth it on your own numbers. Prices can still fall: hold only what you can afford to wait on.", "आपके अपने आँकड़ों से रुकना फ़ायदे का लगता है। भाव गिर भी सकता है: उतना ही रोकिए जिसका इंतज़ार झेल सकें।"),
+                   "amber": t("It is not clear-cut. If you need cash soon, or owe money at high interest, selling now is the safer choice.", "साफ़ नहीं है। जल्दी नक़द चाहिए, या महँगा क़र्ज़ है, तो अभी बेचना ज़्यादा सुरक्षित है।"),
+                   "red": t("Waiting loses money on these numbers. Selling now is better.", "इन आँकड़ों पर रुकने से घाटा है। अभी बेचना बेहतर है।")}[band]
+    cash = t("Costs counted: storage, shrinkage, handling and what the money would earn or save.", "गिने गए ख़र्च: भंडारण, छीजन, ढुलाई, और पैसे से मिलने वाली कमाई या बचत।")
+    return {"band": band, "headline": head, "verdict": verdict, "sell_now": round(sell_now), "sell_now_future": round(now_future),
+            "breakeven_price": None if breakeven is None else round(breakeven, 1), "rise_needed_pct": None if rise_needed is None else round(rise_needed, 1),
+            "hold_value": None if hold_value is None else round(hold_value), "gain": None if gain is None else round(gain), "holding_costs": round(cost),
+            "crop_left_pct": round(keep * 100, 1), "years": years, "history": hit, "season": season, "n_history": len(hist), "cash_note": cash,
+            "warn": t("Prices can move either way and no one can promise a rise. This uses your numbers and your own past prices, never a forecast.", "भाव किसी भी तरफ़ जा सकता है और बढ़ने का वादा कोई नहीं कर सकता। यह आपके आँकड़ों और आपके अपने पुराने भावों से बना है, कोई पूर्वानुमान नहीं।"),
+            "tip": t("If you must borrow against the crop at a moneylender's rate, waiting almost never pays: check the rate in the Moneylender tool. A bank or Kisan Credit Card loan, or a warehouse-receipt loan, costs far less.", "फ़सल के बदले साहूकार की दर पर क़र्ज़ लेना पड़े तो रुकना लगभग कभी फ़ायदे का नहीं: दर साहूकार वाले औज़ार में जाँचिए। बैंक या किसान क्रेडिट कार्ड, या गोदाम-रसीद पर क़र्ज़ कहीं सस्ता है।")}

@@ -308,6 +308,34 @@ def _b_policy(t: str, q: Q, raw: str) -> str:
     return " ".join(parts)
 
 
+def _b_hold(t: str, q: Q, raw: str) -> str:
+    toks = t.split()
+    got: dict[str, float] = {}
+    for x in q:
+        w = " ".join(toks[max(0, int(x["at"]) - 3): int(x["at"]) + 4])
+        if x["kind"] == "months":
+            got.setdefault("months", x["v"])
+        elif x["kind"] in ("money", "plain"):
+            if re.search(norm("क्विंटल|कुंतल"), w) and "qty" not in got:
+                got["qty"] = x["v"]
+            elif x["kind"] == "plain":
+                continue
+            elif re.search(norm("बाद|उम्मीद|तक|मिलेगा|मिलेंगे|बढ़"), w) and "now" in got:
+                got.setdefault("later", x["v"])
+            else:
+                got.setdefault("now", x["v"])
+    parts = ["Should I sell"]
+    parts.append(f"{_fmt(got['qty'])} quintals" if "qty" in got else "my crop")
+    if "now" in got:
+        parts.append(f"now at {_fmt(got['now'])} a quintal")
+    parts.append("or wait")
+    if "months" in got:
+        parts.append(f"{_fmt(got['months'])} months")
+    if "later" in got:
+        parts.append(f"for {_fmt(got['later'])}")
+    return " ".join(parts)
+
+
 def _b_loan(t: str, q: Q, raw: str) -> str:
     saikda = bool(re.search(r"सैकड", t))
     if saikda:                       # "सैकड़ा" (per hundred) is not the number 100 or a duration
@@ -338,6 +366,7 @@ BUILD: dict[str, Callable[[str, Q, str], str]] = {
     "moneylender": _b_loan,
     "policy_check": _b_policy,
     "upi_check": lambda t, q, raw: "Is this UPI request safe? " + raw,
+    "hold_sell": _b_hold,
     "dbt_trace": lambda t, q, raw: "Why has my payment not come? " + raw,
     "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
     "entitlements": lambda *a: "Which government schemes can I get?",
@@ -361,6 +390,7 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("hold_sell", r"((फसल|गेहूं|गेहूँ|धान|सोयाबीन|कपास|मक्का|सरसों|चना|प्याज|आलू|अनाज).{0,40}(अभी बेच|रोक|रुक|इंतजार|इंतज़ार|भंडार|स्टोर)|(अभी बेच).{0,20}(या|कि).{0,20}(रुक|रोक|इंतज)|मंडी.{0,15}(भाव|रेट)|बेहतर भाव.{0,25}(रुक|रोक|बाद))"),
     ("dbt_trace", r"((पैसा|किस्त|सब्सिडी|पेंशन|रकम|मज़दूरी|मजदूरी|छात्रवृत्ति).{0,25}(नहीं आया|नहीं आई|नहीं आयी|अटक|रुक|नहीं मिला|नहीं आ रही|नहीं आ रहा)|(किसान|पीएम किसान).{0,20}(किस्त|पैसा).{0,15}(नहीं|अटक|रुक)|डीबीटी)"),
     ("upi_check", r"(यूपीआई|यू पी आई|फोनपे|फोन पे|गूगल पे|पेटीएम|भीम ऐप|कलेक्ट रिक्वेस्ट|पेमेंट रिक्वेस्ट|क्यूआर|क्यू आर|(पैसा|पैसे) (पाने|लेने).{0,25}पिन|पिन.{0,25}(पैसा|पैसे) (पाने|लेने|आएगा|आएंगे)|गलती से.{0,30}(पैसे|पैसा).{0,30}(भेज|आ गए))"),
     ("policy_check", r"((बीमा|पॉलिसी|एलआईसी|प्रीमियम|मैच्योरिटी).{0,40}(प्रीमियम|मैच्योरिटी|एजेंट|रिटर्न|फायदा|बोनस|बंद|सरेंडर|लायक|अच्छी|सही)|(एजेंट).{0,30}(पॉलिसी|बीमा)|(पॉलिसी|बीमा).{0,30}(बोनस|रिफंड).{0,40}(फीस|टैक्स|चार्ज))"),
@@ -496,7 +526,7 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
-    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "hold_sell": "फ़सल अभी बेचें या रोकें", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
     "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",

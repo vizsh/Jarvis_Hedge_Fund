@@ -88,6 +88,7 @@ const CALLS: Record<string, (b: any) => [string, unknown[]]> = {
   "/rural/scheme": (b) => ["scheme_check", [b.text, b.put, b.get, b.months, b.lang]],
   "/rural/entitlements": (b) => ["entitlements", [b.profile, b.lang]],
   "/rural/readiness": (b) => ["readiness", [b.schemes, b.have, b.lang]],
+  "/rural/hold": (b) => ["hold_or_sell", [b.qty, b.price_now, b.months, b.price_later ?? null, b.storage ?? 0, b.shrink ?? 0, b.handling ?? 0, b.rate ?? 7, b.history ?? "", b.from_month ?? null, b.lang]],
   "/rural/dbt": (b) => ["dbt_full", [b.scheme, b.status, b.linked, b.name_same, b.merged, b.last_used, b.aadhaar_mobile, b.text ?? "", b.name ?? "", b.village ?? "", b.block ?? "", b.bank ?? "", b.lang]],
   "/rural/upi": (b) => ["upi_check", [b.text ?? "", b.lang]],
   "/rural/policy": (b) => ["policy_check", [b.premium, b.pay_years, b.term_years, b.maturity, b.sum_assured ?? null, b.term_quote ?? null, b.text ?? "", b.lang]],

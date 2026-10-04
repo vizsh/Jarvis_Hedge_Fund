@@ -21,7 +21,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -145,6 +145,71 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
+      </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ C3 sell now or hold */
+type Hold = { band: string; headline: string; verdict: string; sell_now: number; sell_now_future: number; breakeven_price: number | null; rise_needed_pct: number | null;
+  hold_value: number | null; gain: number | null; holding_costs: number; crop_left_pct: number; cash_note: string; warn: string; tip: string; n_history: number;
+  years: { year: number; from: number; to: number; rise_pct: number }[]; history: { n: number; enough: number; median_rise: number; worst: number; best: number } | null;
+  season: { month: number; avg: number; index: number; years: number }[] };
+const HOLD_EXAMPLE = "Oct 2021: 2000\nFeb 2022: 2150\nOct 2022: 2100\nFeb 2023: 2400\nOct 2023: 2250\nFeb 2024: 2300";
+
+function HoldTool({ init }: { init: Record<string, string> }) {
+  const { t, hi } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "hold";
+  const waiting = useWaiting("hold");
+  const [f, setF] = useState(() => guided
+    ? { qty: init.qty ?? "", price_now: init.price_now ?? "", months: init.months ?? "", price_later: init.price_later ?? "", storage: init.storage ?? "0", shrink: "0", handling: "0", rate: "7", from_month: "10" }
+    : store.get("hold", { qty: "50", price_now: "2100", months: "4", price_later: "2400", storage: "10", shrink: "1", handling: "20", rate: "7", from_month: "10" }));
+  const [history, setHistory] = useState("");
+  useEffect(() => { if (!guided) store.set("hold", f); }, [f, guided]);
+  const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const n = (v: string) => Number(v) || 0;
+  const ok = !waiting && n(f.qty) > 0 && n(f.price_now) > 0 && n(f.months) > 0;
+  const r = usePost<Hold>("/rural/hold", { qty: n(f.qty), price_now: n(f.price_now), months: n(f.months), price_later: n(f.price_later) || null, storage: n(f.storage),
+    shrink: n(f.shrink), handling: n(f.handling), rate: n(f.rate), history, from_month: n(f.from_month) || null, lang }, ok, 250);
+  const names = hi ? MON_HI : MON_EN;
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Sell the crop now, or wait for a better price?", "फ़सल अभी बेचें, या बेहतर भाव के लिए रुकें?")}</h2>
+      <Waiting tool="hold" />
+      <p className="muted">{t("Nobody can promise next season's price, and I will not guess it. I tell you how much higher the price must be just to break even after storage, shrinkage and the cost of money, and, if you paste your own past prices, how often that happened.", "अगले मौसम का भाव कोई नहीं बता सकता और मैं अंदाज़ा नहीं लगाऊँगा। मैं बताता हूँ कि भंडारण, छीजन और पैसे की क़ीमत के बाद बराबरी पर आने के लिए भाव कितना ऊँचा चाहिए, और आप अपने पुराने भाव डालें तो वैसा कितनी बार हुआ।")}</p>
+      <div className="rural-form">
+        <label>{t("Quintals you have", "कितने क्विंटल है")}<input inputMode="decimal" value={f.qty} onChange={set("qty")} /></label>
+        <label>{t("Price today (₹ per quintal)", "आज का भाव (₹ प्रति क्विंटल)")}<input inputMode="numeric" value={f.price_now} onChange={set("price_now")} /></label>
+        <label>{t("Months you could wait", "कितने महीने रुक सकते हैं")}<input inputMode="numeric" value={f.months} onChange={set("months")} /></label>
+        <label>{t("Price you expect then (optional)", "तब का अपेक्षित भाव (वैकल्पिक)")}<input inputMode="numeric" value={f.price_later} onChange={set("price_later")} /></label>
+        <label>{t("Storage cost (₹ per quintal per month)", "भंडारण ख़र्च (₹ प्रति क्विंटल प्रति माह)")}<input inputMode="decimal" value={f.storage} onChange={set("storage")} /></label>
+        <label>{t("Loss while stored (% per month)", "भंडारण में छीजन (% प्रति माह)")}<input inputMode="decimal" value={f.shrink} onChange={set("shrink")} /></label>
+        <label>{t("Handling / transport once (₹ per quintal)", "ढुलाई एक बार (₹ प्रति क्विंटल)")}<input inputMode="decimal" value={f.handling} onChange={set("handling")} /></label>
+        <label>{t("What the money earns or saves (% a year)", "पैसे की कमाई या बचत (% सालाना)")}
+          <select value={f.rate} onChange={set("rate")}><option value="7">{t("Safe deposit ~7%", "सुरक्षित जमा ~7%")}</option><option value="4">{t("Cheap farm loan ~4%", "सस्ता कृषि ऋण ~4%")}</option><option value="12">{t("Bank loan ~12%", "बैंक ऋण ~12%")}</option><option value="36">{t("Moneylender ~36%", "साहूकार ~36%")}</option><option value="60">{t("Moneylender ~60%", "साहूकार ~60%")}</option></select></label>
+      </div>
+      <details className="rural-letter"><summary>{t("Optional: paste your own past prices (to see how often waiting paid)", "वैकल्पिक: अपने पुराने भाव डालिए (देखने के लिए कि रुकना कितनी बार फ़ायदे का रहा)")}</summary>
+        <label style={{ display: "block", margin: "8px 0" }}>{t("Starting month of the wait", "रुकने की शुरुआत का महीना")}
+          <select value={f.from_month} onChange={set("from_month")}>{names.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}</select></label>
+        <textarea rows={6} value={history} onChange={(e) => setHistory(e.target.value)} placeholder={HOLD_EXAMPLE} />
+        <p className="rural-note">{t("One price per line, with the month and year, for example “Oct 2022: 2100” or “2023-02 2400”. Your mandi's records or your own sale slips work. At least 3 years is useful.", "हर पंक्ति में महीना, साल और भाव, जैसे “Oct 2022: 2100” या “2023-02 2400”। अपनी मंडी का रिकॉर्ड या अपनी बिक्री की पर्चियाँ चलेंगी। कम से कम 3 साल हों तो उपयोगी।")}</p></details>
+      {r && (<>
+        <div className={`rural-big ${r.band}`}><span style={{ fontSize: 30 }}>{r.breakeven_price !== null ? `₹${Math.round(r.breakeven_price).toLocaleString("en-IN")}` : "–"}</span><small>{t("break-even price per quintal", "बराबरी का भाव प्रति क्विंटल")}{r.rise_needed_pct !== null ? ` · +${r.rise_needed_pct.toFixed(1)}%` : ""}</small></div>
+        <p className="rural-head">{r.headline} {r.verdict}</p>
+        <table className="rural-table"><tbody>
+          <tr><td>{t("Sell now", "अभी बेचें")}</td><td>₹{r.sell_now.toLocaleString("en-IN")}</td><td className="muted">{t("worth about", "आगे की क़ीमत लगभग")} ₹{r.sell_now_future.toLocaleString("en-IN")}</td></tr>
+          <tr><td>{t("Hold: costs", "रुकें: ख़र्च")}</td><td>₹{r.holding_costs.toLocaleString("en-IN")}</td><td className="muted">{t("crop left", "बची फ़सल")} {r.crop_left_pct}%</td></tr>
+          {r.hold_value !== null && <tr><td>{t("Hold at your expected price", "अपेक्षित भाव पर रुकें")}</td><td>₹{r.hold_value.toLocaleString("en-IN")}</td><td className={r.gain! > 0 ? "good" : "bad"}>{r.gain! > 0 ? "+" : ""}₹{r.gain!.toLocaleString("en-IN")}</td></tr>}
+        </tbody></table>
+        {r.history && <>
+          <h3>{t("In your own past prices", "आपके अपने पुराने भावों में")}</h3>
+          <p className="rural-head">{t(`The price rose by enough in ${r.history.enough} of ${r.history.n} years. Typical change ${r.history.median_rise}% (worst ${r.history.worst}%, best ${r.history.best}%).`, `${r.history.n} में से ${r.history.enough} साल भाव इतना बढ़ा। सामान्य बदलाव ${r.history.median_rise}% (सबसे बुरा ${r.history.worst}%, सबसे अच्छा ${r.history.best}%)।`)}</p>
+          <table className="rural-table"><thead><tr><th>{t("Year", "साल")}</th><th>{t("Start", "शुरू")}</th><th>{t("End", "अंत")}</th><th>{t("Change", "बदलाव")}</th></tr></thead>
+            <tbody>{r.years.map((y) => <tr key={y.year}><td>{y.year}</td><td>₹{y.from}</td><td>₹{y.to}</td><td className={y.rise_pct >= (r.rise_needed_pct ?? 0) ? "good" : "bad"}>{y.rise_pct}%</td></tr>)}</tbody></table></>}
+        {r.season.length > 0 && <p className="rural-note">{t("Average price by month (100 = your average): ", "महीने के हिसाब से औसत भाव (100 = आपका औसत): ")}{r.season.map((s) => `${names[s.month - 1]} ${s.index}`).join(" · ")}</p>}
+        <p className="rural-note">{r.cash_note} {r.tip}</p>
+        <p className="rural-note">{r.warn}</p>
+        <Say text={`${r.headline} ${r.verdict}`} />
       </>)}
     </section>
   );
@@ -496,7 +561,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -514,6 +579,7 @@ export default function Rural() {
         {tool === "policy" && <PolicyTool init={params} />}
         {tool === "upi" && <UpiTool init={params} />}
         {tool === "dbt" && <DbtTool init={params} />}
+        {tool === "hold" && <HoldTool init={params} />}
       </div>
     </Page>
   );

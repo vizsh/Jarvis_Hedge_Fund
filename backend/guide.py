@@ -155,6 +155,17 @@ def p_upi(text: str):
     return text.strip() if len(text.strip()) >= 6 else None
 
 
+def p_qty(text: str):
+    f = figures(text)
+    n = (f["bare"] or f["money"] or [None])[0]
+    return n if n and n > 0 else None
+
+
+def p_nonneg_or_skip(text: str):
+    n = _first_number(text)
+    return n if n is not None and n >= 0 else None
+
+
 def p_text(text: str):
     return text.strip() if len(text.strip()) >= 6 else None
 
@@ -256,6 +267,12 @@ DBT_USED_CH = _c(("recent", "I used the account in the last few months", "पि
 UPI_CHOICES = [(str(i), en, hi, re.compile(re.escape(en), re.I)) for i, (en, hi) in enumerate(rural.UPI_MENU)]
 
 TOOLS: dict[str, dict[str, Any]] = {
+    "hold": dict(title=("Sell now or hold?", "बेचें या रोकें?"), kind="hold_sell", slots=[
+        slot("qty", "How many quintals do you have?", "आपके पास कितने क्विंटल फ़सल है?", "For example: 50", "जैसे: 50", p_qty),
+        slot("price_now", "What is the price today, per quintal?", "आज का भाव प्रति क्विंटल क्या है?", "For example: 2100", "जैसे: 2100", p_money),
+        slot("months", "How many months could you wait?", "आप कितने महीने रुक सकते हैं?", "For example: 4", "जैसे: 4", p_months),
+        slot("price_later", "What price do you expect then, per quintal? Say skip if you do not know.", "तब आपको कितना भाव मिलने की उम्मीद है, प्रति क्विंटल? पता न हो तो 'छोड़ो' कहिए।", "For example: 2400", "जैसे: 2400", p_money, optional=True),
+        slot("storage", "Storage cost per quintal per month? Say skip if it is your own space.", "भंडारण का ख़र्च प्रति क्विंटल प्रति माह? अपनी जगह हो तो 'छोड़ो' कहिए।", "For example: 10", "जैसे: 10", p_nonneg_or_skip, optional=True)]),
     "dbt": dict(title=("Why no money?", "पैसा क्यों नहीं आया?"), kind="dbt_trace", slots=[
         slot("scheme", "Which payment has not come?", "कौन सा भुगतान नहीं आया?", "Tap one", "एक चुनिए", parse_choice(DBT_SCHEME), DBT_SCHEME),
         slot("status", "What does the status say?", "स्टेटस में क्या लिखा है?", "Tap the closest", "सबसे क़रीबी चुनिए", parse_choice(DBT_STATUS_CH), DBT_STATUS_CH),
@@ -314,7 +331,7 @@ TOOLS.update({
         slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
 })
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
-RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi", "dbt"}
+RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi", "dbt", "hold"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
 CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
@@ -337,7 +354,7 @@ PAGES = [
     ("research", "/research", ("Research", "शोध"), r"\bresearch\b|stock analysis|शोध", ["Analyse TCS", "Which stock will double?"]),
     ("assistant", "/assistant", ("Assistant", "सहायक"), r"\bassistant\b|\bchat\b|सहायक", ["What can you do?"]),
 ]
-TOOL_NAV = [("dbt", r"(trace|track) (my )?(payment|subsidy)|why no money|dbt (tracer|trace)|भुगतान खोज"), ("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
+TOOL_NAV = [("hold", r"(sell|hold) (or|vs) (hold|sell)|sell now or (hold|wait)|crop (price )?(timing|planner)|बेचें या रोकें"), ("dbt", r"(trace|track) (my )?(payment|subsidy)|why no money|dbt (tracer|trace)|भुगतान खोज"), ("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
@@ -428,6 +445,12 @@ def _prefill(tool: str, st: dict[str, Any], text: str) -> None:
         for k in ("premium", "pay_years", "term_years", "maturity", "cover"):
             if k in a:
                 p[k] = a[k]
+    elif tool == "hold":
+        from backend import assistant
+        a = assistant._hold_args(text)
+        for k in ("qty", "price_now", "months", "price_later"):
+            if k in a:
+                p[k] = a[k]
     elif tool == "dbt":
         from backend import assistant
         for k, v in assistant._dbt_args(text).items():
@@ -466,6 +489,10 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         money = tools.inr_hi if lang == "hi" else tools.inr
         say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
                                         f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
+    elif tool == "hold":
+        r = rural.hold_or_sell(p["qty"], p["price_now"], int(p["months"]), p.get("price_later"), p.get("storage") or 0, 0, 0, 7.0, "", None, lang)
+        say = f"{r['headline']} {r['verdict']}"
+        params = {k: p[k] for k in ("qty", "price_now", "months", "price_later", "storage") if p.get(k) is not None}
     elif tool == "dbt":
         r = rural.dbt_trace(p.get("scheme", "other"), p.get("status", "no_status"), p.get("linked", "unsure"), p.get("name_same", "unsure"),
                             p.get("merged", "unsure"), p.get("last_used", "recent"), "unsure", "", lang)
@@ -512,7 +539,8 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
                 "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
-    nxt = {"dbt": ["Are my papers ready?", "Which government schemes can I get?"],
+    nxt = {"hold": ["Check my moneylender interest", "Plan my money around the harvest"],
+           "dbt": ["Are my papers ready?", "Which government schemes can I get?"],
            "upi": ["I already paid a scammer on UPI, what do I do?", "Which government schemes can I get?"],
            "policy": ["Check my moneylender interest", "Which government schemes can I get?"],
            "loan": ["Which government schemes can I get?", "Plan my money around the harvest"],

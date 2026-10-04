@@ -290,3 +290,56 @@ def test_dbt_questions_route_and_prefill():
     g = G.begin("dbt", "my pm kisan installment is pending and the name is different on the bank passbook", "en", "t")
     assert g["params"]["scheme"] == "pm_kisan" and g["params"]["status"] == "pending" and g["params"]["name_same"] == "no"
     assert g["ask"]["slot"] == "linked"
+
+
+# ---- C3: sell now or hold ------------------------------------------------------------------
+HIST = "Oct 2021: 2000\nFeb 2022: 2150\nOct 2022, 2100\n2023-02-10 2400\n2023-10 2250\n2024-02-05 2300\nOct 2024 2400\nFeb 2025 2350"
+
+
+def test_hold_breakeven_is_the_arithmetic():
+    r = rural.hold_or_sell(50, 2100, 4, 2400, 10, 1, 20, 12)
+    keep = 0.99 ** 4
+    expect = (50 * 2100 * (1 + 0.12 * 4 / 12) + 50 * 10 * 4 + 50 * 20) / (50 * keep)
+    assert abs(r["breakeven_price"] - round(expect, 1)) < 0.06
+    assert r["gain"] == round(50 * keep * 2400 - (50 * 10 * 4 + 50 * 20) - 50 * 2100 * (1 + 0.12 * 4 / 12))
+    # no costs and no interest: break-even is today's price
+    z = rural.hold_or_sell(10, 1000, 3, None, 0, 0, 0, 0)
+    assert z["breakeven_price"] == 1000.0 and z["rise_needed_pct"] == 0.0
+
+
+def test_expensive_money_makes_waiting_hard_to_justify():
+    cheap = rural.hold_or_sell(50, 2100, 6, 2300, 0, 0, 0, 4)
+    dear = rural.hold_or_sell(50, 2100, 6, 2300, 0, 0, 0, 60)          # moneylender-rate debt
+    assert dear["rise_needed_pct"] > cheap["rise_needed_pct"] and dear["gain"] < cheap["gain"] and dear["band"] == "red"
+
+
+def test_history_parser_reads_common_formats_and_ignores_noise():
+    got = rural.parse_prices(HIST + "\nnot a price line\nOct 2020")
+    assert len(got) == 8 and (2022, 10, 2100.0) in got and (2023, 2, 2400.0) in got and (2021, 10, 2000.0) in got
+
+
+def test_history_hit_rate_counts_years_from_the_pasted_data_only():
+    r = rural.hold_or_sell(50, 2100, 4, None, 10, 1, 20, 12, HIST, 10)
+    assert [y["year"] for y in r["years"]] == [2021, 2022, 2023, 2024]
+    assert r["years"][1]["rise_pct"] == round((2400 / 2100 - 1) * 100, 1)
+    n_enough = sum(1 for y in r["years"] if y["rise_pct"] >= r["rise_needed_pct"])
+    assert r["history"]["enough"] == n_enough and r["history"]["n"] == 4
+    assert all(s["years"] >= 1 for s in r["season"])
+
+
+def test_hold_never_invents_prices_without_history():
+    r = rural.hold_or_sell(50, 2100, 4)
+    assert r["history"] is None and r["years"] == [] and r["gain"] is None and r["band"] == "amber"
+
+
+def test_hold_questions_route_prefill_and_hindi():
+    from backend import guide as G
+    q = "I have 50 quintals of wheat at 2100 a quintal, wait 4 months, expect 2400 later"
+    assert A.answer(q, _ctx()).data["intent"] == "hold_sell"
+    assert A._hold_args(q) == {"qty": 50.0, "months": 4, "price_now": 2100.0, "price_later": 2400.0}
+    G.STATE.clear()
+    g = G.begin("hold", q, "en", "h")                       # everything required is in the sentence: only the optional storage cost is asked
+    assert g["ask"]["slot"] == "storage" and g["ask"]["optional"] and g["params"]["price_later"] == "2400.0"
+    assert G.fill("h", "skip", "en")["done"]
+    english, _ = asyncio.run(H.convert("मेरे पास पचास क्विंटल गेहूँ है, भाव दो हज़ार एक सौ है, चार महीने रुकूँ तो चौबीस सौ की उम्मीद है, अभी बेचूँ या रुकूँ", use_model=False))
+    assert A.rule_intent(english) == "hold_sell" and "50 quintals" in english and "2100" in english and "2400" in english

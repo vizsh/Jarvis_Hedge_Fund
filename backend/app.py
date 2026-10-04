@@ -1426,6 +1426,26 @@ async def rural_dbt(b: DbtIn) -> dict:
     return rural.dbt_full(b.scheme, b.status, b.linked, b.name_same, b.merged, b.last_used, b.aadhaar_mobile, b.text, b.name, b.village, b.block, b.bank, b.lang)
 
 
+class HoldIn(BaseModel):
+    qty: float
+    price_now: float
+    months: int
+    price_later: float | None = None
+    storage: float = 0
+    shrink: float = 0
+    handling: float = 0
+    rate: float = 7
+    history: str = ""
+    from_month: int | None = None
+    lang: str = "en"
+
+
+@app.post("/rural/hold")
+async def rural_hold(b: HoldIn) -> dict:
+    from backend import rural
+    return rural.hold_or_sell(b.qty, b.price_now, b.months, b.price_later, b.storage, b.shrink, b.handling, b.rate, b.history, b.from_month, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""
