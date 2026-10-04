@@ -4,8 +4,9 @@
 .rural-card h2 { font-size: 22px; }
 .rural-card .muted { font-size: 15px; line-height: 1.5; }
 .rural-card h3 { margin: 16px 0 6px; font-size: 16px; }
-.rural-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 12px 0; }
-.rural-form.three { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.rural-form { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.rural-form > * { flex: 1 1 230px; min-width: 0; }
+.rural-form.three > * { flex: 1 1 150px; }
 .rural-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #b9cbdc; }
 .rural-form input, .rural-form select, .rural-card textarea, .rural-row input, .rural-row select { font-size: 17px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.2); color: inherit; width: 100%; font-family: inherit; }
 .rural-card textarea { resize: vertical; }
@@ -77,3 +78,8 @@
 .rural-letter { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); }
 .rural-letter summary { cursor: pointer; font-weight: 600; font-size: 15px; }
 .rural-letter pre { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line-height: 1.55; margin: 10px 0; }
+
+.rural-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px 22px; margin: 0 0 16px; }
+.rural-group-label { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 6px 2px; }
+.rural-groups .rural-tabs { margin: 0; }
+.rural-groups .rural-tabs button { padding: 10px 14px; font-size: 15px; }

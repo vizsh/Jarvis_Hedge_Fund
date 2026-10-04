@@ -98,6 +98,8 @@ export function Dock() {
   const guide = usePilot((s) => s.guide);
   const [typed, setTyped] = useState("");
   const hi = useLang((s) => s.lang) === "hi";
+  const [min, setMin] = useState<boolean>(() => { try { return localStorage.getItem("jarvis.dock.min") === "1"; } catch { return false; } });
+  const setMinSaved = (v: boolean) => { setMin(v); try { localStorage.setItem("jarvis.dock.min", v ? "1" : "0"); } catch { /* storage blocked */ } };
   const [talking, setTalking] = useState(false);
   useEffect(() => onVoice((st) => setTalking(st === "speaking")), []);
 
@@ -116,8 +118,17 @@ export function Dock() {
     : heard ? `You said: “${heard}”`
     : "Ask anything. Tap the mic and speak.";
 
+  // Put away it stays out of the way of the page; it comes back by itself when it is listening, speaking or asking something.
+  if (min && !talking && status === "idle" && !guide?.ask) {
+    return (
+      <button className="dock-pill" onClick={() => setMinSaved(false)} aria-label={hi ? "सहायक खोलें" : "Open the assistant"}>
+        <span className="dock-logo" aria-hidden>J</span>{hi ? "सहायक" : "Assistant"} ▴
+      </button>
+    );
+  }
   return (
     <div className={`dock ${status} ${talking ? "talking" : ""}`}>
+      <button className="dock-min" onClick={() => setMinSaved(true)} aria-label={hi ? "छोटा करें" : "Minimise"} title={hi ? "छोटा करें" : "Minimise"}>▾</button>
       {(guide?.ask || (guide?.done && guide.next?.length)) && (
         <div className="dock-guide">
           <div className="dock-guide-head">

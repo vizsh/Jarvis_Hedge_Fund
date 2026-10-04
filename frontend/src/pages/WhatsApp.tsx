@@ -12,6 +12,13 @@ type Channel = "whatsapp:" | "";
 const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const newNumber = () => "+9198" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
 let uid = 1;
+const MENU: [string, string][] = [
+  ["Check a moneylender's interest", "साहूकार का ब्याज जाँचें"], ["Is an offer or scheme real?", "क्या कोई ऑफ़र/योजना असली है?"], ["Government schemes I can get", "मुझे मिलने वाली सरकारी योजनाएँ"],
+  ["Are my papers ready?", "क्या मेरे काग़ज़ तैयार हैं?"], ["Plan my money around harvest", "फ़सल के हिसाब से पैसे की योजना"], ["What does a fund fee cost?", "फ़ंड की फ़ीस कितनी पड़ती है?"],
+  ["How long will my savings last?", "मेरी बचत कितने महीने चलेगी?"], ["Will my savings reach my goal?", "क्या मेरी बचत लक्ष्य तक पहुँचेगी?"], ["Credit score: why was my loan rejected?", "क्रेडिट स्कोर: ऋण क्यों रिजेक्ट हुआ?"],
+  ["Save a little every day for a goal", "किसी लक्ष्य के लिए रोज़ थोड़ी बचत"], ["Sell my crop now or wait?", "फ़सल अभी बेचूँ या रुकूँ?"], ["Why has my government payment not come?", "मेरा सरकारी पैसा क्यों नहीं आया?"],
+  ["Is this UPI request or QR safe?", "क्या यह UPI रिक्वेस्ट/QR सुरक्षित है?"], ["Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?"], ["I got a suspicious call or lost money", "मुझे ठग कॉल आई या पैसे गए"],
+];
 
 /** Pull the tappable numbered options out of a bot message ("1. Woman" -> button that sends "1"). */
 function split(text: string): { body: string; options: { n: string; label: string }[]; link: string | null } {
@@ -170,6 +177,10 @@ export default function WhatsApp() {
           <p className="wa-note">{t("Tap an option under a reply instead of typing the number. Use 🎙 to send a voice note: it is transcribed on this machine and shown back as “I heard…” first.",
             "टाइप करने की जगह जवाब के नीचे का विकल्प दबाइए। 🎙 से वॉइस नोट भेजिए: वह इसी मशीन पर लिखा जाता है और पहले “मैंने सुना…” दिखता है।")}</p>
           <p className="wa-note">{t("To connect a real number, see docs/MESSAGING.md (Twilio webhook: /twilio/webhook).", "असली नंबर जोड़ने के लिए docs/MESSAGING.md देखिए (Twilio वेबहुक: /twilio/webhook)।")}</p>
+          <h2 style={{ marginTop: 22 }}>{t("What each number does", "हर नंबर क्या करता है")}</h2>
+          <ol className="wa-menu">{MENU.map(([en, h], i) => (
+            <li key={i}><button onClick={() => void send(String(i + 1), `${i + 1}. ${hi ? h : en}`)}><b>{i + 1}</b> {hi ? h : en}</button></li>))}</ol>
+          <p className="wa-note">{t("Also: send CANCEL to stop a task, MENU to see the list again, or हिंदी / English to switch language.", "और: काम रोकने को CANCEL, सूची फिर देखने को MENU, भाषा बदलने को हिंदी / English भेजिए।")}</p>
         </aside>
       </div>
     </Page>

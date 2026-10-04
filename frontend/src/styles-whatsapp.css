@@ -31,3 +31,7 @@
 .wa-side li button:hover { border-color: var(--green); }
 .wa-note { color: var(--text-dim); font-size: 14px; line-height: 1.55; max-width: 520px; }
 @media (max-width: 900px) { .wa-layout { grid-template-columns: 1fr; } .wa-phone { height: calc(100vh - var(--nav-h, 56px) - 120px); } }
+
+.wa-menu { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 6px; }
+.wa-menu button { width: 100%; text-align: left; padding: 8px 12px; border-radius: 10px; font-size: 14px; cursor: pointer; color: inherit; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.14); }
+.wa-menu button:hover { border-color: #25d366; } .wa-menu b { display: inline-block; min-width: 22px; color: #25d366; }

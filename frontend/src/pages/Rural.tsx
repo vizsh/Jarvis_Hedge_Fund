@@ -802,14 +802,25 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"], ["shg", "📒", "Group ledger", "समूह की बही"], ["credit", "🏦", "Credit score", "क्रेडिट स्कोर"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"],
+    ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"],
+    ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"], ["shg", "📒", "Group ledger", "समूह की बही"], ["credit", "🏦", "Credit score", "क्रेडिट स्कोर"],
+  ];
+  // Twelve tools in one wrapping row left a lone button on the last line; grouped by what the person is trying to do.
+  const GROUPS: [string, string, Tool[]][] = [
+    ["Borrowing and cheats", "उधार और ठगी", ["loan", "credit", "scheme", "upi", "policy"]],
+    ["Government benefits", "सरकारी लाभ", ["schemes", "docs", "dbt"]],
+    ["Farm, savings and group", "खेती, बचत और समूह", ["income", "hold", "saving", "shg"]],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
       "खेती और दिहाड़ी वाले परिवारों के लिए काम के औज़ार: ज़्यादा ब्याज देना बंद कीजिए, अपना हक़ मत छोड़िए, और एकमुश्त आने वाले पैसे की योजना बनाइए।")}>
       <OfflineBar />
-      <div ref={top} className="rural-tabs" role="tablist">
-        {TABS.map(([id, ic, en, hi]) => <button key={id} role="tab" aria-selected={tool === id} className={tool === id ? "on" : ""} onClick={() => setTool(id)}><span aria-hidden>{ic}</span>{t(en, hi)}</button>)}
+      <div ref={top} className="rural-groups" role="tablist">
+        {GROUPS.map(([gen, ghi, ids]) => (
+          <div key={gen} className="rural-group"><div className="rural-group-label">{t(gen, ghi)}</div>
+            <div className="rural-tabs">{ids.map((id) => { const [, ic, en, hiT] = TABS.find((x) => x[0] === id)!; return (
+              <button key={id} role="tab" aria-selected={tool === id} className={tool === id ? "on" : ""} onClick={() => setTool(id)}><span aria-hidden>{ic}</span>{t(en, hiT)}</button>); })}</div></div>))}
       </div>
       <div className="grid">
         {tool === "loan" && <LoanTool init={params} />}

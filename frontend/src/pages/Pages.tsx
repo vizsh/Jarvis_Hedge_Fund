@@ -68,8 +68,7 @@ export function Portfolio() {
         <XRayPanel onOpenBuilder={() => setBuilder(true)} />
         <div className="stack"><PortfolioChart /><ProfileSwitch /></div>
       </div>
-      <div className="grid g2"><PositionsPanel /><CorrelationPanel /></div>
-      <div className="grid"><AttributionPanel /></div>
+      <div className="grid g2"><div className="stack"><PositionsPanel /><AttributionPanel /></div><CorrelationPanel /></div>
     </Page>
   );
 }
@@ -78,14 +77,16 @@ export function Portfolio() {
 function Glossary() {
   const { hi, t } = useT();
   const [terms, setTerms] = useState<Record<string, string>>({});
+  const [all, setAll] = useState(false);
   useEffect(() => { fetch(`/glossary?lang=${hi ? "hi" : "en"}`).then((r) => r.json()).then((d) => setTerms(d.terms ?? {})).catch(() => {}); }, [hi]);
   return (
     <section className="card">
       <h2>{t("Plain-English glossary", "सरल शब्दकोश")}</h2>
       <p className="muted">{t("The words finance uses to sound complicated, in one sentence each.", "वित्त के वे शब्द जो मुश्किल लगते हैं, एक-एक वाक्य में।")}</p>
-      {Object.entries(terms).slice(0, 12).map(([k, v]) => (
+      {Object.entries(terms).slice(0, all ? 200 : 7).map(([k, v]) => (
         <details key={k} className="gloss"><summary>{k}</summary><p>{v}</p></details>
       ))}
+      {Object.keys(terms).length > 7 && <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setAll(!all)}>{all ? t("Show fewer", "कम दिखाएँ") : t(`Show all ${Object.keys(terms).length} terms`, `सभी ${Object.keys(terms).length} शब्द दिखाएँ`)}</button>}
     </section>
   );
 }
@@ -96,15 +97,15 @@ export function Learn() {
     <Page title="Learn" lead={t("Ask in your own words, see what a crash would do to you, and find out where every number comes from.", "अपने शब्दों में पूछिए, देखिए कि गिरावट का आप पर क्या असर होगा, और जानिए कि हर आँकड़ा कहाँ से आता है।")}>
       <div className="grid"><GoalFan /></div>
       <div className="grid g2">
-        <AskPanel />
         <div className="stack">
+          <AskPanel />
           <section className="card">
             <h2>{t("Every number is a door", "हर आँकड़ा एक दरवाज़ा है")}</h2>
             <p className="muted">{t("Click any underlined figure to see what it is made of, the formula, and the exact prices and dates behind it.", "रेखांकित किसी भी आँकड़े को दबाइए और देखिए कि वह किससे बना है, उसका सूत्र क्या है, और उसके पीछे के सही भाव और तारीख़ें क्या हैं।")}</p>
             <p className="tryit">{t("Try it: your technology share is", "आज़माइए: आपका टेक्नोलॉजी हिस्सा है")} <Num metric="sector" k="IT" value={t("this number", "यह आँकड़ा")} /> {t("— or your overall", "— या आपका कुल")} <Num metric="score" value={t("score", "स्कोर")} />.</p>
           </section>
-          <Glossary />
         </div>
+        <Glossary />
       </div>
       <div className="grid"><StressPanel /></div>
     </Page>
@@ -123,9 +124,11 @@ export function Research() {
           including the ones that do worse than a coin flip.</p>
       </section>
       <div className="grid g2"><DeskPanel /><ConvictionPanel /></div>
-      <div className="grid g2"><ClaimsPanel /><CalibrationPanel /></div>
-      <div className="grid g2"><SourcesPanel /><section className="card"><h2>Time machine</h2>
-        <p className="muted">Rewind the clock: the analysts can then only see what was known on that day.</p><Scrubber /></section></div>
+      <div className="grid g2">
+        <div className="stack"><ClaimsPanel /><SourcesPanel /><section className="card"><h2>Time machine</h2>
+          <p className="muted">Rewind the clock: the analysts can then only see what was known on that day.</p><Scrubber /></section></div>
+        <CalibrationPanel />
+      </div>
     </Page>
   );
 }
