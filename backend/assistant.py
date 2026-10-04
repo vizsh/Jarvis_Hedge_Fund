@@ -124,6 +124,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
     ("policy_check", _r(r"@@b(endowment|money ?back|ulip|surrender value|bima agent)@@b|@@b(lic|insurance|policy|bima)@@b.{0,50}@@b(premium|maturity|agent|returns?|worth|good|bonus|surrender|lapse|stop paying|sold|savings?|invest@@w*)@@b|@@b(premium|maturity)@@b.{0,50}@@b(policy|insurance|lic)@@b|@@bagent@@b.{0,40}@@b(policy|insurance|lic)@@b".replace("@@", chr(92)))),
     ("moneylender", _r(r"@@b(money ?lender|sahukar|sahukaar|saahukar|arhtiya|arthiya|adhatiya|loan shark|local lender|private lender)@@b|@@b(byaj|vyaj|sood)@@b|@@b(rupees?|rs|₹)@@s*@@d*@@s*(per|a|for every|on every|in every)@@s+(hundred|100)@@b|@@b(per|a|on every)@@s+(hundred|100)@@s+(rupees?|rs)@@b|@@b(sainkda|saikda|sekda)@@b|@@breal (rate|interest)@@b.{0,25}@@b(loan|lender|borrow)@@b|@@bhow much (interest|byaj) (am i|do i|will i)@@b|@@bcost of (my |this )?(loan|borrowing)@@b|@@binterest (rate )?of (@@d+) ?(rupees?|rs)@@b".replace("@@", chr(92)))),
     ("scheme_check", _r(r"@@b(double|triple|multiply) (my|the|your) money@@b|@@bmoney (will )?(double|triple)@@b|@@b(chit ?fund|ponzi|pyramid|mlm|network marketing|kameti|committee scheme)@@b|@@b(guaranteed|assured|fixed) (monthly|daily|weekly|high) (returns?|income|profit)@@b|@@b(is|are) (this|that|the) (scheme|offer|company|plan|app|business|investment|girvi|group)@@b.{0,25}@@b(real|genuine|legit|legitimate|fake|safe|a scam|true|trustworthy)@@b|@@b(scheme|offer|plan|company)@@b.{0,40}@@b(genuine|legit|fake|scam|fraud)@@b|@@bpay@@b.{0,25}@@bget@@b.{0,40}@@b(months?|weeks?|days?|years?)@@b|@@bjoining fee@@b|@@bbring (your )?(friends|members|people)@@b|@@brefer@@b.{0,15}@@bearn@@b|@@bmoney back in@@b.{0,15}@@b(months?|weeks?|days?)@@b".replace("@@", chr(92)))),
+    ("saving_goal", _r(r"@@b(want|need|require|planning|plan)@@b.{0,40}@@bfor (my |our )?(daughter|son|beti|beta).s? (marriage|wedding|education|shaadi|studies)@@b|@@b(save|saving|savings|put aside|set aside|keep aside|bachat)@@b.{0,35}@@b(a day|per day|every day|daily|each day|a week|weekly|roz)@@b|@@b(rs|rupees?|₹)@@s?@@d+@@s?(a|per|each|every) (day|week)@@b|@@b(save|saving|fund|bachat)@@b.{0,30}@@b(daughter|son|beti|beta)@@b.{0,25}@@b(marriage|wedding|education|shaadi|studies|school)@@b|@@b(daughter|son|beti|beta).s? (marriage|wedding|education|shaadi|studies)@@b.{0,40}@@b(save|saving|fund|how much)@@b|@@bsave (up )?for (my |a |the )?(marriage|wedding|house repair|roof|medical|cow|buffalo|goat|cart|tools|festival|old age)@@b|@@bhow much (should|do|can) i (save|put aside|set aside) (every|each|a|per) (day|week|month)@@b".replace("@@", chr(92)))),
     ("hold_sell", _r(r"@@bquintals?@@b.{0,90}@@b(wait|hold|sell|store|worth)@@b|@@b(wait|hold)@@b.{0,25}@@b@@d+ ?months?@@b.{0,40}@@b(price|rate|for @@d)@@b|@@b(sell|selling)@@b.{0,25}@@b(now|today|immediately)@@b.{0,30}@@b(or|vs)@@b.{0,25}@@b(wait|hold|store|keep|later)@@b|@@b(wait|hold|store|keep)@@b.{0,30}@@b(my )?(crop|harvest|wheat|rice|paddy|soybean|soyabean|cotton|maize|mustard|gram|onion|potato|grain|produce)@@b|@@b(better|higher) (price|rate|bhav)@@b.{0,30}@@b(later|wait|after|next (month|season))@@b|@@bwhen (should|to) (i )?sell (my )?(crop|wheat|rice|paddy|soybean|cotton|maize|mustard|gram|onion|potato|grain|produce)@@b|@@b(post.?harvest|harvest) (price|dip|glut)@@b|@@bmandi (price|rate|bhav)@@b".replace("@@", chr(92)))),
     ("dbt_trace", _r(r"@@b(payment|subsidy|instal?lment|pension|scholarship|wages?|dbt|benefit|refund)@@b.{0,30}@@b(not (come|came|arrive@@w*|receiv@@w*|credited|reach@@w*)|stuck|stopped|pending|rejected|failed|has not|hasn.t|never)@@b|@@bwhy (did|has|have|is|was) (my )?(payment|subsidy|money|instal?lment|pension|scholarship|wages?)@@b|@@b(pm.?kisan|kisan)@@b.{0,30}@@b(not|stuck|pending|rejected|status|instal?lment)@@b|@@bdbt@@b".replace("@@", chr(92)))),
     ("entitlements", _r(r"@@b(government|govt|sarkari|central|state) (schemes?|yojana|benefits?|subsid@@w+)@@b|@@bschemes?@@b.{0,35}@@b(eligible|entitled|qualify|for me|can i get|available|am i missing|i can)@@b|@@bwhat (benefits|schemes|subsid@@w+|help|yojanas?)@@b.{0,30}@@b(can i|do i|am i|for)@@b|@@b(eligible|entitled) (for|to)@@b|@@bpm[- ]?kisan@@b|@@bayushman@@b|@@bujjwala@@b|@@bm?gnrega@@b|@@bnrega@@b|@@bpm[- ]?awas@@b|@@bpension (scheme|yojana)@@b|@@bam i (missing|not getting)@@b|@@bmoney (i am|i.m|we are) owed@@b|@@bbenefits? (i|we) (can|should|could) (get|claim)@@b".replace("@@", chr(92)))),
@@ -444,7 +445,7 @@ _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "li
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
                 "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
-                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "upi_check": "scam", "dbt_trace": "docs", "hold_sell": "income", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
+                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "upi_check": "scam", "dbt_trace": "docs", "hold_sell": "income", "saving_goal": "goal", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
 
 
 def suggestions(text: str, n: int = 3) -> list[tuple[str, str]]:
@@ -1347,6 +1348,56 @@ def h_hold_sell(text: str, ctx: Ctx) -> Answer:
     a.data = {"hold": r}
     return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["income"]], "hold_sell")
 
+
+# ---- daily-wage saving (backend/rural.py: daily_saving) ---------------------------------------
+def _saving_args(text: str) -> dict:
+    low = text.lower()
+    out: dict = {}
+    for gid, rx in (("daughter", r"daughter|beti|बेटी"), ("son", r"\bson\b|beta|बेटे"), ("house", r"house|roof|repair|मकान|छत"), ("medical", r"medical|hospital|illness|इलाज"),
+                    ("animal", r"cow|buffalo|goat|गाय|भैंस|बकरी"), ("tools", r"cart|tools?|shop|ठेला|दुकान"), ("festival", r"festival|wedding|त्योहार|शादी"), ("oldage", r"old age|retire|बुढ़ापा")):
+        if re.search(rx, low):
+            out["goal"] = gid
+            break
+    m = re.search(r"(\d[\d,]*)\s*(?:rs|rupees?|₹)?\s*(?:a|per|each|every)\s*(?:working )?day|(?:rs|rupees?|₹)\s*(\d[\d,]*)\s*(?:a|per|each|every)\s*(?:working )?day", low)
+    if m:
+        val = float((m.group(1) or m.group(2)).replace(",", ""))
+        if re.search(r"(earn|wage|paid|get|income|make)\D{0,10}$", low[max(0, m.start() - 14):m.start()]):
+            out["daily_wage"] = val                         # "I earn 400 a day" is a wage, not a saving
+        else:
+            out["daily"] = val
+    q = tools.quantities(text)
+    if q["years"]:
+        out["months"] = int(q["years"][0]["v"] * 12)
+    elif q["months"]:
+        out["months"] = int(q["months"][0]["v"])
+    for x in q["money"]:
+        if x["v"] >= 1000 and (out.get("daily") is None or abs(x["v"] - out["daily"]) > 1e-9):
+            out["target"] = x["v"]
+            break
+    w = re.search(r"(?:earn|wage|wages|paid|mazdoori)\D{0,15}(\d[\d,]*)", low)
+    if w:
+        out["daily_wage"] = float(w.group(1).replace(",", ""))
+    return out
+
+
+def h_saving_goal(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    p = _saving_args(text)
+    if not (p.get("daily") or (p.get("target") and p.get("months"))):
+        a = Answer(headline=t("Tell me what you want to save for and when, or how much you can put aside each day, and I will work out the rest.",
+                              "बताइए किसके लिए और कब तक बचाना है, या रोज़ कितना अलग रख सकते हैं; बाक़ी मैं निकालूँगा।"),
+                   bullets=[t("For example: I want 1 lakh for my daughter's marriage in 5 years. Or: I can save 10 rupees a day.", "जैसे: बेटी की शादी के लिए 5 साल में 1 लाख चाहिए। या: मैं रोज़ 10 रुपये बचा सकता हूँ।")],
+                   visual={"page": "rural", "label": t("Open the saving planner", "बचत योजना खोलें"), "params": {"tool": "saving"}})
+        return _done(a, ctx, [_RURAL_FU["saving"], _RURAL_FU["loan"]], "saving_goal")
+    r = rural.daily_saving(p.get("goal", "other"), p.get("target"), p.get("months"), p.get("daily"), p.get("daily_wage"), 26, 6.7, 6.0, ctx.lang)
+    a = Answer(headline=r["headline"], bullets=r["bullets"][:3], action=r["rules"][0], detail=r["note"],
+               facts=[_fact(t("Per working day", "प्रति काम के दिन"), f"₹{r.get('per_day_rd', r.get('daily', 0)):,.0f}")],
+               visual={"page": "rural", "label": t("Open the saving planner", "बचत योजना खोलें"),
+                       "params": {"tool": "saving", **{k: v for k, v in p.items()}, "run": 1}})
+    a.data = {"saving": r}
+    return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["income"]], "saving_goal")
+
 # ---- rural / low-income tools (backend/rural.py) ---------------------------------------
 def _open_rural(tool: str, label_en: str, label_hi: str, ctx: Ctx, params: dict | None = None) -> dict:
     return {"page": "rural", "label": _t(ctx.lang)(label_en, label_hi), "params": {"tool": tool, **(params or {})}}
@@ -1470,6 +1521,7 @@ def h_income_plan(text: str, ctx: Ctx) -> Answer:
 
 
 _RURAL_FU = {
+    "saving": ("How much should I save a day for my daughter's marriage?", "बेटी की शादी के लिए रोज़ कितना बचाऊँ?"),
     "hold": ("Should I sell my wheat now or wait for a better price?", "गेहूँ अभी बेचूँ या बेहतर भाव के लिए रुकूँ?"),
     "upi_recover": ("I already paid a scammer on UPI, what do I do?", "मैंने UPI से ठग को पैसे भेज दिए, अब क्या करूँ?"),
     "policy": ("Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?"),
@@ -1485,7 +1537,7 @@ HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "should_buy": h_buy_advice, "hold_sell": h_hold_sell, "dbt_trace": h_dbt_trace, "upi_check": h_upi_check, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "saving_goal": h_saving_goal, "hold_sell": h_hold_sell, "dbt_trace": h_dbt_trace, "upi_check": h_upi_check, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1525,6 +1577,7 @@ INTENT_DOC = {
     "diversification": "is the portfolio spread out enough",
     "correlation": "which holdings move together",
     "should_buy": "should the user buy / add a specific stock",
+    "saving_goal": "how much to save per day / week for a goal like a daughter's marriage, or what saving a small amount a day becomes",
     "hold_sell": "should a farmer sell the crop now or hold it for a better mandi price; what price makes waiting worth it",
     "dbt_trace": "a government payment / subsidy / pension / instalment has not arrived, why, and how to fix it",
     "upi_check": "is a UPI request / QR / link / call asking for PIN or payment safe, or a UPI scam trick",

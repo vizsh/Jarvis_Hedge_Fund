@@ -1059,3 +1059,118 @@ def hold_or_sell(qty: float, price_now: float, months: int, price_later: float |
             "crop_left_pct": round(keep * 100, 1), "years": years, "history": hit, "season": season, "n_history": len(hist), "cash_note": cash,
             "warn": t("Prices can move either way and no one can promise a rise. This uses your numbers and your own past prices, never a forecast.", "भाव किसी भी तरफ़ जा सकता है और बढ़ने का वादा कोई नहीं कर सकता। यह आपके आँकड़ों और आपके अपने पुराने भावों से बना है, कोई पूर्वानुमान नहीं।"),
             "tip": t("If you must borrow against the crop at a moneylender's rate, waiting almost never pays: check the rate in the Moneylender tool. A bank or Kisan Credit Card loan, or a warehouse-receipt loan, costs far less.", "फ़सल के बदले साहूकार की दर पर क़र्ज़ लेना पड़े तो रुकना लगभग कभी फ़ायदे का नहीं: दर साहूकार वाले औज़ार में जाँचिए। बैंक या किसान क्रेडिट कार्ड, या गोदाम-रसीद पर क़र्ज़ कहीं सस्ता है।")}
+
+
+# =============================================================================== E1 daily-wage saving helper
+# "Rs 10 a day" thinking, made real. Two questions, same arithmetic: (a) I want X rupees in N months for a
+# goal (a daughter's marriage, a roof, a cow): how much a day? (b) I can put aside Y a day: what does it
+# become in N months, and how long to reach X? Compared across: cash kept at home (no growth, and it leaks),
+# and a recurring deposit (RD, interest compounded quarterly as post-office RDs do). The rate is an
+# illustration the screen labels as such; rates change.
+SAVE_GOALS = {  # id: (English, Hindi)
+    "daughter": ("Daughter's marriage or education", "बेटी की शादी या पढ़ाई"), "son": ("Son's education", "बेटे की पढ़ाई"),
+    "house": ("House or roof repair", "मकान या छत की मरम्मत"), "medical": ("Medical emergency fund", "इलाज के लिए आपात निधि"),
+    "animal": ("Cow, buffalo or goat", "गाय, भैंस या बकरी"), "tools": ("Tools, cart or a small shop", "औज़ार, ठेला या छोटी दुकान"),
+    "festival": ("Festival or wedding in the family", "त्योहार या घर की शादी"), "oldage": ("Old age", "बुढ़ापा"), "other": ("Something else", "कुछ और"),
+}
+SAVE_PLACES = [  # (English, Hindi, rate shown as illustration, note_en, note_hi)
+    ("Post Office Recurring Deposit (5 years)", "डाकघर आवर्ती जमा (5 साल)", 6.7, "From ₹100 a month; backed by the government; interest added every 3 months.", "₹100 महीने से; सरकार की गारंटी; ब्याज हर 3 महीने जुड़ता है।"),
+    ("Bank recurring deposit", "बैंक की आवर्ती जमा", 6.5, "Any bank; some allow weekly or small amounts. Ask for the penalty if you miss a month.", "कोई भी बैंक; कुछ में छोटी रक़म चलती है। महीना चूकने पर जुर्माना पूछ लीजिए।"),
+    ("Sukanya Samriddhi (only for a girl under 10)", "सुकन्या समृद्धि (सिर्फ़ 10 साल से छोटी बेटी के लिए)", 8.2, "From ₹250 a year; the best rate; money is locked until she is older.", "साल के ₹250 से; सबसे अच्छी दर; बेटी के बड़े होने तक पैसा बंद रहता है।"),
+    ("Self-help group savings", "स्वयं सहायता समूह की बचत", 0.0, "Small weekly savings plus cheap group loans in an emergency. Rate depends on the group.", "छोटी साप्ताहिक बचत और ज़रूरत पर सस्ता समूह ऋण। दर समूह पर निर्भर।"),
+]
+
+
+def _rd_factor(months: int, rate_pct: float) -> float:
+    """What Rs 1 deposited at the start of every month for `months` months is worth at the end, quarterly compounding."""
+    q = 1 + rate_pct / 100 / 4
+    return sum(q ** ((months - k) / 3) for k in range(months))      # deposit k has (months - k) months to grow
+
+
+def rd_maturity(monthly: float, months: int, rate_pct: float) -> float:
+    return monthly * _rd_factor(max(0, int(months)), rate_pct)
+
+
+def months_to_reach(target: float, monthly: float, rate_pct: float, cap: int = 600) -> int | None:
+    if monthly <= 0 or target <= 0:
+        return None
+    for n in range(1, cap + 1):
+        if rd_maturity(monthly, n, rate_pct) >= target:
+            return n
+    return None
+
+
+def daily_saving(goal: str = "other", target: float | None = None, months: int | None = None, daily: float | None = None,
+                 daily_wage: float | None = None, days_per_month: int = 26, rate_pct: float = 6.7, inflation_pct: float = 6.0,
+                 lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    i = 1 if lang == "hi" else 0
+    dpm = max(1, min(31, int(days_per_month)))
+    out: dict[str, Any] = {"goal": SAVE_GOALS.get(goal, SAVE_GOALS["other"])[i], "rate": rate_pct, "days_per_month": dpm}
+    money = (lambda v: _inr(v, lang))
+    bullets: list[str] = []
+    band = "green"
+    head = ""
+
+    if target and months:
+        n = int(months)
+        today_target = float(target)
+        future_target = today_target * (1 + inflation_pct / 100) ** (n / 12)          # price rise: the same goal costs more later
+        f = _rd_factor(n, rate_pct)
+        need_rd = future_target / f
+        need_cash = future_target / n
+        per_day_rd, per_day_cash = need_rd / dpm, need_cash / dpm
+        out.update({"mode": "plan", "target_today": round(today_target), "target_future": round(future_target), "months": n,
+                    "need_monthly_rd": round(need_rd), "need_monthly_cash": round(need_cash), "per_day_rd": round(per_day_rd, 1), "per_day_cash": round(per_day_cash, 1),
+                    "deposited_rd": round(need_rd * n), "interest_rd": round(future_target - need_rd * n), "per_week_rd": round(need_rd * 12 / 52)})
+        head = t(f"{out['goal']}: if it costs {money(today_target)} today, in {n} months you will need about {money(future_target)} (prices rise). Put aside about ₹{per_day_rd:,.0f} a working day in a recurring deposit.",
+                 f"{out['goal']}: आज इसका ख़र्च {money(today_target)} है तो {n} महीने बाद लगभग {money(future_target)} चाहिए (दाम बढ़ते हैं)। आवर्ती जमा में लगभग ₹{per_day_rd:,.0f} प्रति काम के दिन रखिए।")
+        bullets.append(t(f"In a recurring deposit: ₹{need_rd:,.0f} a month ({money(need_rd * n)} put in, {money(future_target - need_rd * n)} added as interest). Kept as cash it would need ₹{need_cash:,.0f} a month, and cash at home leaks away.",
+                         f"आवर्ती जमा में: ₹{need_rd:,.0f} महीना (कुल {money(need_rd * n)} जमा, {money(future_target - need_rd * n)} ब्याज से जुड़ेगा)। नक़द रखें तो ₹{need_cash:,.0f} महीना चाहिए, और घर का नक़द खर्च हो जाता है।"))
+        if daily_wage:
+            share = per_day_rd / daily_wage * 100
+            out["wage_share_pct"] = round(share, 1)
+            if share > 30:
+                band = "red"
+                longer = months_to_reach(future_target, 0.1 * daily_wage * dpm, rate_pct)
+                bullets.append(t(f"That is {share:.0f}% of a day's wage: too much to keep up. Take longer: saving 10% of your wage (₹{0.1 * daily_wage:,.0f} a day) reaches the goal in about {longer} months." if longer else f"That is {share:.0f}% of a day's wage: too much to keep up.",
+                                 f"यह एक दिन की मज़दूरी का {share:.0f}% है: निभाना मुश्किल। समय बढ़ाइए: मज़दूरी का 10% (₹{0.1 * daily_wage:,.0f} रोज़) बचाएँ तो लगभग {longer} महीने में लक्ष्य पूरा होगा।" if longer else f"यह एक दिन की मज़दूरी का {share:.0f}% है: निभाना मुश्किल।"))
+            elif share > 15:
+                band = "amber"
+                bullets.append(t(f"That is {share:.0f}% of a day's wage: possible, but plan for weeks with no work.", f"यह एक दिन की मज़दूरी का {share:.0f}% है: हो सकता है, पर बिना काम वाले हफ़्तों की योजना रखिए।"))
+            else:
+                bullets.append(t(f"That is {share:.0f}% of a day's wage: realistic.", f"यह एक दिन की मज़दूरी का {share:.0f}% है: निभ सकता है।"))
+        table = []
+        for d in (10, 20, 50, 100):
+            m = d * dpm
+            table.append({"daily": d, "monthly": m, "after": round(rd_maturity(m, n, rate_pct)), "months_to_goal": months_to_reach(future_target, m, rate_pct)})
+        out["table"] = table
+
+    if daily and daily > 0:
+        n = int(months) if months else 60
+        m = daily * dpm
+        mat = rd_maturity(m, n, rate_pct)
+        out.setdefault("mode", "daily")
+        out.update({"daily": daily, "monthly": round(m), "months": n, "matures": round(mat), "put_in": round(m * n), "interest": round(mat - m * n)})
+        if not head:
+            head = t(f"₹{daily:,.0f} a working day is ₹{m:,.0f} a month. In {n} months a recurring deposit makes it about {money(mat)}: {money(m * n)} of yours plus {money(mat - m * n)} interest.",
+                     f"₹{daily:,.0f} रोज़ (काम के दिन) यानी ₹{m:,.0f} महीना। {n} महीने में आवर्ती जमा से लगभग {money(mat)}: आपके {money(m * n)} और {money(mat - m * n)} ब्याज।")
+        else:
+            bullets.append(t(f"At ₹{daily:,.0f} a day you would have about {money(mat)} in {n} months.", f"₹{daily:,.0f} रोज़ से {n} महीने में लगभग {money(mat)} होंगे।"))
+        if target:
+            reach = months_to_reach(float(target), m, rate_pct)
+            out["months_to_target"] = reach
+            if reach:
+                bullets.append(t(f"At that rate you reach {money(float(target))} in about {reach} months ({reach / 12:.1f} years), before price rises.", f"इसी रफ़्तार से {money(float(target))} लगभग {reach} महीने ({reach / 12:.1f} साल) में पूरे होंगे, दाम बढ़ने से पहले के हिसाब से।"))
+    if not head:
+        head = t("Tell me a goal amount and when you want it, or how much you can put aside a day.", "लक्ष्य की रक़म और कब चाहिए, या रोज़ कितना बचा सकते हैं, यह बताइए।")
+        band = "amber"
+    places = [{"name": hi if lang == "hi" else en, "rate": r, "note": nh if lang == "hi" else ne} for en, hi, r, ne, nh in SAVE_PLACES]
+    rules = [t("Pay yourself first: put the money aside on the day you are paid, not what is left at night.", "पहले ख़ुद को दीजिए: मज़दूरी मिलते ही बचत अलग कीजिए, रात को जो बचे वह नहीं।"),
+             t("Build a small emergency pot first, about two weeks of wages, so a bad week does not break the savings.", "पहले एक छोटा आपात कोष बनाइए, लगभग दो हफ़्ते की मज़दूरी, ताकि बुरा हफ़्ता बचत न तोड़े।"),
+             t("Never borrow from a moneylender for something you can save for: 5 rupees per hundred a month is 60% a year.", "जिसके लिए बचत हो सकती है उसके लिए साहूकार से कर्ज़ मत लीजिए: 5 रुपये सैकड़ा महीना यानी साल का 60%।"),
+             t("Keep it where it is hard to spend and safe: a post-office or bank account in your own name, not a chit fund or a person.", "ऐसी जगह रखिए जहाँ ख़र्च करना कठिन और पैसा सुरक्षित हो: अपने नाम का डाकघर या बैंक खाता, चिट फंड या कोई व्यक्ति नहीं।")]
+    out.update({"band": band, "headline": head, "bullets": bullets, "places": places, "rules": rules,
+                "note": t(f"Rates shown ({rate_pct}%) and the 6% price rise are illustrations: deposit rates change. A deposit is safe but locked; if you stop early you may lose some interest.",
+                          f"दिखाई गई दर ({rate_pct}%) और 6% दाम-वृद्धि उदाहरण हैं: जमा दरें बदलती हैं। जमा सुरक्षित है पर बँधी रहती है; बीच में तोड़ने पर कुछ ब्याज जा सकता है।")})
+    return out

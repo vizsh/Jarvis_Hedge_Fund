@@ -1446,6 +1446,23 @@ async def rural_hold(b: HoldIn) -> dict:
     return rural.hold_or_sell(b.qty, b.price_now, b.months, b.price_later, b.storage, b.shrink, b.handling, b.rate, b.history, b.from_month, b.lang)
 
 
+class SaveIn(BaseModel):
+    goal: str = "other"
+    target: float | None = None
+    months: int | None = None
+    daily: float | None = None
+    daily_wage: float | None = None
+    days_per_month: int = 26
+    rate: float = 6.7
+    lang: str = "en"
+
+
+@app.post("/rural/saving")
+async def rural_saving(b: SaveIn) -> dict:
+    from backend import rural
+    return rural.daily_saving(b.goal, b.target, b.months, b.daily, b.daily_wage, b.days_per_month, b.rate, 6.0, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

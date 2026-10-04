@@ -21,7 +21,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold" | "saving";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -145,6 +145,58 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
+      </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ E1 daily saving */
+type Save = { band: string; headline: string; bullets: string[]; mode?: string; target_future?: number; need_monthly_rd?: number; per_day_rd?: number; per_week_rd?: number;
+  deposited_rd?: number; interest_rd?: number; wage_share_pct?: number; matures?: number; put_in?: number; interest?: number; months_to_target?: number | null;
+  table?: { daily: number; monthly: number; after: number; months_to_goal: number | null }[]; places: { name: string; rate: number; note: string }[]; rules: string[]; note: string };
+const GOALS: [string, string, string][] = [["daughter", "Daughter's marriage or education", "बेटी की शादी या पढ़ाई"], ["son", "Son's education", "बेटे की पढ़ाई"], ["house", "House or roof repair", "मकान या छत की मरम्मत"],
+  ["medical", "Medical emergency fund", "इलाज के लिए आपात निधि"], ["animal", "Cow, buffalo or goat", "गाय, भैंस या बकरी"], ["tools", "Tools, cart or a small shop", "औज़ार, ठेला या छोटी दुकान"],
+  ["festival", "Festival or wedding in the family", "त्योहार या घर की शादी"], ["oldage", "Old age", "बुढ़ापा"], ["other", "Something else", "कुछ और"]];
+
+function SavingTool({ init }: { init: Record<string, string> }) {
+  const { t } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "saving";
+  const waiting = useWaiting("saving");
+  const [f, setF] = useState(() => guided
+    ? { goal: init.goal ?? "other", target: init.target ? String(Number(init.target)) : "", years: init.months ? String(Number(init.months) / 12) : "", daily: init.daily ?? "", wage: init.daily_wage ?? "", dpm: "26", rate: "6.7" }
+    : store.get("saving", { goal: "daughter", target: "100000", years: "5", daily: "", wage: "400", dpm: "26", rate: "6.7" }));
+  useEffect(() => { if (!guided) store.set("saving", f); }, [f, guided]);
+  const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const n = (v: string) => Number(v) || 0;
+  const months = Math.round(n(f.years) * 12);
+  const ok = !waiting && ((n(f.target) > 0 && months > 0) || n(f.daily) > 0);
+  const r = usePost<Save>("/rural/saving", { goal: f.goal, target: n(f.target) || null, months: months || null, daily: n(f.daily) || null, daily_wage: n(f.wage) || null, days_per_month: n(f.dpm) || 26, rate: n(f.rate), lang }, ok, 250);
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Save a little every day for a goal", "किसी लक्ष्य के लिए रोज़ थोड़ी बचत")}</h2>
+      <Waiting tool="saving" />
+      <p className="muted">{t("A small amount saved on the days you work adds up, and a recurring deposit adds interest. Tell me the goal and when, and I show what to put aside each working day. Or tell me what you can save a day and I show what it becomes.", "काम के दिनों में बचाई छोटी रक़म जुड़कर बड़ी हो जाती है, और आवर्ती जमा ब्याज भी जोड़ती है। लक्ष्य और समय बताइए, मैं दिखाऊँगा कि हर काम के दिन कितना अलग रखना है। या बताइए रोज़ कितना बचा सकते हैं, मैं दिखाऊँगा वह क्या बनेगा।")}</p>
+      <div className="rural-form">
+        <label>{t("Saving for", "किसके लिए")}<select value={f.goal} onChange={set("goal")}>{GOALS.map(([v, en, hi]) => <option key={v} value={v}>{t(en, hi)}</option>)}</select></label>
+        <label>{t("What it costs today (₹)", "आज इसका ख़र्च (₹)")}<input inputMode="numeric" value={f.target} onChange={set("target")} /></label>
+        <label>{t("Needed in (years)", "कितने साल में चाहिए")}<input inputMode="decimal" value={f.years} onChange={set("years")} /></label>
+        <label>{t("Or: what I can save per working day (₹)", "या: रोज़ (काम के दिन) कितना बचा सकता हूँ (₹)")}<input inputMode="numeric" value={f.daily} onChange={set("daily")} /></label>
+        <label>{t("My wage on a working day (₹, optional)", "काम के दिन मेरी मज़दूरी (₹, वैकल्पिक)")}<input inputMode="numeric" value={f.wage} onChange={set("wage")} /></label>
+        <label>{t("Working days in a month", "महीने में काम के दिन")}<input inputMode="numeric" value={f.dpm} onChange={set("dpm")} /></label>
+      </div>
+      {r && (<>
+        <div className={`rural-big ${r.band}`}><span style={{ fontSize: 32 }}>{r.per_day_rd !== undefined ? `₹${Math.round(r.per_day_rd)}` : r.matures !== undefined ? `₹${r.matures.toLocaleString("en-IN")}` : "–"}</span><small>{r.per_day_rd !== undefined ? t("per working day", "प्रति काम के दिन") : t("after the time", "उस समय बाद")}</small></div>
+        <p className="rural-head">{r.headline}</p>
+        <ul className="rural-flags good">{r.bullets.map((b) => <li key={b}>{b}</li>)}</ul>
+        {r.table && <><h3>{t("If you can save a fixed amount a day", "रोज़ तय रक़म बचा सकें तो")}</h3>
+          <table className="rural-table"><thead><tr><th>{t("Per working day", "प्रति काम के दिन")}</th><th>{t("Per month", "महीना")}</th><th>{t("After the time", "उस समय बाद")}</th><th>{t("Months to reach the goal", "लक्ष्य तक महीने")}</th></tr></thead>
+            <tbody>{r.table.map((x) => <tr key={x.daily}><td>₹{x.daily}</td><td>₹{x.monthly.toLocaleString("en-IN")}</td><td>₹{x.after.toLocaleString("en-IN")}</td><td>{x.months_to_goal ?? "–"}</td></tr>)}</tbody></table></>}
+        <h3>{t("Where to keep it", "कहाँ रखें")}</h3>
+        <ul className="rural-links">{r.places.map((p) => <li key={p.name}><b>{p.name}</b>{p.rate ? ` (~${p.rate}%)` : ""}: {p.note}</li>)}</ul>
+        <h3>{t("Four rules that make it work", "चार नियम जिनसे यह चलता है")}</h3>
+        <ol className="rural-steps">{r.rules.map((x) => <li key={x}>{x}</li>)}</ol>
+        <p className="rural-note">{r.note}</p>
+        <Say text={r.headline} />
       </>)}
     </section>
   );
@@ -561,7 +613,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -580,6 +632,7 @@ export default function Rural() {
         {tool === "upi" && <UpiTool init={params} />}
         {tool === "dbt" && <DbtTool init={params} />}
         {tool === "hold" && <HoldTool init={params} />}
+        {tool === "saving" && <SavingTool init={params} />}
       </div>
     </Page>
   );

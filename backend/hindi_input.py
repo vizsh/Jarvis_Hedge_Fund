@@ -308,6 +308,28 @@ def _b_policy(t: str, q: Q, raw: str) -> str:
     return " ".join(parts)
 
 
+def _b_saving(t: str, q: Q, raw: str) -> str:
+    toks = t.split()
+    daily = target = None
+    yrs = next((x["v"] for x in q if x["kind"] == "years"), None)
+    mon = next((x["v"] for x in q if x["kind"] == "months"), None)
+    for x in q:
+        if x["kind"] not in ("money", "plain"):
+            continue
+        w = " ".join(toks[max(0, int(x["at"]) - 2): int(x["at"]) + 4])
+        if re.search(norm("रोज|रोज़|दिन|प्रतिदिन"), w) and daily is None and x["v"] < 2000:
+            daily = x["v"]
+        elif x["kind"] == "money" and x["v"] >= 1000 and target is None:
+            target = x["v"]
+    goal = "daughter's marriage" if re.search(norm("बेटी"), t) else "son's education" if re.search(norm("बेटे"), t) else "house repair" if re.search(norm("मकान|छत"), t) else "medical" if re.search(norm("इलाज"), t) else "goal"
+    when = f" in {_fmt(yrs)} years" if yrs else (f" in {_fmt(mon)} months" if mon else "")
+    if daily is not None and target is None:
+        return f"I can save {_fmt(daily)} rupees a day{when}, what will it become?"
+    if target is not None:
+        return f"I want {_m(target)} for my {goal}{when}, how much should I save a day?"
+    return "How much should I save a day for my goal?"
+
+
 def _b_hold(t: str, q: Q, raw: str) -> str:
     toks = t.split()
     got: dict[str, float] = {}
@@ -367,6 +389,7 @@ BUILD: dict[str, Callable[[str, Q, str], str]] = {
     "policy_check": _b_policy,
     "upi_check": lambda t, q, raw: "Is this UPI request safe? " + raw,
     "hold_sell": _b_hold,
+    "saving_goal": _b_saving,
     "dbt_trace": lambda t, q, raw: "Why has my payment not come? " + raw,
     "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
     "entitlements": lambda *a: "Which government schemes can I get?",
@@ -390,6 +413,7 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("saving_goal", r"((रोज|रोज़|हर दिन|प्रतिदिन|दिन में|हर हफ्ते).{0,25}(बचा|जमा|बचत|अलग रख)|(बचत|बचा|जमा).{0,25}(रोज|रोज़|हर दिन|प्रतिदिन)|(बेटी|बेटे|बच्चे).{0,25}(शादी|पढ़ाई|शिक्षा).{0,40}(बचत|बचा|जमा|कितना)|(शादी|पढ़ाई|मकान|छत|इलाज).{0,25}के लिए.{0,20}(बचत|बचा|जमा))"),
     ("hold_sell", r"((फसल|गेहूं|गेहूँ|धान|सोयाबीन|कपास|मक्का|सरसों|चना|प्याज|आलू|अनाज).{0,40}(अभी बेच|रोक|रुक|इंतजार|इंतज़ार|भंडार|स्टोर)|(अभी बेच).{0,20}(या|कि).{0,20}(रुक|रोक|इंतज)|मंडी.{0,15}(भाव|रेट)|बेहतर भाव.{0,25}(रुक|रोक|बाद))"),
     ("dbt_trace", r"((पैसा|किस्त|सब्सिडी|पेंशन|रकम|मज़दूरी|मजदूरी|छात्रवृत्ति).{0,25}(नहीं आया|नहीं आई|नहीं आयी|अटक|रुक|नहीं मिला|नहीं आ रही|नहीं आ रहा)|(किसान|पीएम किसान).{0,20}(किस्त|पैसा).{0,15}(नहीं|अटक|रुक)|डीबीटी)"),
     ("upi_check", r"(यूपीआई|यू पी आई|फोनपे|फोन पे|गूगल पे|पेटीएम|भीम ऐप|कलेक्ट रिक्वेस्ट|पेमेंट रिक्वेस्ट|क्यूआर|क्यू आर|(पैसा|पैसे) (पाने|लेने).{0,25}पिन|पिन.{0,25}(पैसा|पैसे) (पाने|लेने|आएगा|आएंगे)|गलती से.{0,30}(पैसे|पैसा).{0,30}(भेज|आ गए))"),
@@ -526,7 +550,7 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
-    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "hold_sell": "फ़सल अभी बेचें या रोकें", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "hold_sell": "फ़सल अभी बेचें या रोकें", "saving_goal": "रोज़ की बचत की योजना", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
     "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",

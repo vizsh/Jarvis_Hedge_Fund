@@ -343,3 +343,46 @@ def test_hold_questions_route_prefill_and_hindi():
     assert G.fill("h", "skip", "en")["done"]
     english, _ = asyncio.run(H.convert("मेरे पास पचास क्विंटल गेहूँ है, भाव दो हज़ार एक सौ है, चार महीने रुकूँ तो चौबीस सौ की उम्मीद है, अभी बेचूँ या रुकूँ", use_model=False))
     assert A.rule_intent(english) == "hold_sell" and "50 quintals" in english and "2100" in english and "2400" in english
+
+
+# ---- E1: daily-wage saving -----------------------------------------------------------------
+def test_recurring_deposit_maturity_matches_the_standard_calculator_and_zero_rate_is_plain_addition():
+    assert 12400 < rural.rd_maturity(1000, 12, 6.7) < 12480            # ~12,44x is what RD calculators give
+    assert rural.rd_maturity(500, 24, 0) == 12000
+    assert rural.rd_maturity(1000, 0, 6.7) == 0
+
+
+def test_required_saving_reaches_the_inflated_goal_exactly():
+    r = rural.daily_saving("daughter", 100000, 60, None, 400, 26, 6.7, 6.0)
+    assert r["target_future"] == round(100000 * 1.06 ** 5)
+    assert abs(rural.rd_maturity(r["need_monthly_rd"], 60, 6.7) - r["target_future"]) < 60       # rounded to the rupee
+    assert r["need_monthly_rd"] < r["need_monthly_cash"]                                       # interest does some of the work
+    assert r["interest_rd"] == r["target_future"] - r["deposited_rd"] or abs(r["interest_rd"] - (r["target_future"] - r["deposited_rd"])) <= 60
+
+
+def test_daily_amount_mode_and_months_to_goal_are_consistent():
+    r = rural.daily_saving("other", None, 60, 10)
+    assert r["monthly"] == 260 and r["matures"] == round(rural.rd_maturity(260, 60, 6.7)) and r["interest"] == r["matures"] - r["put_in"]
+    n = rural.months_to_reach(50000, 1300, 6.7)
+    assert rural.rd_maturity(1300, n, 6.7) >= 50000 > rural.rd_maturity(1300, n - 1, 6.7)
+    assert rural.months_to_reach(1000, 0, 6.7) is None
+
+
+def test_saving_that_eats_too_much_of_the_wage_is_called_unrealistic_with_a_longer_plan():
+    r = rural.daily_saving("house", 200000, 12, None, 300)
+    assert r["band"] == "red" and r["wage_share_pct"] > 30 and any("longer" in b.lower() or "take longer" in b.lower() for b in r["bullets"])
+    assert rural.daily_saving("house", 20000, 60, None, 500)["band"] == "green"
+
+
+def test_saving_questions_route_parse_and_do_not_steal_the_portfolio_goal():
+    from backend import guide as G
+    q = "I want 1 lakh for my daughter's marriage in 5 years, I earn 400 a day"
+    assert A.answer(q, _ctx()).data["intent"] == "saving_goal"
+    assert A._saving_args(q) == {"goal": "daughter", "daily_wage": 400.0, "months": 60, "target": 100000.0}
+    assert A._saving_args("I can save 10 rupees a day for 3 years")["daily"] == 10.0
+    assert A.answer("Will 10000 a month reach 50 lakh in 15 years?", _ctx()).data["intent"] == "goal"
+    G.STATE.clear()
+    g = G.begin("saving", q, "en", "s")                     # goal, cost, time and wage all came from the sentence
+    assert g["done"] and g["params"]["goal"] == "daughter" and g["params"]["months"] == "60"
+    english, _ = asyncio.run(H.convert("बेटी की शादी के लिए पाँच साल में एक लाख चाहिए, रोज़ कितना बचाऊँ", use_model=False))
+    assert A.rule_intent(english) == "saving_goal" and "1 lakh" in english and "5 years" in english
