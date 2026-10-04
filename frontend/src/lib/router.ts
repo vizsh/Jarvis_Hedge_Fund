@@ -16,10 +16,17 @@ export const ROUTES = [
 
 const read = () => (location.hash.replace(/^#/, "") || "/").split("?")[0];
 
+/** The page scrolls inside `.app`, not the window, so both are reset: choosing a page starts at its top. */
+function toTop(): void {
+  window.scrollTo(0, 0);
+  document.querySelector(".app")?.scrollTo?.({ top: 0 });
+  document.querySelector(".app-body")?.scrollTo?.({ top: 0 });
+}
+
 export function useRoute(): string {
   const [route, setRoute] = useState(read());
   useEffect(() => {
-    const on = () => { setRoute(read()); window.scrollTo(0, 0); };
+    const on = () => { setRoute(read()); toTop(); };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);

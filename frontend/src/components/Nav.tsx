@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { go, HI_LABEL, ROUTES, useRoute } from "../lib/router";
 import { onVoice, stop as stopNow } from "../lib/speak";
@@ -51,8 +51,19 @@ export function TopNav() {
   const connected = useStore((s) => s.connected);
   const fund = useStore((s) => s.fund);
   const setBuilder = useUI((s) => s.setBuilder);
+  const ref = useRef<HTMLElement>(null);
+  // The nav wraps to two rows on narrower screens; pages that fill "the rest of the screen" read its real height.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const set = () => document.documentElement.style.setProperty("--nav-h", el.getBoundingClientRect().height + "px");
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <header className="topnav">
+    <header className="topnav" ref={ref}>
       <a className="brand-mini" href="#/"><b>JARVIS</b><span>//</span>ALPHA OS</a>
       <nav className="navlinks" aria-label="Pages">
         {ROUTES.map((r) => (
