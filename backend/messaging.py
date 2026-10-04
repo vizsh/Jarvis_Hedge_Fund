@@ -104,6 +104,7 @@ MENU: list[tuple[str, str, str]] = [        # (tool, English, Hindi)
     ("fee", "What does a fund fee cost?", "फ़ंड की फ़ीस कितनी पड़ती है?"),
     ("emergency", "How long will my savings last?", "मेरी बचत कितने महीने चलेगी?"),
     ("goal", "Will my savings reach my goal?", "क्या मेरी बचत लक्ष्य तक पहुँचेगी?"),
+    ("credit", "Credit score: why was my loan rejected?", "क्रेडिट स्कोर: मेरा ऋण क्यों रिजेक्ट हुआ?"),
     ("saving", "Save a little every day for a goal", "किसी लक्ष्य के लिए रोज़ थोड़ी बचत"),
     ("hold", "Sell my crop now or wait?", "फ़सल अभी बेचूँ या रुकूँ?"),
     ("dbt", "Why has my government payment not come?", "मेरा सरकारी पैसा क्यों नहीं आया?"),
@@ -191,7 +192,7 @@ GREET = re.compile(r"^\s*(hi|hello|hey|hii+|namaste|namaskar|start|menu|help|opt
 SET_HI = re.compile(r"^\s*(hindi|हिंदी|हिन्दी|hindi me|in hindi)\W*$", re.I)
 SET_EN = re.compile(r"^\s*(english|अंग्रेज़ी|अंग्रेजी|in english)\W*$", re.I)
 CANCEL_OR_STOP = re.compile(r"^\s*(cancel|stop|reset|exit|रद्द|रुको|बंद)\W*$", re.I)
-ALLOWED = {"saving_goal", "hold_sell", "dbt_trace", "upi_check", "policy_check", "moneylender", "scheme_check", "entitlements", "docs_ready", "income_plan", "fee_drag", "emergency", "goal",
+ALLOWED = {"credit_score", "saving_goal", "hold_sell", "dbt_trace", "upi_check", "policy_check", "moneylender", "scheme_check", "entitlements", "docs_ready", "income_plan", "fee_drag", "emergency", "goal",
            "scam_help", "scam_recovery", "tip_scan", "define", "help", "chitchat", "predict", "simplify", "more"}
 
 

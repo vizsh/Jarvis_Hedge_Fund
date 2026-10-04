@@ -1487,6 +1487,31 @@ async def rural_shg_lend(b: ShgLendIn) -> dict:
     return rural.shg_can_lend(b.ledger, b.member, b.amount, b.as_of, b.lang)
 
 
+class CreditIn(BaseModel):
+    has_credit: str = "none"
+    missed: str = "never"
+    serious: str = "none"
+    utilization: str = "na"
+    enquiries: str = "0-1"
+    age: str = "na"
+    informal_only: bool = False
+    name: str = ""
+    lender: str = ""
+    wrong: str = ""
+    amount: float = 100000
+    years: float = 3
+    good_rate: float = 11
+    poor_rate: float = 16
+    lang: str = "en"
+
+
+@app.post("/rural/credit")
+async def rural_credit(b: CreditIn) -> dict:
+    from backend import rural
+    return rural.credit_full(b.has_credit, b.missed, b.serious, b.utilization, b.enquiries, b.age, b.informal_only, b.name, b.lender, b.wrong,
+                             b.amount, b.years, b.good_rate, b.poor_rate, b.lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

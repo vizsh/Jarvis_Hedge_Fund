@@ -91,6 +91,7 @@ const CALLS: Record<string, (b: any) => [string, unknown[]]> = {
   "/rural/saving": (b) => ["daily_saving", [b.goal ?? "other", b.target ?? null, b.months ?? null, b.daily ?? null, b.daily_wage ?? null, b.days_per_month ?? 26, b.rate ?? 6.7, 6.0, b.lang]],
   "/rural/shg": (b) => ["shg_summary", [b.ledger, b.as_of ?? null, b.lang]],
   "/rural/shg/lend": (b) => ["shg_can_lend", [b.ledger, b.member, b.amount, b.as_of ?? null, b.lang]],
+  "/rural/credit": (b) => ["credit_full", [b.has_credit ?? "none", b.missed ?? "never", b.serious ?? "none", b.utilization ?? "na", b.enquiries ?? "0-1", b.age ?? "na", !!b.informal_only, b.name ?? "", b.lender ?? "", b.wrong ?? "", b.amount ?? 100000, b.years ?? 3, b.good_rate ?? 11, b.poor_rate ?? 16, b.lang]],
   "/rural/hold": (b) => ["hold_or_sell", [b.qty, b.price_now, b.months, b.price_later ?? null, b.storage ?? 0, b.shrink ?? 0, b.handling ?? 0, b.rate ?? 7, b.history ?? "", b.from_month ?? null, b.lang]],
   "/rural/dbt": (b) => ["dbt_full", [b.scheme, b.status, b.linked, b.name_same, b.merged, b.last_used, b.aadhaar_mobile, b.text ?? "", b.name ?? "", b.village ?? "", b.block ?? "", b.bank ?? "", b.lang]],
   "/rural/upi": (b) => ["upi_check", [b.text ?? "", b.lang]],

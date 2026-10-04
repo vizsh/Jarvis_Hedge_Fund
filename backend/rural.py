@@ -1325,3 +1325,146 @@ def shg_can_lend(ledger: dict[str, Any], member: str, amount: float, as_of: str 
     ok = all(c["ok"] for c in checks)
     return {"ok": ok, "checks": checks, "headline": t("Fine to lend on these checks. The group still decides.", "इन जाँचों पर ऋण देना ठीक है। फ़ैसला समूह का है।") if ok else
             t("Not yet: at least one check fails. The group still decides.", "अभी नहीं: कम से कम एक जाँच विफल है। फ़ैसला समूह का है।")}
+
+
+# =============================================================================== E3 credit-score explainer
+# For first-time borrowers. It does NOT fetch or guess a number: only the credit bureaus hold the score, and
+# any figure made up here would be a lie. It explains what the score is made of, reads the person's own
+# situation, names what is helping or hurting in plain words with the fix for each, shows what a good record
+# is worth in rupees (EMI on the same loan at two rates), and drafts the letter to correct a wrong entry.
+BUREAUS = [("TransUnion CIBIL", "cibil.com"), ("Experian", "experian.in"), ("Equifax", "equifax.co.in"), ("CRIF High Mark", "crifhighmark.com")]
+CREDIT_FACTS = [
+    ("A credit score (300 to 900) is a number a credit bureau works out from your repayment history. Lenders look at it before deciding a loan and its interest rate. About 750 and above is generally treated as good.",
+     "क्रेडिट स्कोर (300 से 900) वह संख्या है जो क्रेडिट ब्यूरो आपके चुकाने के इतिहास से निकालता है। ऋण और ब्याज दर तय करने से पहले ऋणदाता इसे देखते हैं। लगभग 750 और ऊपर को आम तौर पर अच्छा माना जाता है।"),
+    ("What matters most, in order: paying every instalment on time; how much of your card limit you use; how long you have had credit; how many times you recently applied for credit; and having a mix of loan types.",
+     "सबसे ज़्यादा असर इन बातों का, क्रम से: हर किस्त समय पर देना; कार्ड की सीमा का कितना हिस्सा इस्तेमाल करना; कितने समय से ऋण का इतिहास है; हाल में कितनी बार ऋण के लिए आवेदन किया; और अलग-अलग तरह के ऋण।"),
+    ("Having NO score is not a bad score. It means no one has reported anything about you yet. You build one by borrowing a small formal loan and repaying it on time.",
+     "स्कोर न होना ख़राब स्कोर नहीं है। इसका मतलब है कि अब तक किसी ने आपके बारे में कुछ दर्ज नहीं किया। छोटा औपचारिक ऋण लेकर समय पर चुकाने से स्कोर बनता है।"),
+    ("Repaying a moneylender or a chit fund builds NO score, because they do not report to the bureaus. Loans from banks, finance companies and microfinance institutions do.",
+     "साहूकार या चिट फंड को चुकाने से कोई स्कोर नहीं बनता, क्योंकि वे ब्यूरो को रिपोर्ट नहीं करते। बैंक, फ़ाइनेंस कंपनी और माइक्रोफ़ाइनेंस संस्था के ऋण रिपोर्ट होते हैं।"),
+]
+CREDIT_SCAMS = [
+    ("No company can remove a correct bad entry for a fee. \"Score repair\" and \"CIBIL fix\" offers are scams. Only wrong entries can be corrected, and that is free.",
+     "कोई कंपनी फ़ीस लेकर सही नकारात्मक प्रविष्टि नहीं हटा सकती। \"स्कोर रिपेयर\" और \"सिबिल फ़िक्स\" के ऑफ़र ठगी हैं। सिर्फ़ गलत प्रविष्टि सुधरती है, और वह मुफ़्त है।"),
+    ("An \"instant loan\" app that wants your contacts, photos or an upfront \"processing fee\" is a trap. Use banks and registered lenders.",
+     "जो \"इंस्टैंट लोन\" ऐप आपके कॉन्टैक्ट, फ़ोटो या पहले से \"प्रोसेसिंग फ़ीस\" माँगे वह जाल है। बैंक और पंजीकृत ऋणदाता से ही लीजिए।"),
+    ("If you sign as a guarantor or co-borrower, a missed payment lands on YOUR report too.",
+     "आप गारंटर या सह-उधारकर्ता बनकर दस्तख़त करें तो किस्त चूकने पर वह आपकी रिपोर्ट में भी आती है।"),
+]
+START_PATH = [
+    ("Open a bank account in your own name and keep it active (a Jan Dhan account is enough).", "अपने नाम का बैंक खाता खोलिए और चालू रखिए (जन धन खाता काफ़ी है)।"),
+    ("Take one small formal loan or card you can easily afford, for example a Kisan Credit Card, a Mudra Shishu loan, a microfinance loan or a card secured against a fixed deposit.", "एक छोटा औपचारिक ऋण या कार्ड लीजिए जो आसानी से चुका सकें, जैसे किसान क्रेडिट कार्ड, मुद्रा शिशु ऋण, माइक्रोफ़ाइनेंस ऋण, या एफ़डी के बदले कार्ड।"),
+    ("Pay every instalment on or before the date; set an auto-debit so it cannot be forgotten.", "हर किस्त तारीख़ पर या उससे पहले दीजिए; ऑटो-डेबिट लगाइए ताकि भूल न हो।"),
+    ("After 6 months, ask a credit bureau for your free report and check that your loan appears and is correct.", "6 महीने बाद किसी क्रेडिट ब्यूरो से अपनी मुफ़्त रिपोर्ट माँगिए और देखिए कि आपका ऋण सही दिख रहा है।"),
+    ("Do not apply to many lenders at once: each application leaves a mark.", "एक साथ कई ऋणदाताओं से आवेदन मत कीजिए: हर आवेदन का निशान रहता है।"),
+]
+
+
+def _emi(p: float, rate_pct: float, years: float) -> float:
+    n = max(1, int(round(years * 12)))
+    r = rate_pct / 100 / 12
+    return p / n if r == 0 else p * r * (1 + r) ** n / ((1 + r) ** n - 1)
+
+
+def emi_compare(amount: float, years: float, good_rate: float = 11.0, poor_rate: float = 16.0, lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    n = max(1, int(round(years * 12)))
+    eg, ep = _emi(amount, good_rate, years), _emi(amount, poor_rate, years)
+    sg, sp = eg * n, ep * n
+    return {"amount": round(amount), "years": years, "good_rate": good_rate, "poor_rate": poor_rate,
+            "emi_good": round(eg), "emi_poor": round(ep), "total_good": round(sg), "total_poor": round(sp), "saved": round(sp - sg),
+            "headline": t(f"On {_inr(amount)} over {years:g} years, {good_rate:g}% instead of {poor_rate:g}% saves about {_inr(sp - sg)} (₹{ep - eg:,.0f} less every month).",
+                          f"{years:g} साल के {_inr(amount, 'hi')} पर {poor_rate:g}% की जगह {good_rate:g}% लगे तो लगभग {_inr(sp - sg, 'hi')} बचते हैं (हर महीने ₹{ep - eg:,.0f} कम)।")}
+
+
+def credit_check(has_credit: str = "none", missed: str = "never", serious: str = "none", utilization: str = "na", enquiries: str = "0-1",
+                 age: str = "na", informal_only: bool = False, lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    i = 1 if lang == "hi" else 0
+    reasons: list[dict[str, Any]] = []
+
+    def add(weight: int, kind: str, en: str, hi: str, steps_en: list[str], steps_hi: list[str]):
+        reasons.append({"w": weight, "kind": kind, "title": hi if i else en, "steps": steps_hi if i else steps_en})
+
+    if has_credit == "none":
+        extra_en = " Borrowing only from a moneylender or chit fund does not count: they are not reported." if informal_only else ""
+        extra_hi = " सिर्फ़ साहूकार या चिट फंड से लेना गिना नहीं जाता: वे रिपोर्ट नहीं करते।" if informal_only else ""
+        add(0, "neutral", "You probably have no credit score yet (no history)." + extra_en, "आपका शायद अभी कोई क्रेडिट स्कोर नहीं है (कोई इतिहास नहीं)।" + extra_hi,
+            [s[0] for s in START_PATH], [s[1] for s in START_PATH])
+        profile, band = "thin_file", "amber"
+    else:
+        r = 0
+        if serious == "default":
+            r += 6; add(6, "bad", "An unpaid (defaulted) loan is on your record.", "आपके रिकॉर्ड में न चुकाया गया (डिफ़ॉल्ट) ऋण है।",
+                        ["Pay what is owed, then ask the lender in writing to mark the account closed and give a no-dues letter.", "It will still show for years, but a paid account is far better than an open default.", "Do not take new credit until it is closed."],
+                        ["जो बाक़ी है चुकाइए, फिर ऋणदाता से लिखित में खाता बंद दर्ज करने और बकाया-नहीं का पत्र माँगिए।", "यह फिर भी कई साल दिखेगा, पर चुकाया खाता खुले डिफ़ॉल्ट से कहीं बेहतर है।", "खाता बंद होने तक नया ऋण मत लीजिए।"])
+        elif serious in ("settled", "written_off"):
+            r += 4; add(4, "bad", "A settled or written-off account is on your record.", "आपके रिकॉर्ड में निपटाया (सेटल) या बट्टे खाते (राइट-ऑफ़) वाला खाता है।",
+                        ["It stays for years (commonly up to 7) and makes lenders cautious.", "If a balance remains, pay it and ask for the status to be updated to closed.", "From now, pay everything on time: new good history slowly outweighs the old."],
+                        ["यह कई साल (आम तौर पर 7 तक) रहता है और ऋणदाताओं को सतर्क करता है।", "कुछ बाक़ी हो तो चुकाइए और स्थिति को बंद में बदलवाइए।", "आज से सब कुछ समय पर दीजिए: नया अच्छा इतिहास धीरे-धीरे पुराने पर भारी पड़ता है।"])
+        if missed == "often":
+            r += 3; add(5, "bad", "You have often paid late. This is the biggest thing lowering a score.", "आप अक्सर देर से चुकाते रहे हैं। स्कोर गिराने की यह सबसे बड़ी वजह है।",
+                        ["Set an auto-debit for every instalment or keep the money aside on pay day.", "Pay all dues on time for the next 6 to 12 months: recent behaviour counts most.", "Ask the lender to move your due date to just after you are paid."],
+                        ["हर किस्त का ऑटो-डेबिट लगाइए या मज़दूरी मिलते ही पैसा अलग रखिए।", "अगले 6 से 12 महीने सब समय पर दीजिए: हाल का व्यवहार सबसे ज़्यादा गिना जाता है।", "ऋणदाता से किस्त की तारीख़ मज़दूरी मिलने के ठीक बाद करवाइए।"])
+        elif missed == "once":
+            r += 1; add(2, "warn", "You paid late once or twice. It hurts for a while, then fades.", "आपने एक-दो बार देर की। कुछ समय असर रहता है, फिर घटता है।",
+                        ["Pay on time from now on; the mark loses weight month by month."], ["अब से समय पर दीजिए; निशान का असर महीने-दर-महीने घटता है।"])
+        if utilization == "high":
+            r += 2; add(3, "bad", "You use most of your card or credit limit.", "आप अपने कार्ड या क्रेडिट सीमा का ज़्यादातर हिस्सा इस्तेमाल करते हैं।",
+                        ["Keep use under about 30% of the limit.", "Pay part of the bill before the statement date, not only after it.", "Ask for a higher limit (do not spend more)."],
+                        ["सीमा का लगभग 30% से कम इस्तेमाल कीजिए।", "बिल का हिस्सा स्टेटमेंट की तारीख़ से पहले चुकाइए, सिर्फ़ बाद में नहीं।", "सीमा बढ़ाने को कहिए (ज़्यादा ख़र्च मत कीजिए)।"])
+        elif utilization == "mid":
+            r += 1; add(1, "warn", "You use a fair part of your limit.", "आप सीमा का ठीक-ठाक हिस्सा इस्तेमाल करते हैं।", ["Try to bring it under 30%."], ["इसे 30% से नीचे लाने की कोशिश कीजिए।"])
+        if enquiries == "4+":
+            r += 2; add(3, "bad", "You have applied for credit many times recently.", "आपने हाल में कई बार ऋण के लिए आवेदन किया है।",
+                        ["Stop applying for about 6 months: each application leaves a mark and many together look like desperation.", "Before applying, ask the lender whether they do a soft check."],
+                        ["लगभग 6 महीने आवेदन बंद कीजिए: हर आवेदन का निशान रहता है और कई साथ मिलकर घबराहट जैसे दिखते हैं।", "आवेदन से पहले पूछिए कि क्या ऋणदाता सॉफ़्ट चेक करता है।"])
+        elif enquiries == "2-3":
+            r += 1; add(1, "warn", "You have applied a few times recently.", "आपने हाल में कुछ बार आवेदन किया है।", ["Space further applications out by a few months."], ["आगे के आवेदनों के बीच कुछ महीने का अंतर रखिए।"])
+        if age == "<6m":
+            r += 1; add(1, "warn", "Your credit history is very new.", "आपका क्रेडिट इतिहास बहुत नया है।", ["Time helps. Keep paying on time and keep the account open."], ["समय मदद करता है। समय पर देते रहिए और खाता खुला रखिए।"])
+        if informal_only:
+            add(1, "warn", "Most of your borrowing is from a moneylender or chit fund, which builds no score.", "आपका ज़्यादातर उधार साहूकार या चिट फंड का है, जिससे कोई स्कोर नहीं बनता।",
+                ["Where you can, move to a bank, microfinance or group-linked loan: it is cheaper and it counts."], ["जहाँ हो सके बैंक, माइक्रोफ़ाइनेंस या समूह-जुड़े ऋण पर आइए: वह सस्ता है और गिना जाता है।"])
+        if r >= 5:
+            profile, band = "at_risk", "red"
+        elif r >= 2:
+            profile, band = "fair", "amber"
+        else:
+            profile, band = "healthy", "green"
+            if not reasons:
+                add(0, "good", "Nothing here looks harmful. Keep paying on time.", "यहाँ कुछ हानिकारक नहीं दिखता। समय पर देते रहिए।",
+                    ["Keep your oldest account open.", "Check your free report once a year for wrong entries."], ["अपना सबसे पुराना खाता खुला रखिए।", "साल में एक बार मुफ़्त रिपोर्ट में गलत प्रविष्टि जाँचिए।"])
+    reasons.sort(key=lambda x: -x["w"])
+    head = {"thin_file": t("You probably have no score yet. That is fixable.", "आपका शायद अभी स्कोर नहीं है। यह ठीक हो सकता है।"),
+            "at_risk": t("Your record is probably hurting you with lenders. There are clear steps.", "आपका रिकॉर्ड शायद ऋणदाताओं के सामने आपको नुक़सान पहुँचा रहा है। साफ़ क़दम हैं।"),
+            "fair": t("Your record is probably fair and can improve.", "आपका रिकॉर्ड शायद ठीक-ठाक है और सुधर सकता है।"),
+            "healthy": t("Your record looks healthy from what you told me.", "आपने जो बताया उससे आपका रिकॉर्ड स्वस्थ लगता है।")}[profile]
+    return {"profile": profile, "band": band, "headline": head, "reasons": [{k: v for k, v in r.items() if k != "w"} for r in reasons],
+            "facts": [hi if i else en for en, hi in CREDIT_FACTS], "scams": [hi if i else en for en, hi in CREDIT_SCAMS],
+            "bureaus": [{"name": n, "site": s} for n, s in BUREAUS],
+            "report_note": t("You can get a free full credit report from each bureau every year (an RBI rule). Ask for it yourself on the bureau's own website; never pay a middleman.",
+                             "आप हर ब्यूरो से हर साल एक मुफ़्त पूरी क्रेडिट रिपोर्ट ले सकते हैं (RBI का नियम)। ब्यूरो की अपनी वेबसाइट से ख़ुद माँगिए; किसी बिचौलिये को पैसा मत दीजिए।"),
+            "note": t("This reads your answers; it cannot know your actual score. Only the bureaus have that.", "यह आपके जवाब पढ़ता है; आपका असली स्कोर नहीं जान सकता। वह सिर्फ़ ब्यूरो के पास है।")}
+
+
+def credit_dispute_letter(name: str = "", lender: str = "", wrong: str = "", lang: str = "en") -> dict[str, str]:
+    nm, ln, wr = name or "________", lender or "________", wrong or "________"
+    if lang == "hi":
+        return {"lender": f"सेवा में,\nशिकायत निवारण अधिकारी, {ln}\n\nविषय: मेरी क्रेडिट रिपोर्ट में गलत प्रविष्टि सुधारने का अनुरोध\n\nमहोदय,\nमैं {nm} हूँ। मेरी क्रेडिट रिपोर्ट में यह प्रविष्टि गलत है: {wr}।\n"
+                          f"कृपया इसकी जाँच कर क्रेडिट ब्यूरो को सुधार भेजिए और मुझे लिखित में सूचित कीजिए। मेरे पास भुगतान की रसीदें / पासबुक की प्रति है।\n\nभवदीय,\n{nm}\nदिनांक: ________   मोबाइल: ________",
+                "bureau": f"सेवा में,\nक्रेडिट ब्यूरो (विवाद विभाग)\n\nविषय: मेरी रिपोर्ट में गलत जानकारी का विवाद\n\nमहोदय,\nमैं {nm} हूँ। मेरी रिपोर्ट में {ln} की यह प्रविष्टि गलत है: {wr}।\n"
+                          f"कृपया ऋणदाता से जाँच कराकर 30 दिन में सुधार कीजिए। मैंने ऋणदाता को भी लिखित में बताया है।\n\nभवदीय,\n{nm}\nदिनांक: ________"}
+    return {"lender": f"To,\nThe Grievance Officer, {ln}\n\nSubject: Request to correct a wrong entry on my credit report\n\nSir/Madam,\nI am {nm}. This entry on my credit report is wrong: {wr}.\n"
+                      f"Please check it, send the correction to the credit bureau, and confirm to me in writing. I have my payment receipts / passbook copy.\n\nYours faithfully,\n{nm}\nDate: ________   Mobile: ________",
+            "bureau": f"To,\nCredit Bureau (Dispute Resolution)\n\nSubject: Dispute of incorrect information on my report\n\nSir/Madam,\nI am {nm}. The entry from {ln} on my report is wrong: {wr}.\n"
+                      f"Please verify it with the lender and correct it within 30 days. I have also told the lender in writing.\n\nYours faithfully,\n{nm}\nDate: ________"}
+
+
+def credit_full(has_credit: str = "none", missed: str = "never", serious: str = "none", utilization: str = "na", enquiries: str = "0-1", age: str = "na",
+                informal_only: bool = False, name: str = "", lender: str = "", wrong: str = "", amount: float = 100000, years: float = 3,
+                good_rate: float = 11.0, poor_rate: float = 16.0, lang: str = "en") -> dict[str, Any]:
+    out = credit_check(has_credit, missed, serious, utilization, enquiries, age, informal_only, lang)
+    out["emi"] = emi_compare(amount, years, good_rate, poor_rate, lang)
+    out["letters"] = credit_dispute_letter(name, lender, wrong, lang)
+    return out

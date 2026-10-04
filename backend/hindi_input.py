@@ -390,6 +390,7 @@ BUILD: dict[str, Callable[[str, Q, str], str]] = {
     "upi_check": lambda t, q, raw: "Is this UPI request safe? " + raw,
     "hold_sell": _b_hold,
     "saving_goal": _b_saving,
+    "credit_score": lambda *a: "What is a credit score and why was my loan rejected?",
     "shg_ledger": lambda *a: "How do I keep my self help group ledger?",
     "dbt_trace": lambda t, q, raw: "Why has my payment not come? " + raw,
     "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
@@ -414,6 +415,7 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("credit_score", r"(सिबिल|क्रेडिट स्कोर|क्रेडिट रिपोर्ट|क्रेडिट हिस्ट्री|(लोन|ऋण|कर्ज).{0,20}(रिजेक्ट|अस्वीकार|नामंजूर|मंजूर नहीं|नहीं मिला)|पहला (लोन|ऋण|कर्ज))"),
     ("shg_ledger", r"((स्वयं सहायता समूह|समूह|एसएचजी|महिला मंडल|बचत गट).{0,40}(हिसाब|खाता|बही|रजिस्टर|रिकॉर्ड|ब्याज|ऋण|कर्ज)|(हिसाब|बही|रजिस्टर).{0,30}(समूह|एसएचजी))"),
     ("saving_goal", r"((रोज|रोज़|हर दिन|प्रतिदिन|दिन में|हर हफ्ते).{0,25}(बचा|जमा|बचत|अलग रख)|(बचत|बचा|जमा).{0,25}(रोज|रोज़|हर दिन|प्रतिदिन)|(बेटी|बेटे|बच्चे).{0,25}(शादी|पढ़ाई|शिक्षा).{0,40}(बचत|बचा|जमा|कितना)|(शादी|पढ़ाई|मकान|छत|इलाज).{0,25}के लिए.{0,20}(बचत|बचा|जमा))"),
     ("hold_sell", r"((फसल|गेहूं|गेहूँ|धान|सोयाबीन|कपास|मक्का|सरसों|चना|प्याज|आलू|अनाज).{0,40}(अभी बेच|रोक|रुक|इंतजार|इंतज़ार|भंडार|स्टोर)|(अभी बेच).{0,20}(या|कि).{0,20}(रुक|रोक|इंतज)|मंडी.{0,15}(भाव|रेट)|बेहतर भाव.{0,25}(रुक|रोक|बाद))"),
@@ -552,7 +554,7 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
-    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "hold_sell": "फ़सल अभी बेचें या रोकें", "saving_goal": "रोज़ की बचत की योजना", "shg_ledger": "समूह की बही-खाता", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "dbt_trace": "सरकारी भुगतान क्यों नहीं आया", "hold_sell": "फ़सल अभी बेचें या रोकें", "saving_goal": "रोज़ की बचत की योजना", "shg_ledger": "समूह की बही-खाता", "credit_score": "क्रेडिट स्कोर क्या है", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
     "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",

@@ -22,7 +22,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold" | "saving" | "shg";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi" | "dbt" | "hold" | "saving" | "shg" | "credit";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -146,6 +146,75 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
         <ul className="rural-links">{r.verify.map((v) => <li key={v}>{v}</li>)}</ul>
         <Say text={`${r.verdict} ${r.rule}`} />
+      </>)}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ E3 credit score */
+type Cred = { profile: string; band: string; headline: string; reasons: { kind: string; title: string; steps: string[] }[]; facts: string[]; scams: string[];
+  bureaus: { name: string; site: string }[]; report_note: string; note: string;
+  emi: { headline: string; emi_good: number; emi_poor: number; saved: number }; letters: { lender: string; bureau: string } };
+
+function CreditTool({ init }: { init: Record<string, string> }) {
+  const { t } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "credit";
+  const waiting = useWaiting("credit");
+  const [f, setF] = useState(() => ({ has_credit: "none", missed: "never", serious: "none", utilization: "na", enquiries: "0-1", age: "na",
+    ...(guided ? Object.fromEntries(["has_credit", "missed", "serious", "utilization", "enquiries", "age"].filter((k) => init[k]).map((k) => [k, init[k]])) : {}) }));
+  const [loan, setLoan] = useState({ amount: "100000", years: "3", good: "11", poor: "16" });
+  const [who, setWho] = useState({ name: "", lender: "", wrong: "" });
+  const [copied, setCopied] = useState("");
+  const [go, setGo] = useState(guided && !!init.run);
+  const set = (k: string) => (e: { target: { value: string } }) => { setF({ ...f, [k]: e.target.value }); setGo(true); };
+  const informal = f.has_credit === "informal";
+  const r = usePost<Cred>("/rural/credit", { ...f, has_credit: informal ? "none" : f.has_credit, informal_only: informal, ...who, amount: Number(loan.amount) || 100000, years: Number(loan.years) || 3,
+    good_rate: Number(loan.good) || 11, poor_rate: Number(loan.poor) || 16, lang }, go && !waiting, 200);
+  const copy = async (k: string, s: string) => { try { await navigator.clipboard.writeText(s); setCopied(k); setTimeout(() => setCopied(""), 1500); } catch { /* clipboard blocked */ } };
+  const opt = (rows: [string, string, string][]) => rows.map(([v, en, hi]) => <option key={v} value={v}>{t(en, hi)}</option>);
+  return (
+    <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+      <h2>{t("Credit score: what it is and how to build one", "क्रेडिट स्कोर: यह क्या है और कैसे बनाएँ")}</h2>
+      <Waiting tool="credit" />
+      <p className="muted">{t("I cannot see your actual score (only the credit bureaus can). Tell me about your borrowing and I will say what is likely helping or hurting you, and exactly what to do.", "मैं आपका असली स्कोर नहीं देख सकता (वह सिर्फ़ क्रेडिट ब्यूरो के पास है)। अपने उधार के बारे में बताइए, मैं बताऊँगा क्या फ़ायदा या नुक़सान कर रहा है, और ठीक क्या करना है।")}</p>
+      <div className="rural-form">
+        <label>{t("Your borrowing so far", "अब तक का आपका उधार")}<select value={f.has_credit} onChange={set("has_credit")}>{opt([["none", "No loan or card", "कोई ऋण या कार्ड नहीं"], ["informal", "Only from a moneylender or chit fund", "सिर्फ़ साहूकार या चिट फंड से"], ["loan", "A bank or other formal loan", "बैंक या औपचारिक ऋण"], ["card", "A credit card", "क्रेडिट कार्ड"], ["both", "Both a loan and a card", "ऋण और कार्ड दोनों"]])}</select></label>
+        {f.has_credit !== "none" && f.has_credit !== "informal" && (<>
+          <label>{t("Late instalments", "देर से किस्त")}<select value={f.missed} onChange={set("missed")}>{opt([["never", "Never", "कभी नहीं"], ["once", "Once or twice", "एक-दो बार"], ["often", "Often", "अक्सर"]])}</select></label>
+          <label>{t("Settled / written off / unpaid loan", "सेटल / राइट-ऑफ़ / न चुकाया ऋण")}<select value={f.serious} onChange={set("serious")}>{opt([["none", "None", "कोई नहीं"], ["settled", "Settled or written off", "सेटल या राइट-ऑफ़"], ["default", "Unpaid and still pending", "न चुकाया, अब भी बाक़ी"]])}</select></label>
+          <label>{t("Share of card limit you use", "कार्ड सीमा का इस्तेमाल")}<select value={f.utilization} onChange={set("utilization")}>{opt([["na", "No card", "कार्ड नहीं"], ["low", "Under 30%", "30% से कम"], ["mid", "30% to 70%", "30% से 70%"], ["high", "Over 70%", "70% से ज़्यादा"]])}</select></label>
+          <label>{t("Applications in the last 6 months", "पिछले 6 महीनों में आवेदन")}<select value={f.enquiries} onChange={set("enquiries")}>{opt([["0-1", "0 or 1", "0 या 1"], ["2-3", "2 or 3", "2 या 3"], ["4+", "4 or more", "4 या ज़्यादा"]])}</select></label>
+          <label>{t("Oldest loan or card", "सबसे पुराना ऋण या कार्ड")}<select value={f.age} onChange={set("age")}>{opt([["<6m", "Under 6 months", "6 महीने से कम"], ["6m-2y", "6 months to 2 years", "6 महीने से 2 साल"], [">2y", "Over 2 years", "2 साल से ज़्यादा"]])}</select></label>
+        </>)}
+      </div>
+      <div className="rural-actions"><button className="btn go" onClick={() => setGo(true)}>{t("Read my situation", "मेरी स्थिति पढ़िए")}</button></div>
+      {r && go && (<>
+        <div className={`rural-big ${r.band}`}><span style={{ fontSize: 24 }}>{r.headline}</span></div>
+        {r.reasons.map((x, i) => (<div key={i} className={`rural-rule ${x.kind === "bad" ? "bad" : ""}`}><b>{x.title}</b><ul className="rural-flags good">{x.steps.map((s) => <li key={s}>{s}</li>)}</ul></div>))}
+        <h3>{t("What a good record saves you", "अच्छा रिकॉर्ड कितना बचाता है")}</h3>
+        <div className="rural-form three">
+          <label>{t("Loan (₹)", "ऋण (₹)")}<input inputMode="numeric" value={loan.amount} onChange={(e) => setLoan({ ...loan, amount: e.target.value })} /></label>
+          <label>{t("Years", "साल")}<input inputMode="decimal" value={loan.years} onChange={(e) => setLoan({ ...loan, years: e.target.value })} /></label>
+          <label>{t("Rate with a good record (%)", "अच्छे रिकॉर्ड पर दर (%)")}<input inputMode="decimal" value={loan.good} onChange={(e) => setLoan({ ...loan, good: e.target.value })} /></label>
+          <label>{t("Rate with a poor record (%)", "ख़राब रिकॉर्ड पर दर (%)")}<input inputMode="decimal" value={loan.poor} onChange={(e) => setLoan({ ...loan, poor: e.target.value })} /></label>
+        </div>
+        <p className="rural-head">{r.emi.headline} ({t("monthly instalment", "मासिक किस्त")} ₹{r.emi.emi_good.toLocaleString("en-IN")} {t("vs", "बनाम")} ₹{r.emi.emi_poor.toLocaleString("en-IN")})</p>
+        <h3>{t("How a score works", "स्कोर कैसे काम करता है")}</h3>
+        <ul className="rural-flags good">{r.facts.map((x) => <li key={x}>{x}</li>)}</ul>
+        <h3>{t("Watch out for", "इनसे सावधान")}</h3>
+        <ul className="rural-flags">{r.scams.map((x) => <li key={x}>{x}</li>)}</ul>
+        <h3>{t("Your free report", "आपकी मुफ़्त रिपोर्ट")}</h3>
+        <p className="rural-note">{r.report_note} {r.bureaus.map((b) => `${b.name} (${b.site})`).join(" · ")}</p>
+        <details className="rural-letter"><summary>{t("Something on your report is wrong? Letters to fix it", "रिपोर्ट में कुछ गलत है? सुधार की चिट्ठियाँ")}</summary>
+          <div className="rural-form three">
+            <label>{t("Your name", "आपका नाम")}<input value={who.name} onChange={(e) => setWho({ ...who, name: e.target.value })} /></label>
+            <label>{t("Lender", "ऋणदाता")}<input value={who.lender} onChange={(e) => setWho({ ...who, lender: e.target.value })} /></label>
+            <label>{t("What is wrong", "क्या गलत है")}<input value={who.wrong} onChange={(e) => setWho({ ...who, wrong: e.target.value })} placeholder={t("e.g. shows overdue but I paid in May", "जैसे: बकाया दिखा रहा है पर मई में चुका दिया")} /></label>
+          </div>
+          {(["lender", "bureau"] as const).map((k) => (<div key={k}><pre>{r.letters[k]}</pre><button className="btn ghost sm" onClick={() => void copy(k, r.letters[k])}>{copied === k ? t("Copied ✓", "कॉपी हुआ ✓") : (k === "lender" ? t("Copy letter to the lender", "ऋणदाता की चिट्ठी कॉपी") : t("Copy letter to the bureau", "ब्यूरो की चिट्ठी कॉपी"))}</button></div>))}
+        </details>
+        <p className="rural-note">{r.note}</p>
+        <Say text={r.headline} />
       </>)}
     </section>
   );
@@ -733,7 +802,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"], ["shg", "📒", "Group ledger", "समूह की बही"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"], ["dbt", "💸", "Why no money?", "पैसा क्यों नहीं आया?"], ["hold", "📦", "Sell or hold?", "बेचें या रोकें?"], ["saving", "🐷", "Daily saving", "रोज़ की बचत"], ["shg", "📒", "Group ledger", "समूह की बही"], ["credit", "🏦", "Credit score", "क्रेडिट स्कोर"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -754,6 +823,7 @@ export default function Rural() {
         {tool === "hold" && <HoldTool init={params} />}
         {tool === "saving" && <SavingTool init={params} />}
         {tool === "shg" && <ShgTool />}
+        {tool === "credit" && <CreditTool init={params} />}
       </div>
     </Page>
   );

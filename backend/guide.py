@@ -172,6 +172,21 @@ SAVE_GOAL_CH = _c(("daughter", "Daughter's marriage or education", "बेटी
                   ("festival", "Festival or wedding in the family", "त्योहार या घर की शादी", r"festival|wedding|त्योहार|शादी"), ("other", "Something else", "कुछ और", r"other|else|कुछ और"))
 
 
+CR_HAS = _c(("none", "No loan or card", "कोई ऋण या कार्ड नहीं", r"no loan|^none|nothing|no credit|कोई ऋण|कुछ नहीं"),
+            ("informal", "Only from a moneylender or chit fund", "सिर्फ़ साहूकार या चिट फंड से", r"moneylender|chit|साहूकार|चिट|informal"),
+            ("both", "Both a loan and a card", "ऋण और कार्ड दोनों", r"both|दोनों"), ("card", "A credit card", "क्रेडिट कार्ड", r"card|कार्ड"),
+            ("loan", "A bank or other formal loan", "बैंक या औपचारिक ऋण", r"loan|bank|formal|ऋण|बैंक"))
+CR_MISS = _c(("never", "Never, always on time", "कभी नहीं, हमेशा समय पर", r"never|on time|कभी नहीं|समय पर"), ("once", "Once or twice", "एक-दो बार", r"once|twice|एक-दो|sometimes"),
+             ("often", "Often", "अक्सर", r"often|many|अक्सर|कई बार"))
+CR_SER = _c(("settled", "Settled or written off", "सेटल या राइट-ऑफ़", r"settle|written|सेटल|राइट"), ("default", "Unpaid and still pending", "न चुकाया, अब भी बाक़ी", r"unpaid|pending|default|बाक़ी|बाकी|न चुकाया"),
+            ("none", "None of these", "इनमें से कुछ नहीं", r"none|no|नहीं|कोई नहीं"))
+CR_UTIL = _c(("na", "I have no card", "मेरे पास कार्ड नहीं", r"no card|कार्ड नहीं|\bna\b"), ("low", "Under 30% of the limit", "सीमा का 30% से कम", r"under|low|कम|less"),
+             ("high", "Over 70% of the limit", "सीमा का 70% से ज़्यादा", r"over|high|ज़्यादा|ज्यादा|most"), ("mid", "30% to 70%", "30% से 70%", r"30|mid|बीच"))
+CR_ENQ = _c(("4+", "4 or more times", "4 या ज़्यादा बार", r"4|more|four|चार"), ("2-3", "2 or 3 times", "2 या 3 बार", r"2|3|two|three|दो|तीन"), ("0-1", "0 or 1 time", "0 या 1 बार", r"0|1|zero|one|none|एक|शून्य|नहीं"))
+CR_AGE = _c(("na", "No history", "कोई इतिहास नहीं", r"no history|कोई इतिहास"), ("<6m", "Under 6 months", "6 महीने से कम", r"under 6|less than 6|<6|new|6 महीने से कम"),
+            (">2y", "Over 2 years", "2 साल से ज़्यादा", r"over 2|more than 2|>2|2 साल से ज़्यादा"), ("6m-2y", "6 months to 2 years", "6 महीने से 2 साल", r"6 months|between|6m|2 साल"))
+
+
 def p_text(text: str):
     return text.strip() if len(text.strip()) >= 6 else None
 
@@ -273,6 +288,13 @@ DBT_USED_CH = _c(("recent", "I used the account in the last few months", "पि
 UPI_CHOICES = [(str(i), en, hi, re.compile(re.escape(en), re.I)) for i, (en, hi) in enumerate(rural.UPI_MENU)]
 
 TOOLS: dict[str, dict[str, Any]] = {
+    "credit": dict(title=("Credit score", "क्रेडिट स्कोर"), kind="credit_score", slots=[
+        slot("has_credit", "Have you ever borrowed from a bank or used a credit card?", "क्या आपने कभी बैंक से ऋण लिया या क्रेडिट कार्ड चलाया?", "Tap one", "एक चुनिए", parse_choice(CR_HAS), CR_HAS),
+        slot("missed", "Have you ever paid an instalment late?", "क्या आपने कभी किस्त देर से दी?", "Tap one", "एक चुनिए", parse_choice(CR_MISS), CR_MISS),
+        slot("serious", "Is there a settled, written-off or unpaid loan?", "क्या कोई सेटल, राइट-ऑफ़ या न चुकाया ऋण है?", "Tap one", "एक चुनिए", parse_choice(CR_SER), CR_SER),
+        slot("utilization", "How much of your card limit do you usually use?", "आप कार्ड की सीमा का आम तौर पर कितना इस्तेमाल करते हैं?", "Tap one", "एक चुनिए", parse_choice(CR_UTIL), CR_UTIL),
+        slot("enquiries", "How many times did you apply for a loan or card in the last 6 months?", "पिछले 6 महीनों में कितनी बार ऋण या कार्ड के लिए आवेदन किया?", "Tap one", "एक चुनिए", parse_choice(CR_ENQ), CR_ENQ),
+        slot("age", "How old is your oldest loan or card?", "आपका सबसे पुराना ऋण या कार्ड कितना पुराना है?", "Tap one", "एक चुनिए", parse_choice(CR_AGE), CR_AGE)]),
     "saving": dict(title=("Daily saving", "रोज़ की बचत"), kind="saving_goal", slots=[
         slot("goal", "What are you saving for?", "आप किसके लिए बचत कर रहे हैं?", "Tap one", "एक चुनिए", parse_choice(SAVE_GOAL_CH), SAVE_GOAL_CH),
         slot("target", "How much will it cost today?", "आज इसका ख़र्च कितना है?", "For example: 1 lakh", "जैसे: 1 लाख", p_money),
@@ -342,7 +364,7 @@ TOOLS.update({
         slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
 })
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
-RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi", "dbt", "hold", "saving"}
+RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi", "dbt", "hold", "saving", "credit"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
 CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
@@ -365,7 +387,7 @@ PAGES = [
     ("research", "/research", ("Research", "शोध"), r"\bresearch\b|stock analysis|शोध", ["Analyse TCS", "Which stock will double?"]),
     ("assistant", "/assistant", ("Assistant", "सहायक"), r"\bassistant\b|\bchat\b|सहायक", ["What can you do?"]),
 ]
-TOOL_NAV = [("saving", r"(daily|savings?) (saving|planner|goal)|saving planner|रोज़ की बचत|बचत योजना"), ("hold", r"(sell|hold) (or|vs) (hold|sell)|sell now or (hold|wait)|crop (price )?(timing|planner)|बेचें या रोकें"), ("dbt", r"(trace|track) (my )?(payment|subsidy)|why no money|dbt (tracer|trace)|भुगतान खोज"), ("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
+TOOL_NAV = [("credit", r"credit (score|check|report)|cibil|क्रेडिट स्कोर|सिबिल"), ("saving", r"(daily|savings?) (saving|planner|goal)|saving planner|रोज़ की बचत|बचत योजना"), ("hold", r"(sell|hold) (or|vs) (hold|sell)|sell now or (hold|wait)|crop (price )?(timing|planner)|बेचें या रोकें"), ("dbt", r"(trace|track) (my )?(payment|subsidy)|why no money|dbt (tracer|trace)|भुगतान खोज"), ("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
@@ -506,6 +528,11 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         money = tools.inr_hi if lang == "hi" else tools.inr
         say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
                                         f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
+    elif tool == "credit":
+        r = rural.credit_check(("none" if p.get("has_credit") == "informal" else p.get("has_credit", "none")), p.get("missed", "never"), p.get("serious", "none"),
+                               p.get("utilization", "na"), p.get("enquiries", "0-1"), p.get("age", "na"), p.get("has_credit") == "informal", lang)
+        top = r["reasons"][0]
+        say = f"{r['headline']} {top['title']} " + (top["steps"][0] if top["steps"] else "")
     elif tool == "saving":
         r = rural.daily_saving(p.get("goal", "other"), p.get("target"), int(p["months"]), None, p.get("daily_wage"), 26, 6.7, 6.0, lang)
         say = f"{r['headline']} " + (r["bullets"][0] if r["bullets"] else "")
@@ -560,7 +587,8 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
                 "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
-    nxt = {"saving": ["Check my moneylender interest", "Which government schemes can I get?"],
+    nxt = {"credit": ["Check my moneylender interest", "Daily saving plan for a goal"],
+           "saving": ["Check my moneylender interest", "Which government schemes can I get?"],
            "hold": ["Check my moneylender interest", "Plan my money around the harvest"],
            "dbt": ["Are my papers ready?", "Which government schemes can I get?"],
            "upi": ["I already paid a scammer on UPI, what do I do?", "Which government schemes can I get?"],
@@ -635,6 +663,9 @@ def fill(cid: str, text: str, lang: str) -> dict[str, Any] | None:
         st["params"]["rate"], st["params"]["unit"] = val["rate"], val["unit"]
     elif spec["name"] == "bank":
         st["params"]["bank"] = bool(val)
+    elif spec["name"] == "has_credit" and val in ("none", "informal"):
+        st["params"]["has_credit"] = val
+        st["skipped"] = list(set(st.get("skipped", [])) | {"missed", "serious", "utilization", "enquiries", "age"})
     else:
         st["params"][spec["name"]] = val
     st["tries"] = 0

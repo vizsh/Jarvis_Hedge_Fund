@@ -460,3 +460,63 @@ def test_shg_statements_exist_for_every_member_in_both_languages_and_route_works
     from backend import guide as G
     g = G.intercept("open the group ledger", "en", "x").data["guide"]
     assert g["route"] == "/rural" and g["params"] == {"tool": "shg"} and g["done"]
+
+
+# ---- E3: credit-score explainer -------------------------------------------------------------
+def test_emi_matches_the_standard_formula():
+    assert abs(rural._emi(100000, 11, 3) - 3274) < 1
+    assert rural._emi(120000, 0, 2) == 5000
+    e = rural.emi_compare(100000, 3, 11, 16)
+    assert e["saved"] == e["total_poor"] - e["total_good"] > 0 and e["emi_poor"] > e["emi_good"]
+
+
+def test_no_history_is_a_thin_file_not_a_bad_score_and_informal_borrowing_is_explained():
+    r = rural.credit_check("none")
+    assert r["profile"] == "thin_file" and len(r["reasons"][0]["steps"]) == 5
+    inf = rural.credit_check("none", informal_only=True)
+    assert "moneylender" in inf["reasons"][0]["title"].lower() and "not reported" in inf["reasons"][0]["title"].lower()
+    assert any("moneylender" in f.lower() and "no score" in f.lower() for f in rural.credit_check()["facts"])
+
+
+def test_profiles_follow_the_record_and_the_biggest_problem_comes_first():
+    bad = rural.credit_check("both", "often", "settled", "high", "4+", "<6m")
+    assert bad["profile"] == "at_risk" and bad["band"] == "red" and "paid late" in bad["reasons"][0]["title"]
+    assert rural.credit_check("loan", "once", "none", "mid", "2-3", "6m-2y")["profile"] == "fair"
+    good = rural.credit_check("loan", "never", "none", "low", "0-1", ">2y")
+    assert good["profile"] == "healthy" and good["band"] == "green" and good["reasons"][0]["kind"] == "good"
+    assert rural.credit_check("loan", "never", "default")["profile"] == "at_risk"
+
+
+def test_credit_never_invents_a_score_and_warns_about_score_repair():
+    r = rural.credit_full("loan", "once")
+    blob = str(r)
+    assert "your actual score" in r["note"] and "score of" not in blob.lower()
+    assert any("fee" in s.lower() and "scam" in s.lower() for s in r["scams"])
+    assert {b["name"] for b in r["bureaus"]} == {"TransUnion CIBIL", "Experian", "Equifax", "CRIF High Mark"}
+    hi = rural.credit_full("none", lang="hi")
+    assert "स्कोर" in hi["headline"] and hi["letters"]["lender"].startswith("सेवा में")
+
+
+def test_dispute_letters_fill_the_blanks():
+    l = rural.credit_dispute_letter("Ramesh", "ABC Finance", "shows overdue but I paid in May", "en")
+    assert "Ramesh" in l["lender"] and "ABC Finance" in l["bureau"] and "paid in May" in l["lender"]
+    assert "________" in rural.credit_dispute_letter()["lender"]
+
+
+def test_credit_questions_route_and_guide_skips_history_questions_when_there_is_none():
+    from backend import guide as G
+    assert A.answer("why was my loan rejected", _ctx()).data["intent"] == "credit_score"
+    assert A.answer("what is a cibil score", _ctx()).data["intent"] == "credit_score"
+    assert A.answer("can I buy HDFC Bank", _ctx()).data["intent"] == "should_buy"
+    english, _ = asyncio.run(H.convert("मेरा लोन रिजेक्ट हो गया सिबिल स्कोर क्या है", use_model=False))
+    assert A.rule_intent(english) == "credit_score"
+    G.STATE.clear()
+    g = G.begin("credit", "", "en", "cr")
+    g = G.fill("cr", "Only from a moneylender or chit fund", "en")
+    assert g["done"] and "no credit score" in g["say"].lower()
+    g = G.begin("credit", "", "en", "cr3")
+    for a in ["A bank or other formal loan", "Often", "Settled or written off", "I have no card", "4 or more times"]:
+        g = G.fill("cr3", a, "en")
+    assert g["ask"]["slot"] == "age"
+    g = G.fill("cr3", "Under 6 months", "en")
+    assert g["done"] and "hurting" in g["say"]
