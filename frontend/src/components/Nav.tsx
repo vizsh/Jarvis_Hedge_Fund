@@ -154,6 +154,7 @@ export function Dock() {
         </label>
       </div>
       {talking && <button className="dock-stop" onClick={stopNow}>■ Stop</button>}
+      <a className="dock-open" href="#/whatsapp">📱 WhatsApp</a>
       <a className="dock-open" href="#/assistant">Open assistant</a>
     </div>
   );

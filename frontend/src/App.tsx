@@ -14,6 +14,7 @@ import { ReportView } from "./components/Report";
 import { PortfolioBuilder } from "./components/Portfolio";
 import Protect from "./pages/Protect";
 import Rural from "./pages/Rural";
+import WhatsApp from "./pages/WhatsApp";
 import { KioskBar } from "./components/KioskBar";
 import { useKiosk } from "./lib/kiosk";
 import Govern from "./pages/Govern";
@@ -56,6 +57,7 @@ export default function App() {
     route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect />
     : route === "/rural" ? <Rural key={hash} />
+    : route === "/whatsapp" ? <WhatsApp />
     : route === "/learn" ? <Learn key={hash} />
     : route === "/practice" ? <Practice key={hash} />
     : route === "/govern" ? <Govern />

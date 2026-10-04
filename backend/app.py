@@ -1320,6 +1320,8 @@ async def twilio_webhook(request: Request, format: str = "xml"):
             body = ""
     if not sender:
         return Response("missing From", status_code=400)
+    if format == "json" and request.query_params.get("base", "").startswith(("http://", "https://")):
+        messaging_mod.BASE.set(request.query_params["base"])      # the in-app chat: links open its own pages
     replies = await messaging_mod.handle(sender, body, messaging_mod.channel_of(sender), audio)
     if format == "json":
         return JSONResponse({"messages": replies, "channel": messaging_mod.channel_of(sender)})
@@ -1334,6 +1336,18 @@ async def twilio_status() -> dict:
 @app.get("/messaging/status")
 async def messaging_status() -> dict:
     return messaging_mod.status()
+
+
+@app.post("/messaging/sim/voice")
+async def messaging_sim_voice(request: Request, sender: str = "whatsapp:+910000000000", base: str = "") -> dict:
+    """A voice note from the in-app chat: same path as a real WhatsApp voice note (transcribed locally,
+    shown back as "I heard ..." before it is answered)."""
+    audio = await request.body()
+    if len(audio) < 2000:
+        return {"messages": ["That voice note was too short. Hold the mic a little longer."]}
+    if base.startswith(("http://", "https://")):
+        messaging_mod.BASE.set(base)
+    return {"messages": await messaging_mod.handle(sender, "", messaging_mod.channel_of(sender), audio)}
 
 
 @app.get("/messaging/sim")

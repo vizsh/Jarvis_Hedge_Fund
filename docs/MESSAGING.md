@@ -2,6 +2,9 @@
 
 Feature phones and WhatsApp reach people the app never will. The same assistant, Hindi understanding and guided conversations run over messages. [`backend/messaging.py`](../backend/messaging.py) is provider-independent: `handle(sender, body)` takes one incoming message and returns the replies. Twilio is only a thin wrapper around it, so you can try everything today without an account.
 
+## In the app: the WhatsApp page
+One click from anywhere: the **WhatsApp** tab in the top menu, the 📱 WhatsApp card on Home, or the 📱 WhatsApp link in the assistant box at the bottom right (`#/whatsapp`). It is a phone-shaped chat that talks to the real `/twilio/webhook`, with: tappable options under each reply (instead of typing the number), typing indicator, read ticks and times, a WhatsApp/SMS switch, English/हिंदी quick toggle, a new-chat button (new number, fresh state), **🎙 voice notes** (recorded in the browser, transcribed locally and shown back as "I heard…"), and an **Open this in the app** button when a reply has a page with the result. The standalone version is still at `/messaging/sim`.
+
 ## Try it now (no Twilio)
 Open **http://localhost:8000/messaging/sim**: a phone-shaped chat that posts the same form fields Twilio does to `/twilio/webhook`. Send `hi`, then a number 1-9, or a sentence in English or Hindi.
 

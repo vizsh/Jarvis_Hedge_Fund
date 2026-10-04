@@ -25,7 +25,7 @@ export const pstore = {
 /** Remove every person-entered value, in memory and on disk. Device settings (voice, language) stay. */
 function wipeDisk(): void {
   try {
-    for (const k of Object.keys(localStorage)) if (/^jarvis\.(rural|recovery)\./.test(k)) localStorage.removeItem(k);
+    for (const k of Object.keys(localStorage)) if (/^jarvis\.(rural|recovery|sim)\./.test(k)) localStorage.removeItem(k);
   } catch { /* storage blocked */ }
 }
 export function wipePersonData(): void { mem.clear(); wipeDisk(); }

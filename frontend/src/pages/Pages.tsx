@@ -31,6 +31,7 @@ const TILES: { to: string; icon: string; en: [string, string]; hi: [string, stri
   { to: "/portfolio", icon: "📊", en: ["Portfolio", "What you own, how it is spread, what to do next."], hi: ["पोर्टफोलियो", "आपके पास क्या है, कैसे बँटा है, आगे क्या करें।"] },
   { to: "/protect", icon: "🛡️", en: ["Protect", "Check a tip, a scam call, or what to do after losing money."], hi: ["सुरक्षा", "टिप, ठग कॉल की जाँच, या पैसे गँवाने के बाद क्या करें।"] },
   { to: "/rural", icon: "🌾", en: ["Rural", "Moneylender interest, government schemes, harvest planning."], hi: ["ग्रामीण", "साहूकार का ब्याज, सरकारी योजनाएँ, फ़सल के हिसाब से योजना।"] },
+  { to: "/whatsapp", icon: "📱", en: ["WhatsApp", "The same tools as a phone chat: menu, voice notes, Hindi. Ready for a real number."], hi: ["व्हाट्सऐप", "वही औज़ार फ़ोन चैट में: मेनू, वॉइस नोट, हिंदी। असली नंबर के लिए तैयार।"] },
   { to: "/learn", icon: "📘", en: ["Learn", "Ask in plain words, test a crash, see where numbers come from."], hi: ["सीखें", "सरल शब्दों में पूछिए, गिरावट आज़माइए, आँकड़ों का स्रोत देखिए।"] },
   { to: "/practice", icon: "🎯", en: ["Practice", "Fee slider, emergency meter, fund overlap, scam-call rehearsal."], hi: ["अभ्यास", "फ़ीस स्लाइडर, इमरजेंसी मीटर, फ़ंड ओवरलैप, ठग कॉल का अभ्यास।"] },
   { to: "/govern", icon: "⚖️", en: ["Govern", "Try a trade against your limits, rebalance, audit trail."], hi: ["नियम", "अपनी सीमाओं में ट्रेड परखिए, रीबैलेंस, ऑडिट रिकॉर्ड।"] },

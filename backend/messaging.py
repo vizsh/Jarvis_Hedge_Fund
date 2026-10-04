@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextvars
 import hashlib
 import hmac
 import os
@@ -168,8 +169,11 @@ def render_ask(g: dict[str, Any], st: Sender, channel: str, lang: str) -> str:
     return "\n".join(lines)
 
 
+BASE: contextvars.ContextVar = contextvars.ContextVar("messaging_base", default=None)   # the in-app chat sets its own origin
+
+
 def _public_link(g: dict[str, Any]) -> str:
-    base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+    base = (BASE.get() or os.environ.get("PUBLIC_BASE_URL", "")).rstrip("/")
     if not base or not g.get("route"):
         return ""
     from urllib.parse import urlencode

@@ -116,3 +116,12 @@ def test_outbound_send_needs_config_and_uses_twilios_rest_endpoint(monkeypatch):
             return type("R", (), {"status_code": 201})()
     r = asyncio.run(M.send("+919800000000", "hello", "whatsapp", client=Fake()))
     assert r["ok"] and seen["url"].endswith("/Accounts/AC1/Messages.json") and seen["data"]["To"] == "whatsapp:+919800000000"
+
+
+def test_in_app_chat_gets_a_link_back_to_the_page_with_the_result():
+    tok = M.BASE.set("http://localhost:8000")
+    try:
+        r = say("whatsapp:+9199", "my sahukar charges 5 rupees per hundred a month on 50000 for 10 months")[0][0]
+    finally:
+        M.BASE.reset(tok)
+    assert "🔗 http://localhost:8000/#/rural?tool=loan" in r
