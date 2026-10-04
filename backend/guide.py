@@ -15,6 +15,7 @@ answer. The front end only has to follow the `guide` payload on each answer: go 
 """
 from __future__ import annotations
 
+import contextvars
 import re
 from typing import Any, Callable
 
@@ -280,6 +281,7 @@ TOOLS.update({
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
 RURAL = {"loan", "scheme", "schemes", "docs", "income"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
+CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
 SENTENCE = {
     "fee": lambda p, lang: "What does a {fee}% fee cost on {amt} {when} over {years} years?".format(
@@ -413,7 +415,9 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
     say, params = "", dict(p)
     if tool == "loan":
         r = rural.loan_cost(p["principal"], p["rate"], p.get("unit", "per100_month"), p["months"], "interest_only", lang)
-        say = f"{r['headline']} {r['verdict']}"
+        money = tools.inr_hi if lang == "hi" else tools.inr
+        say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
+                                        f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
     elif tool == "scheme":
         r = rural.scheme_check(p["text"], lang=lang)
         say = f"{r['verdict']} " + (r["flags"][0]["text"] if r["flags"] else "")
@@ -435,7 +439,7 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         params = {"income": p["income"], "cost": p["cost"], "out": p.get("out") or []}
     elif tool in HANDLER_TOOLS:
         from backend import assistant
-        ctx = ctx_factory(lang) if ctx_factory else None
+        ctx = CTX.get() or (ctx_factory(lang) if ctx_factory else None)
         sentence = SENTENCE[tool](p, lang)
         a = assistant.HANDLERS[TOOLS[tool]["kind"]](sentence, ctx) if ctx else None
         say = (a.headline + (" " + a.bullets[0] if a and a.bullets else "")) if a else ""

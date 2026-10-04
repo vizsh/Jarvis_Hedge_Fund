@@ -9,6 +9,7 @@ never leaves the machine.
 from __future__ import annotations
 
 import asyncio
+import os
 import contextlib
 import contextvars
 import math
@@ -1079,6 +1080,8 @@ def _guide_ctx(lang: str):
 
 
 guide_mod.ctx_factory = _guide_ctx
+from backend import messaging as messaging_mod
+messaging_mod.configure(_guide_ctx, lambda: session.conn)
 
 
 async def _assist(question: str, level: str = "normal"):
@@ -1294,6 +1297,49 @@ class LoanIn(BaseModel):
     months: int = 12
     mode: str = "interest_only"
     lang: str = "en"
+
+
+@app.post("/twilio/webhook")
+async def twilio_webhook(request: Request, format: str = "xml"):
+    """Twilio calls this for every incoming WhatsApp message or SMS. Point the number's webhook here.
+    `?format=json` returns the replies as JSON (the browser simulator and tests use that)."""
+    from fastapi.responses import JSONResponse, Response
+    form = {k: str(v) for k, v in (await request.form()).items()}
+    token = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    if os.environ.get("JARVIS_TWILIO_VALIDATE") == "1":
+        base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+        url = (base + request.url.path) if base else str(request.url)
+        if not (token and messaging_mod.valid_signature(url, form, request.headers.get("X-Twilio-Signature", ""), token)):
+            return Response("invalid signature", status_code=403)
+    sender, body = form.get("From", ""), form.get("Body", "")
+    audio = None
+    if int(form.get("NumMedia", "0") or 0) > 0 and form.get("MediaContentType0", "").startswith("audio"):
+        audio = await messaging_mod.fetch_media(form.get("MediaUrl0", ""))
+        if audio is None and not body:
+            body = ""
+    if not sender:
+        return Response("missing From", status_code=400)
+    replies = await messaging_mod.handle(sender, body, messaging_mod.channel_of(sender), audio)
+    if format == "json":
+        return JSONResponse({"messages": replies, "channel": messaging_mod.channel_of(sender)})
+    return Response(messaging_mod.twiml(replies), media_type="application/xml")
+
+
+@app.post("/twilio/status")
+async def twilio_status() -> dict:
+    return {"ok": True}                        # delivery receipts: nothing is stored
+
+
+@app.get("/messaging/status")
+async def messaging_status() -> dict:
+    return messaging_mod.status()
+
+
+@app.get("/messaging/sim")
+async def messaging_sim():
+    from fastapi.responses import HTMLResponse
+    from backend.messaging_sim import PAGE
+    return HTMLResponse(PAGE)
 
 
 @app.get("/rural/schemes")

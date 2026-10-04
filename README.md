@@ -47,6 +47,7 @@ JARVIS makes each of those *visible and interactive*: you drag a slider, replay 
 | **Assistant** | Voice and text chat; structured answer cards; inline interactive visuals; saved funds; nine guided jobs | [ASSISTANT](docs/ASSISTANT.md) |
 | **Protect** | **Scam recovery coach**, stock-tip scanner, tax shield, panic-sell replay, standing "tell me if" rules | [FEATURES](docs/FEATURES.md#protect) |
 | **Rural** | Moneylender interest checker, "is this offer real?", government-scheme finder, document readiness, harvest/wage income planner | [RURAL](docs/RURAL.md) |
+| **WhatsApp / SMS** | The same tools by message (numbered menu, voice notes, Hindi), Twilio-ready webhook and a browser simulator | [MESSAGING](docs/MESSAGING.md) |
 | **Learn / Practice** | Goal chart, fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam call rehearsal, glossary, drill-downs | [FEATURES](docs/FEATURES.md#learn-and-practice) |
 | **Govern** | Risk firewall, rebalance simulator, tamper-evident audit ledger and tamper test | [FEATURES](docs/FEATURES.md#govern) |
 | **Research** | **Search and analyse any listed stock**, four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
