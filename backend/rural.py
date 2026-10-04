@@ -641,3 +641,137 @@ def policy_check(premium: float, pay_years: int, term_years: int, maturity: floa
             "advice": advice, "verify": [hi if lang == "hi" else en for en, hi in INS_VERIFY],
             "note": t(f"The safe-deposit comparison uses about {SAFE_RATE}% for illustration; today's rates differ. A policy also gives life cover, which a deposit does not, so weigh both.",
                       f"सुरक्षित जमा की तुलना उदाहरण के लिए लगभग {SAFE_RATE}% से है; आज की दरें अलग हो सकती हैं। पॉलिसी जीवन कवर भी देती है जो जमा नहीं देती, इसलिए दोनों तौलिए।")}
+
+
+# =============================================================================== A4 UPI safety coach
+# The few rules that explain almost every UPI fraud. Everything below is a case of one of these.
+UPI_RULES = [
+    ("Your UPI PIN is only for SENDING money. You never type it to receive money.", "UPI पिन सिर्फ़ पैसा भेजने के लिए है। पैसा पाने के लिए इसे कभी नहीं डालना पड़ता।"),
+    ("A \"collect request\" or a QR code you scan means YOU pay. If someone says you will receive money by approving or scanning, it is a lie.", "\"कलेक्ट रिक्वेस्ट\" मंज़ूर करने या QR स्कैन करने का मतलब है कि पैसा आप भेज रहे हैं। कोई कहे कि इससे पैसा आएगा, तो वह झूठ है।"),
+    ("No bank, company or officer needs your PIN, OTP, card number or CVV. Nobody. Not for a refund, KYC or prize.", "किसी बैंक, कंपनी या अधिकारी को आपका पिन, OTP, कार्ड नंबर या CVV नहीं चाहिए। किसी को नहीं। रिफ़ंड, KYC या इनाम के लिए भी नहीं।"),
+    ("A real refund or credit arrives by itself. You never have to \"verify\" or \"activate\" it by paying or clicking.", "असली रिफ़ंड या जमा अपने आप आता है। उसे \"वेरिफ़ाई\" या \"चालू\" करने के लिए पैसे भेजने या लिंक दबाने की ज़रूरत नहीं।"),
+    ("Never install a screen-sharing app (AnyDesk, TeamViewer, QuickSupport) because someone on the phone asked.", "फ़ोन पर किसी के कहने से कभी स्क्रीन-शेयरिंग ऐप (AnyDesk, TeamViewer, QuickSupport) न डालें।"),
+    ("Find customer care only inside your own UPI app or on the bank's printed card/passbook, never by searching or from a message.", "कस्टमर केयर का नंबर सिर्फ़ अपने UPI ऐप के अंदर या बैंक के छपे कार्ड/पासबुक से लें, सर्च या मैसेज से नहीं।"),
+]
+UPI_RECOVER = {"en": "If you already paid, entered your PIN or shared a code: call 1930 now and tell your bank, then follow the scam recovery steps (the first hour matters).",
+               "hi": "अगर आप पैसा भेज चुके, पिन डाल चुके या कोड बता चुके: अभी 1930 पर फ़ोन कीजिए और बैंक को बताइए, फिर ठगी-के-बाद के क़दम अपनाइए (पहला घंटा सबसे अहम है)।"}
+
+# id, regex (English + Hindi), level, title, why, steps
+UPI_CASES: list[dict[str, Any]] = [
+    dict(id="receive_pin", level="red", rx=r"(receive|get|credit|refund).{0,40}(enter|put|type|give|share).{0,25}pin|(enter|put|type|give|share).{0,25}(pin).{0,40}(receive|get|credit|refund|money|payment)|(receive|get|credit|refund|incoming).{0,40}(need|have|must|should|asked).{0,25}(pin)|pin.{0,30}(to receive|to get)|पैसा (पाने|लेने|लेने के लिए|आने).{0,25}पिन|पिन.{0,30}(डालना|डालो|डालें|बताना).{0,30}(पैसा|रिफ़ंड|रिफंड|पाने)",
+         en=("Stop. You never enter a PIN to receive money.", "रुकिए। पैसा पाने के लिए पिन कभी नहीं डालना पड़ता।"),
+         why=("Entering a PIN always approves a payment OUT of your account. Fraudsters make it look like money is coming in.", "पिन डालने का मतलब हमेशा आपके खाते से पैसा जाना है। ठग इसे ऐसे दिखाते हैं जैसे पैसा आ रहा हो।"),
+         do=[("Do not enter the PIN. Close the screen.", "पिन मत डालिए। स्क्रीन बंद कीजिए।"), ("Check your balance in the app: money that is really coming in just appears.", "ऐप में बैलेंस देखिए: असली आने वाला पैसा अपने आप दिख जाता है।")]),
+    dict(id="collect", level="red", rx=r"collect request|payment request|request (money )?(from|on) (phonepe|gpay|google pay|paytm|upi)|approve (the |a )?(request|collect)|accept (the |a )?(request|collect)|कलेक्ट|रिक्वेस्ट (मंज़ूर|मंजूर|एक्सेप्ट|accept)",
+         en=("This is a collect request: approving it sends YOUR money out.", "यह कलेक्ट रिक्वेस्ट है: मंज़ूर करने पर आपका पैसा जाएगा।"),
+         why=("A collect request asks you to pay. Scammers say it will send you a refund or prize.", "कलेक्ट रिक्वेस्ट आपसे पैसा माँगता है। ठग कहते हैं कि इससे रिफ़ंड या इनाम आएगा।"),
+         do=[("Decline it. Look at the amount and the name: it will say you are paying.", "इसे अस्वीकार कीजिए। रक़म और नाम देखिए: उसमें आपके पैसे देने की बात होगी।"), ("Do not continue the chat or call with that person.", "उस व्यक्ति से बातचीत आगे मत बढ़ाइए।")]),
+    dict(id="qr_receive", level="red", rx=r"(scan|qr).{0,40}(receive|get|credit|refund|money|payment|sell|buyer)|(buyer|customer|olx|quikr|facebook marketplace).{0,40}(qr|scan)|qr code.{0,30}(sent|send|share)|क्यूआर|क्यू आर|qr.{0,20}स्कैन|स्कैन.{0,30}(पैसा|पैसे)",
+         en=("Scanning a QR code sends money. It never receives it.", "QR स्कैन करने से पैसा जाता है, आता नहीं।"),
+         why=("On sites like OLX a fake \"buyer\" sends a QR to \"pay you\". When you scan and enter your PIN, you pay them.", "OLX जैसी जगह नक़ली \"ख़रीदार\" \"आपको पैसे देने\" को QR भेजता है। आप स्कैन करके पिन डालते हैं तो पैसा आप देते हैं।"),
+         do=[("Do not scan. To be paid, give your UPI ID or show your own QR.", "स्कैन मत कीजिए। पैसे लेने के लिए अपनी UPI आईडी दीजिए या अपना QR दिखाइए।"), ("Ask the buyer to pay you by sending to your ID, and wait for the credit message.", "ख़रीदार से कहिए आपकी आईडी पर भेजे, और जमा होने का संदेश आने तक रुकिए।")]),
+    dict(id="mistaken_transfer", level="amber", rx=r"(sent|transferred|credited|received).{0,30}(by mistake|wrongly|wrong number|wrong account|galti)|(by mistake|wrongly|galti).{0,40}(send|sent|return|back|refund)|please (return|send back)|गलती से.{0,40}(भेज|आ गए|आया|लौटा|वापस)|वापस (कर दो|कीजिए|भेज)",
+         en=("A \"mistaken\" transfer is a known trick. Do not return it to them yourself.", "\"गलती से\" भेजा पैसा एक जानी-पहचानी चाल है। उसे ख़ुद वापस न भेजिए।"),
+         why=("The money can come from a stolen account or card; returning it from your account leaves you with the loss, or the first payment is reversed later.", "वह पैसा चोरी के खाते या कार्ड से आया हो सकता है; आप अपनी तरफ़ से लौटाएँगे तो नुक़सान आपका होगा, या पहला भुगतान बाद में पलट जाएगा।"),
+         do=[("Tell your bank and let it handle the return. Do not send money to the person.", "बैंक को बताइए और वापसी उसी से करवाइए। उस व्यक्ति को पैसा मत भेजिए।"), ("Do not share your PIN, OTP or any link they send.", "उनका भेजा कोई पिन, OTP या लिंक मत इस्तेमाल कीजिए।")]),
+    dict(id="remote_app", level="red", rx=r"anydesk|teamviewer|quick ?support|screen ?shar|remote (access|control|app)|rustdesk|एनीडेस्क|टीमव्यूअर|स्क्रीन शेयर|रिमोट",
+         en=("Do not install it. This gives the caller full control of your phone and bank apps.", "इसे मत डालिए। इससे कॉल करने वाले को आपके फ़ोन और बैंक ऐप पर पूरा क़ाबू मिल जाता है।"),
+         why=("With a screen-sharing app the fraudster sees your PIN and OTPs and moves money themselves.", "स्क्रीन-शेयरिंग ऐप से ठग आपका पिन और OTP देखकर ख़ुद पैसा भेज देता है।"),
+         do=[("Cut the call. If the app is already installed, switch on airplane mode and uninstall it.", "कॉल काटिए। ऐप डल चुका हो तो एयरप्लेन मोड चालू करके उसे हटा दीजिए।"), ("Call your bank on the number printed on your card.", "कार्ड पर छपे नंबर पर बैंक को फ़ोन कीजिए।")]),
+    dict(id="customer_care", level="red", rx=r"(customer care|helpline|support number|toll.?free).{0,40}(google|search|found|online|website|number)|(google|search|searched|online).{0,40}(customer care|helpline|support|refund)|कस्टमर केयर.{0,30}(गूगल|सर्च|नंबर)|गूगल पर.{0,30}(नंबर|कस्टमर)",
+         en=("A number from a web search or message is often a fraudster's.", "वेब सर्च या मैसेज से मिला नंबर अक्सर ठग का होता है।"),
+         why=("Fake care numbers are placed in search results. They ask for your PIN, a \"small payment\" or an app.", "नक़ली कस्टमर केयर नंबर सर्च में डाले जाते हैं। वे पिन, \"थोड़ा भुगतान\" या ऐप माँगते हैं।"),
+         do=[("Hang up. Use the Help section inside your own UPI app, or the number on your card or passbook.", "फ़ोन रख दीजिए। अपने UPI ऐप का Help भाग या कार्ड/पासबुक पर छपा नंबर इस्तेमाल कीजिए।"), ("Never pay a \"verification\" amount.", "\"वेरिफ़िकेशन\" के नाम पर कभी पैसा मत भेजिए।")]),
+    dict(id="refund_link", level="red", rx=r"refund.{0,40}(link|click|form|website|verify|activate|pay)|(click|open|tap).{0,30}link|cashback.{0,30}(link|claim|click)|link.{0,30}(refund|cashback|claim|kyc|update)|लिंक.{0,40}(रिफ़ंड|रिफंड|कैशबैक|केवाईसी|खोल|दबा)|रिफ़ंड.{0,40}लिंक",
+         en=("Do not tap the link. Real refunds never need a link or a form.", "लिंक मत दबाइए। असली रिफ़ंड के लिए लिंक या फ़ॉर्म नहीं चाहिए।"),
+         why=("The link opens a copy of a bank or UPI page that steals your card, PIN or OTP.", "लिंक बैंक या UPI जैसा नक़ली पेज खोलता है जो आपका कार्ड, पिन या OTP चुरा लेता है।"),
+         do=[("Delete the message. Open your bank or UPI app yourself and check there.", "संदेश मिटा दीजिए। अपना बैंक या UPI ऐप ख़ुद खोलकर वहीं देखिए।"), ("Report the number to 1930 or cybercrime.gov.in.", "नंबर की शिकायत 1930 या cybercrime.gov.in पर कीजिए।")]),
+    dict(id="kyc", level="red", rx=r"kyc|account (will be )?(blocked|suspended|closed|frozen)|sim (will be )?(blocked|deactivated)|electricity.{0,30}(cut|disconnect)|bill.{0,30}(disconnect|cut)|केवाईसी|खाता.{0,20}(बंद|ब्लॉक)|बिजली.{0,25}(कट|बंद)|सिम.{0,20}(बंद|ब्लॉक)",
+         en=("A threat to block or cut something unless you act now is a scam pattern.", "\"अभी नहीं किया तो बंद\" वाली धमकी ठगी का तरीक़ा है।"),
+         why=("Banks and utilities do not threaten by SMS or call, and do not collect PINs or ask for \"small payments\" to avoid cut-offs.", "बैंक और बिजली विभाग SMS या कॉल पर धमकी नहीं देते, न पिन माँगते हैं, न कटने से बचाने को \"थोड़ा भुगतान\"।"),
+         do=[("Do not call the number in the message. Visit the branch or use the official app or website.", "संदेश वाले नंबर पर फ़ोन मत कीजिए। शाखा जाइए या आधिकारिक ऐप/वेबसाइट देखिए।")]),
+    dict(id="small_test", level="red", rx=r"(ask|want|demand)s?.{0,20}small (payment|amount).{0,30}(verify|activate|confirm|unlock)|(send|pay|transfer).{0,15}(re\.? ?1|rs\.? ?1|₹ ?1|one rupee|1 rupee|₹ ?10|10 rupees|small amount|test payment).{0,40}(verify|activate|confirm|test|unlock)|(verify|activate|unlock).{0,40}(small|₹ ?1\b|one rupee|1 rupee)|एक रुपये?.{0,30}(भेज|वेरिफ़|वेरिफ)|थोड़ा पैसा.{0,30}(वेरिफ़|वेरिफ|चालू)",
+         en=("A \"small verification payment\" is the first step of a bigger theft.", "\"वेरिफ़िकेशन के लिए थोड़ा भुगतान\" बड़ी चोरी का पहला क़दम है।"),
+         why=("It tests that you will obey, or sends you to a fake page where the real amount is taken.", "इससे ठग परखता है कि आप कहना मानेंगे, या नक़ली पेज पर ले जाकर असली रक़म निकालता है।"),
+         do=[("Do not send anything. No real service verifies you by taking money.", "कुछ मत भेजिए। कोई असली सेवा पैसा लेकर वेरिफ़ाई नहीं करती।")]),
+    dict(id="prize", level="red", rx=r"lottery|prize|lucky draw|you (have )?won|won a|gift voucher|scratch card|cashback offer|लॉटरी|इनाम|लकी ड्रॉ|स्क्रैच",
+         en=("You do not win prizes you never entered, and prizes never need payment.", "जिस इनाम में आपने हिस्सा नहीं लिया वह आपको नहीं मिलता, और इनाम के लिए पैसा नहीं देना पड़ता।"),
+         why=("Fraudsters send a \"claim\" request or ask for a fee or your PIN.", "ठग \"क्लेम\" रिक्वेस्ट भेजते हैं या फ़ीस या पिन माँगते हैं।"),
+         do=[("Ignore and block. Never pay to receive.", "नज़रअंदाज़ कीजिए और ब्लॉक कीजिए। पाने के लिए कभी भुगतान मत कीजिए।")]),
+    dict(id="apk", level="red", rx=r"\.apk|apk file|install (this|the) (app|file)|download (this|the) (app|file)|app from (a )?(link|whatsapp|message)|एपीके|ऐप डाउनलोड|फ़ाइल डाउनलोड",
+         en=("Never install an app from a message or link.", "मैसेज या लिंक से आया ऐप कभी न डालें।"),
+         why=("Fake bank, KYC, PM-scheme and traffic-challan apps read your SMS and steal OTPs.", "नक़ली बैंक, KYC, सरकारी योजना और चालान ऐप आपके SMS पढ़कर OTP चुरा लेते हैं।"),
+         do=[("Install apps only from the Play Store or App Store, from the real company.", "ऐप सिर्फ़ प्ले स्टोर/ऐप स्टोर से, असली कंपनी का डालिए।"), ("If installed already: uninstall, switch on airplane mode, call your bank.", "डल चुका हो तो हटाइए, एयरप्लेन मोड चालू कीजिए, बैंक को फ़ोन कीजिए।")]),
+    dict(id="otp_pin", level="red", rx=r"(share|give|tell|send|read out).{0,25}(otp|pin|cvv|password)|(asked|wants?|needs?).{0,25}(my )?(otp|pin|cvv)|(otp|पिन|ओटीपी|सीवीवी).{0,25}(माँग|मांग|बता|बताओ|बताइए|पूछ)",
+         en=("Never share your PIN, OTP or CVV with anyone.", "अपना पिन, OTP या CVV किसी को न बताएँ।"),
+         why=("Anyone who asks for them, whatever they say they are, is stealing.", "जो भी माँगे, चाहे कुछ भी बताए, वह चोरी कर रहा है।"),
+         do=[("Cut the call or stop replying. Call your bank on the number on your card.", "कॉल काटिए या जवाब देना बंद कीजिए। कार्ड के नंबर पर बैंक को फ़ोन कीजिए।")]),
+]
+UPI_MENU = [  # tappable situations (also the guide's choices)
+    ("They say I will receive money if I enter my PIN", "कहते हैं पिन डालने से पैसा आएगा"),
+    ("I got a collect or payment request", "मुझे कलेक्ट/पेमेंट रिक्वेस्ट आई"),
+    ("A buyer sent a QR code to pay me", "ख़रीदार ने पैसे देने को QR भेजा"),
+    ("Someone sent money by mistake and wants it back", "किसी ने गलती से पैसा भेजकर वापस माँगा"),
+    ("They want me to install AnyDesk or a screen app", "AnyDesk या स्क्रीन ऐप डालने को कह रहे हैं"),
+    ("I found a customer care number on Google", "गूगल पर कस्टमर केयर नंबर मिला"),
+    ("A link for a refund, KYC or cashback", "रिफ़ंड, KYC या कैशबैक का लिंक"),
+    ("They ask for a small payment to verify", "वेरिफ़ाई के लिए थोड़ा भुगतान माँगते हैं"),
+]
+
+
+def upi_check(text: str, lang: str = "en") -> dict[str, Any]:
+    t = _tr(lang)
+    low = (text or "").lower()
+    case = next((c for c in UPI_CASES if re.search(c["rx"], low)), None)
+    rules = [hi if lang == "hi" else en for en, hi in UPI_RULES]
+    recover = UPI_RECOVER[lang]
+    if case:
+        i = 1 if lang == "hi" else 0
+        return {"matched": case["id"], "level": case["level"], "headline": case["en"][i], "why": case["why"][i],
+                "do": [d[i] for d in case["do"]], "rules": rules, "recover": recover,
+                "verdict": (t("Very likely a scam. Do not pay or share anything.", "बहुत संभव है कि यह ठगी है। कुछ भी पैसा या जानकारी मत दीजिए।") if case["level"] == "red"
+                            else t("A known trick. Be careful and do not send money yourself.", "एक जानी-पहचानी चाल है। सावधान रहिए और ख़ुद पैसा मत भेजिए।"))}
+    return {"matched": None, "level": "amber",
+            "headline": t("I could not match this to a known trick, so use the rules below.", "यह किसी जानी-पहचानी चाल से नहीं मिला, इसलिए नीचे के नियम अपनाइए।"),
+            "why": t("Almost every UPI fraud asks you for one of: your PIN, an OTP, a scan, an approval, a click, an app, or a payment before you get anything.",
+                     "लगभग हर UPI ठगी में इनमें से कुछ माँगा जाता है: पिन, OTP, स्कैन, मंज़ूरी, क्लिक, ऐप, या कुछ मिलने से पहले भुगतान।"),
+            "do": [t("If any of those is being asked, stop. Describe it to me in a few words, or choose a situation.", "इनमें से कुछ भी माँगा जा रहा हो तो रुकिए। मुझे थोड़े शब्दों में बताइए, या कोई स्थिति चुनिए।")],
+            "rules": rules, "recover": recover,
+            "verdict": t("Not matched. If you are asked for a PIN, OTP, scan or click, treat it as a scam.", "मेल नहीं मिला। पिन, OTP, स्कैन या क्लिक माँगा जाए तो उसे ठगी मानिए।")}
+
+
+# drills: a scenario, three choices, which is right and why
+UPI_DRILLS: list[dict[str, Any]] = [
+    dict(id="d1", s=("You sell a table on OLX. The buyer says: \"I'll pay by QR. Scan the code I sent and enter your PIN to receive.\"", "आप OLX पर मेज़ बेच रहे हैं। ख़रीदार कहता है: \"मैं QR से पैसे दे रहा हूँ। मेरा भेजा कोड स्कैन करके पैसा पाने के लिए पिन डालिए।\""),
+         o=[("Scan it and enter the PIN", "स्कैन करके पिन डालूँ", 0), ("Refuse; give my UPI ID and wait for the credit message", "मना करूँ; अपनी UPI आईडी दूँ और जमा होने का संदेश देखूँ", 1), ("Scan it but not enter the PIN", "स्कैन करूँ पर पिन न डालूँ", 0)],
+         why=("Scanning and the PIN both mean YOU pay. To be paid, only your UPI ID or your own QR is needed.", "स्कैन और पिन दोनों का मतलब आप पैसा दे रहे हैं। पैसे पाने के लिए सिर्फ़ आपकी UPI आईडी या आपका अपना QR चाहिए।")),
+    dict(id="d2", s=("A caller says your electricity will be cut tonight unless you pay ₹10 to \"update\" your bill, and sends a link.", "कॉल आती है कि आज रात बिजली कट जाएगी जब तक आप बिल \"अपडेट\" करने को ₹10 न दें, और एक लिंक भेजते हैं।"),
+         o=[("Pay ₹10, it is small", "₹10 ही तो हैं, भेज दूँ", 0), ("Ignore the link; check the bill in the official app or at the office", "लिंक छोड़ दूँ; आधिकारिक ऐप या दफ़्तर में बिल देखूँ", 1), ("Call the number back to argue", "उसी नंबर पर फ़ोन करके बहस करूँ", 0)],
+         why=("The small amount is a hook: the link is a fake page. Utilities do not threaten by phone.", "छोटी रक़म चारा है: लिंक नक़ली पेज है। बिजली विभाग फ़ोन पर धमकाता नहीं।")),
+    dict(id="d3", s=("Your phone shows \"Collect request from Customer Care ₹4,999 — Approve to get your refund\".", "आपके फ़ोन पर आता है \"कस्टमर केयर से ₹4,999 की कलेक्ट रिक्वेस्ट — रिफ़ंड पाने के लिए मंज़ूर करें\"।"),
+         o=[("Approve, it says refund", "मंज़ूर करूँ, रिफ़ंड लिखा है", 0), ("Decline; a refund never needs approval", "अस्वीकार करूँ; रिफ़ंड में मंज़ूरी नहीं लगती", 1), ("Approve but with a smaller amount", "कम रक़म करके मंज़ूर करूँ", 0)],
+         why=("A collect request takes money out. A refund just appears in your account.", "कलेक्ट रिक्वेस्ट से पैसा निकलता है। रिफ़ंड अपने आप खाते में आ जाता है।")),
+    dict(id="d4", s=("A stranger sends you ₹5,000 and phones: \"Sorry, wrong number. Please send it back to me right now.\"", "कोई अनजान आपको ₹5,000 भेजकर फ़ोन करता है: \"माफ़ कीजिए, गलत नंबर पर गया। अभी वापस भेज दीजिए।\""),
+         o=[("Return it quickly to be helpful", "मदद के लिए जल्दी लौटा दूँ", 0), ("Do not return it; tell my bank and let it reverse properly", "ख़ुद न लौटाऊँ; बैंक को बताऊँ ताकि वही ठीक से वापस करे", 1), ("Return half", "आधा लौटा दूँ", 0)],
+         why=("The money may be from a stolen account. If you send yours, you lose it. The bank can reverse it safely.", "पैसा चोरी के खाते से हो सकता है। आप अपना भेजेंगे तो आपका जाएगा। बैंक सुरक्षित तरीक़े से वापस कर सकता है।")),
+    dict(id="d5", s=("You searched Google for your bank's customer care. The number answers and asks you to install a \"support app\".", "आपने बैंक का कस्टमर केयर गूगल पर खोजा। नंबर पर कोई उठाकर \"सपोर्ट ऐप\" डालने को कहता है।"),
+         o=[("Install it, they are helping", "डाल दूँ, वे मदद कर रहे हैं", 0), ("Hang up; use the number on my card or the app's Help", "फ़ोन रख दूँ; कार्ड का नंबर या ऐप का Help इस्तेमाल करूँ", 1), ("Install but do not log in", "डालूँ पर लॉग-इन न करूँ", 0)],
+         why=("Search results can hold fake numbers; a screen app gives them control. Even installing is too much.", "सर्च में नक़ली नंबर हो सकते हैं; स्क्रीन ऐप से उन्हें क़ाबू मिलता है। डालना भी ठीक नहीं।")),
+    dict(id="d6", s=("An SMS: \"Your account is blocked. Update KYC at this link today.\"", "SMS: \"आपका खाता ब्लॉक है। आज ही इस लिंक पर KYC अपडेट कीजिए।\""),
+         o=[("Open the link and fill in details", "लिंक खोलकर जानकारी भरूँ", 0), ("Do not open; visit the branch or official app", "न खोलूँ; शाखा जाऊँ या आधिकारिक ऐप देखूँ", 1), ("Forward it to friends to warn them, after opening it", "पहले खोलकर देखूँ, फिर दोस्तों को भेजूँ", 0)],
+         why=("Real KYC never comes with a threat and a link. Even opening an unknown link can be risky.", "असली KYC धमकी और लिंक के साथ नहीं आता। अनजान लिंक खोलना भी जोखिम है।")),
+    dict(id="d7", s=("A friend you know messages: \"I'm stuck, urgent, can you send ₹3,000? New number.\"", "जान-पहचान वाला संदेश भेजता है: \"फँस गया हूँ, ज़रूरी है, ₹3,000 भेज दो? नया नंबर है।\""),
+         o=[("Send it, he is a friend", "भेज दूँ, दोस्त है", 0), ("Call him on his old number first", "पहले उसके पुराने नंबर पर फ़ोन करूँ", 1), ("Ask him to send a selfie", "सेल्फ़ी माँग लूँ", 0)],
+         why=("Hacked or copied accounts message everyone. A call on the old number settles it; a photo can be copied too.", "हैक या नक़ली अकाउंट सबको संदेश भेजते हैं। पुराने नंबर पर फ़ोन से बात साफ़ हो जाती है; फ़ोटो भी कॉपी हो सकती है।")),
+    dict(id="d8", s=("You are told you won ₹25,000 in a scratch card and must pay ₹499 \"processing fee\" first.", "बताया जाता है कि आपने स्क्रैच कार्ड में ₹25,000 जीते हैं और पहले ₹499 \"प्रोसेसिंग फ़ीस\" देनी होगी।"),
+         o=[("Pay ₹499, it is worth it", "₹499 दे दूँ, फ़ायदा है", 0), ("Ignore and block", "नज़रअंदाज़ करके ब्लॉक करूँ", 1), ("Pay half now, half later", "आधा अभी, आधा बाद में", 0)],
+         why=("You cannot win what you never entered, and real prizes never ask for a fee.", "जिसमें हिस्सा नहीं लिया वह जीता नहीं जाता, और असली इनाम फ़ीस नहीं माँगता।")),
+]
+
+
+def upi_drills(lang: str = "en") -> dict[str, Any]:
+    i = 1 if lang == "hi" else 0
+    return {"drills": [{"id": d["id"], "scenario": d["s"][i], "why": d["why"][i],
+                        "options": [{"text": o[i], "right": bool(o[2])} for o in d["o"]]} for d in UPI_DRILLS],
+            "menu": [{"text": en, "label": hi if lang == "hi" else en} for en, hi in UPI_MENU],
+            "rules": [hi if lang == "hi" else en for en, hi in UPI_RULES], "recover": UPI_RECOVER[lang]}

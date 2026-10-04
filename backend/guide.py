@@ -151,6 +151,10 @@ def p_age(text: str):
     return int(n) if n and 0 < n < 111 else None
 
 
+def p_upi(text: str):
+    return text.strip() if len(text.strip()) >= 6 else None
+
+
 def p_text(text: str):
     return text.strip() if len(text.strip()) >= 6 else None
 
@@ -236,7 +240,12 @@ def slot(name, en, hi, ex_en, ex_hi, parse, choices=None, optional=False):
     return dict(name=name, en=en, hi=hi, ex_en=ex_en, ex_hi=ex_hi, parse=parse, choices=choices, optional=optional)
 
 
+UPI_CHOICES = [(str(i), en, hi, re.compile(re.escape(en), re.I)) for i, (en, hi) in enumerate(rural.UPI_MENU)]
+
 TOOLS: dict[str, dict[str, Any]] = {
+    "upi": dict(title=("UPI safety", "UPI सुरक्षा"), kind="upi_check", slots=[
+        slot("text", "What is happening? Tap the closest, or tell me in your own words.", "क्या हो रहा है? सबसे क़रीबी चुनिए, या अपने शब्दों में बताइए।",
+             "For example: someone says I must enter my PIN to receive money", "जैसे: कोई कहता है पैसा पाने के लिए पिन डालो", p_upi, UPI_CHOICES)]),
     "policy": dict(title=("Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"), kind="policy_check", slots=[
         slot("premium", "How much premium do you pay each year?", "आप साल में कितना प्रीमियम भरते हैं?", "For example: 50000", "जैसे: 50000", p_money),
         slot("pay_years", "For how many years do you pay it?", "कितने साल तक भरते हैं?", "For example: 10", "जैसे: 10", p_years),
@@ -285,7 +294,7 @@ TOOLS.update({
         slot("years", "In how many years?", "कितने साल में?", "For example: 15", "जैसे: 15", p_years)]),
 })
 KIND_TO_TOOL = {v["kind"]: k for k, v in TOOLS.items()}
-RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy"}
+RURAL = {"loan", "scheme", "schemes", "docs", "income", "policy", "upi"}
 HANDLER_TOOLS = {"fee", "emergency", "goal"}              # answered by an existing assistant handler
 CTX: contextvars.ContextVar = contextvars.ContextVar("guide_ctx", default=None)   # a caller (WhatsApp/SMS) can pin its own context
 ctx_factory: Callable[[str], Any] | None = None           # set by the app: lang -> assistant.Ctx
@@ -308,7 +317,7 @@ PAGES = [
     ("research", "/research", ("Research", "शोध"), r"\bresearch\b|stock analysis|शोध", ["Analyse TCS", "Which stock will double?"]),
     ("assistant", "/assistant", ("Assistant", "सहायक"), r"\bassistant\b|\bchat\b|सहायक", ["What can you do?"]),
 ]
-TOOL_NAV = [("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
+TOOL_NAV = [("upi", r"upi (safety|coach|check)|upi सुरक्षा|यूपीआई सुरक्षा"), ("policy", r"(insurance|policy) (checker|check)|policy good|बीमा (जाँच|पॉलिसी जाँच)"), ("loan", r"moneylender|money lender|sahukar|loan checker|interest checker|साहूकार"),
             ("scheme", r"(offer|scheme|scam|fraud) (checker|check|tool)|offer real|ऑफ़र|ऑफर"),
             ("schemes", r"(government|sarkari|govt) schemes?|scheme finder|सरकारी योजना"),
             ("docs", r"(documents?|papers?) (check|ready|checklist)|काग़ज़|कागज"),
@@ -399,6 +408,9 @@ def _prefill(tool: str, st: dict[str, Any], text: str) -> None:
         for k in ("premium", "pay_years", "term_years", "maturity", "cover"):
             if k in a:
                 p[k] = a[k]
+    elif tool == "upi":
+        if rural.upi_check(text)["matched"]:
+            p["text"] = text.strip()
     elif tool == "scheme":
         if len(text.strip()) > 25 and re.search(r"\d|scheme|offer|double|chit|गारंटी|दोगुना|योजना", text, re.I):
             p["text"] = text.strip()
@@ -430,6 +442,10 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         money = tools.inr_hi if lang == "hi" else tools.inr
         say = (f"{r['headline']} " + t(f"On {money(p['principal'])} for {p['months']} months you pay {money(r['interest'])} interest, {money(r['total'])} in all. ",
                                         f"{money(p['principal'])} पर {p['months']} महीने में {money(r['interest'])} ब्याज लगेगा, कुल {money(r['total'])}। ") + r["verdict"])
+    elif tool == "upi":
+        r = rural.upi_check(p["text"], lang)
+        say = f"{r['headline']} {r['why']} " + (r["do"][0] if r["do"] else "")
+        params = {"text": p["text"][:300]}
     elif tool == "policy":
         r = rural.policy_check(p["premium"], p["pay_years"], p["term_years"], p["maturity"], p.get("cover"), None, "", lang)
         say = f"{r['headline']} {r['verdict']}"
@@ -467,7 +483,8 @@ def _finish(cid: str, st: dict[str, Any], lang: str) -> dict[str, Any]:
         return {"tool": tool, "route": _route(tool), "label": t(*TOOLS[tool]["title"]), "navigate": True, "done": True, "ask": None,
                 "params": _query(tool, params, True), "say": say, "next": nxt, "step": None}
     STATE.pop(cid, None)
-    nxt = {"policy": ["Check my moneylender interest", "Which government schemes can I get?"],
+    nxt = {"upi": ["I already paid a scammer on UPI, what do I do?", "Which government schemes can I get?"],
+           "policy": ["Check my moneylender interest", "Which government schemes can I get?"],
            "loan": ["Which government schemes can I get?", "Plan my money around the harvest"],
            "scheme": ["Check my moneylender interest", "I already lost money in a scam"],
            "schemes": ["Are my papers ready?", "Check my moneylender interest"],

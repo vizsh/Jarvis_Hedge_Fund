@@ -127,3 +127,12 @@ def test_forget_clears_one_conversation_only(ctx_factory):
     G.LAST_SCHEMES["a"] = ["pm_kisan"]
     G.forget("a")
     assert not G.active("a") and "a" not in G.LAST_SCHEMES and G.active("b")
+
+
+def test_upi_coach_asks_what_is_happening_then_names_the_trick():
+    g = G.begin("upi", "", "en", "c")
+    assert g["ask"]["slot"] == "text" and len(g["ask"]["choices"]) == 8
+    g = G.fill("c", "A buyer sent a QR code to pay me", "en")
+    assert g["done"] and "QR" in g["say"] and g["params"]["run"] == "1"
+    done = G.begin("upi", "a buyer on olx sent a qr code to pay me, scan to receive", "en", "c")
+    assert done["done"]

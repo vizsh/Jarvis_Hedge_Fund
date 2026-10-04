@@ -337,6 +337,7 @@ def _b_loan(t: str, q: Q, raw: str) -> str:
 BUILD: dict[str, Callable[[str, Q, str], str]] = {
     "moneylender": _b_loan,
     "policy_check": _b_policy,
+    "upi_check": lambda t, q, raw: "Is this UPI request safe? " + raw,
     "scheme_check": lambda t, q, raw: "Is this scheme genuine? " + raw,
     "entitlements": lambda *a: "Which government schemes can I get?",
     "docs_ready": lambda *a: "Why has my payment not come? Which documents do I need?",
@@ -359,6 +360,7 @@ _SCAM = norm(r"(ठगी|ठग|धोखा|धोखाधड़ी|फ्र
 
 # ordered: more specific first. (intent, regex over the normalised Hindi sentence)
 RULES: list[tuple[str, re.Pattern]] = [(i, re.compile(norm(p))) for i, p in [
+    ("upi_check", r"(यूपीआई|यू पी आई|फोनपे|फोन पे|गूगल पे|पेटीएम|भीम ऐप|कलेक्ट रिक्वेस्ट|पेमेंट रिक्वेस्ट|क्यूआर|क्यू आर|(पैसा|पैसे) (पाने|लेने).{0,25}पिन|पिन.{0,25}(पैसा|पैसे) (पाने|लेने|आएगा|आएंगे)|गलती से.{0,30}(पैसे|पैसा).{0,30}(भेज|आ गए))"),
     ("policy_check", r"((बीमा|पॉलिसी|एलआईसी|प्रीमियम|मैच्योरिटी).{0,40}(प्रीमियम|मैच्योरिटी|एजेंट|रिटर्न|फायदा|बोनस|बंद|सरेंडर|लायक|अच्छी|सही)|(एजेंट).{0,30}(पॉलिसी|बीमा)|(पॉलिसी|बीमा).{0,30}(बोनस|रिफंड).{0,40}(फीस|टैक्स|चार्ज))"),
     ("moneylender", r"(साहूकार|आढ़तिया|आढ़ती|सैकड़ा|सैकड़े|सूद|ब्याज.{0,25}(महीने|रुपये|रुपए|कितना|कितनी)|(कर्ज|क़र्ज़|कर्जा|उधार).{0,25}(ब्याज|सैकड़ा))"),
     ("scheme_check", r"((पैसा|पैसे|रुपये|रकम|निवेश|पूंजी).{0,20}(दोगुना|दुगना|दुगुना|दोगुने|तिगुना|डबल)|चिट ?फंड|कमेटी|पोंजी|पिरामिड|(गारंटी|पक्का).{0,25}(मुनाफा|कमाई|रिटर्न)|पैसा.{0,15}(डबल|दोगुना)|(स्कीम|योजना|कंपनी|ऐप).{0,30}(असली|नकली|ठगी|सही है|भरोसे)|सदस्य बनाइ|दोस्तों को जोड़)"),
@@ -492,7 +494,7 @@ MODEL_OK = {"xray", "why", "fix", "stress", "diversification", "correlation", "f
 
 
 INTENT_HI = {
-    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
+    "moneylender": "साहूकार के ब्याज का असली हिसाब", "policy_check": "बीमा पॉलिसी असल में कितना देती है", "upi_check": "UPI की यह बात ठगी तो नहीं", "scheme_check": "इस योजना/ऑफ़र की ठगी-जाँच", "entitlements": "आपके लिए सरकारी योजनाएँ",
     "docs_ready": "काग़ज़ और भुगतान रुकने की वजह", "income_plan": "फ़सल/मौसम की आमदनी की योजना",
     "xray": "पोर्टफोलियो की सेहत", "why": "जोखिम ज़्यादा क्यों है", "fix": "क्या बेचना चाहिए", "stress": "बाज़ार गिरे तो असर", "diversification": "पैसा कितना बँटा है",
     "correlation": "कौन से शेयर साथ चलते हैं", "fund_overlap": "फंडों का ओवरलैप", "fund_list": "उपलब्ध फंड", "fee_drag": "फीस की असली क़ीमत",

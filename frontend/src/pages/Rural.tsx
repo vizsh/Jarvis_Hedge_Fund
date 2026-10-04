@@ -21,7 +21,7 @@ function Waiting({ tool }: { tool: string }) {
 const useWaiting = (tool: string) => { const g = usePilot((s) => s.guide); return !!g?.ask && g.tool === tool; };
 const fromJSON = <T,>(v: string | undefined, d: T): T => { try { return v ? JSON.parse(v) : d; } catch { return d; } };
 
-type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy";
+type Tool = "loan" | "scheme" | "schemes" | "docs" | "income" | "policy" | "upi";
 
 const store = {
   get<T>(k: string, d: T): T { return pstore.get("rural.", k, d); },
@@ -147,6 +147,70 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <Say text={`${r.verdict} ${r.rule}`} />
       </>)}
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ A4 UPI safety */
+type Upi = { matched: string | null; level: string; headline: string; why: string; do: string[]; rules: string[]; recover: string; verdict: string };
+type Drills = { drills: { id: string; scenario: string; why: string; options: { text: string; right: boolean }[] }[]; menu: { text: string; label: string }[]; rules: string[]; recover: string };
+
+function UpiTool({ init }: { init: Record<string, string> }) {
+  const { t } = useT(); const lang = useLang((s) => s.lang);
+  const guided = init.tool === "upi";
+  const waiting = useWaiting("upi");
+  const [text, setText] = useState(guided ? init.text ?? "" : "");
+  const [go, setGo] = useState(guided && !!init.run && !!init.text);
+  const [data, setData] = useState<Drills | null>(null);
+  useEffect(() => { ruralFetch(`/rural/upi/drills?lang=${lang}`).then(setData).catch(() => {}); }, [lang]);
+  const r = usePost<Upi>("/rural/upi", { text, lang }, go && !waiting && !!text.trim(), 0);
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [score, setScore] = useState({ right: 0, done: 0 });
+  // scenarios and the answers inside each are both shuffled, so "always pick the middle one" cannot win
+  const order = useMemo(() => (data ? [...data.drills].sort(() => Math.random() - 0.5).map((x) => ({ ...x, options: [...x.options].sort(() => Math.random() - 0.5) })) : []), [data]);
+  const d = order[i];
+  const choose = (k: number) => { if (picked !== null || !d) return; setPicked(k); setScore((s) => ({ right: s.right + (d.options[k].right ? 1 : 0), done: s.done + 1 })); };
+  const next = () => { setPicked(null); setI((x) => x + 1); };
+  const finished = order.length > 0 && i >= order.length;
+  return (
+    <>
+      <section className="card wide rural-card" data-date={new Date().toLocaleDateString()}>
+        <h2>{t("Is this UPI request safe?", "क्या यह UPI रिक्वेस्ट सुरक्षित है?")}</h2>
+        <Waiting tool="upi" />
+        <p className="muted">{t("Tap what is happening, or describe it. UPI fraud is a few tricks repeated: I name the trick and tell you what to do.", "जो हो रहा है उसे चुनिए या बताइए। UPI ठगी कुछ ही चालों का दोहराव है: मैं चाल का नाम और आपको क्या करना है बताता हूँ।")}</p>
+        <div className="rural-actions">{(data?.menu ?? []).map((m) => <button key={m.text} className="btn ghost sm" onClick={() => { setText(m.text); setGo(true); }}>{m.label}</button>)}</div>
+        <textarea rows={2} value={text} onChange={(e) => { setText(e.target.value); setGo(false); }} placeholder={t("e.g. a buyer says scan this QR to receive my money", "जैसे: ख़रीदार कहता है पैसे पाने के लिए यह QR स्कैन करो")} />
+        <div className="rural-actions"><button className="btn go" onClick={() => setGo(true)}>{t("Check it", "जाँचिए")}</button></div>
+        {r && go && (<>
+          <div className={`rural-big ${r.level}`}><span style={{ fontSize: 26 }}>{r.headline}</span></div>
+          <p className="rural-head">{r.why}</p>
+          <h3>{t("What to do", "क्या करें")}</h3>
+          <ul className="rural-flags good">{r.do.map((x) => <li key={x}>{x}</li>)}</ul>
+          <div className="rural-rule">{r.verdict} {r.recover}</div>
+          <Say text={`${r.headline} ${r.why} ${r.do[0] ?? ""}`} />
+        </>)}
+        <h3>{t("The six rules that cover almost every UPI fraud", "वे छह नियम जो लगभग हर UPI ठगी को पकड़ते हैं")}</h3>
+        <ol className="rural-steps">{(data?.rules ?? []).map((x) => <li key={x}>{x}</li>)}</ol>
+      </section>
+      <section className="card wide rural-card">
+        <h2>{t("Practice: what would you do?", "अभ्यास: आप क्या करेंगे?")}</h2>
+        <p className="muted">{t("Real situations, three answers each. Learning on a drill costs nothing; learning on a real one costs money.", "असली जैसी स्थितियाँ, हर एक के तीन जवाब। अभ्यास में सीखना मुफ़्त है; असली में सीखना महँगा।")}</p>
+        {d && !finished && (<>
+          <div className="rural-head"><small>{i + 1}/{order.length}</small> {d.scenario}</div>
+          <div className="upi-opts">{d.options.map((o, k) => (
+            <button key={k} className={picked === null ? "" : o.right ? "right" : picked === k ? "wrong" : "dim"} onClick={() => choose(k)}>{o.text}</button>))}</div>
+          {picked !== null && (<>
+            <div className={`rural-rule ${d.options[picked].right ? "" : "bad"}`}>{d.options[picked].right ? "✓ " : "✗ "}{d.why}</div>
+            <div className="rural-actions"><button className="btn go" onClick={next}>{i + 1 < order.length ? t("Next →", "अगला →") : t("See my score", "मेरा स्कोर देखें")}</button></div>
+          </>)}
+        </>)}
+        {finished && (<>
+          <div className={`rural-big ${score.right >= score.done * 0.75 ? "green" : score.right >= score.done / 2 ? "amber" : "red"}`}><span>{score.right}/{score.done}</span><small>{t("safe choices", "सुरक्षित जवाब")}</small></div>
+          <p className="rural-head">{score.right === score.done ? t("All safe. Keep the six rules in mind.", "सब सुरक्षित। छह नियम याद रखिए।") : t("Read the explanation for each miss, then try again.", "जहाँ चूके वहाँ की व्याख्या पढ़िए, फिर दोबारा कीजिए।")}</p>
+          <div className="rural-actions"><button className="btn go" onClick={() => { setI(0); setPicked(null); setScore({ right: 0, done: 0 }); }}>{t("Try again", "फिर से")}</button></div>
+        </>)}
+      </section>
+    </>
   );
 }
 
@@ -371,7 +435,7 @@ export default function Rural() {
   useEffect(() => store.set("picked", picked), [picked]);
   const TABS: [Tool, string, string, string][] = [
     ["loan", "💰", "Moneylender check", "साहूकार का हिसाब"], ["scheme", "🔍", "Is this offer real?", "क्या ऑफ़र असली है?"],
-    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"],
+    ["schemes", "🏛️", "My government schemes", "मेरी सरकारी योजनाएँ"], ["docs", "📄", "Are my papers ready?", "काग़ज़ तैयार हैं?"], ["income", "🌾", "Plan my year", "मेरा साल"], ["policy", "🧾", "Is my policy good?", "क्या मेरी पॉलिसी अच्छी है?"], ["upi", "📲", "UPI safety", "UPI सुरक्षा"],
   ];
   return (
     <Page title="Rural" lead={t("Practical tools for farming and daily-wage families: stop paying too much, stop missing what you are owed, and plan money that comes in lumps.",
@@ -387,6 +451,7 @@ export default function Rural() {
         {tool === "docs" && <DocsTool picked={picked} setPicked={setPicked} init={params} />}
         {tool === "income" && <IncomeTool init={params} />}
         {tool === "policy" && <PolicyTool init={params} />}
+        {tool === "upi" && <UpiTool init={params} />}
       </div>
     </Page>
   );

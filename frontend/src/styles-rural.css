@@ -65,3 +65,11 @@
 .offline-bar .btn { padding: 8px 16px; font-size: 15px; }
 .offline-prog { flex: 1 1 200px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 .offline-prog div { height: 100%; background: var(--green); transition: width .3s; }
+
+.upi-opts { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.upi-opts button { text-align: left; padding: 14px 16px; font-size: 16px; border-radius: 12px; cursor: pointer; color: inherit; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.2); }
+.upi-opts button:hover:not(.right):not(.wrong):not(.dim) { border-color: var(--cyan); }
+.upi-opts button.right { border-color: var(--green); background: rgba(34,255,160,.14); }
+.upi-opts button.wrong { border-color: var(--red); background: rgba(255,71,107,.14); }
+.upi-opts button.dim { opacity: .45; }
+.rural-rule.bad { border-left-color: var(--red); background: rgba(255,71,107,.08); }

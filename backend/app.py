@@ -1387,6 +1387,23 @@ async def rural_policy(b: PolicyIn) -> dict:
     return rural.policy_check(b.premium, b.pay_years, b.term_years, b.maturity, b.sum_assured, b.term_quote, b.text, b.lang)
 
 
+class UpiIn(BaseModel):
+    text: str = ""
+    lang: str = "en"
+
+
+@app.post("/rural/upi")
+async def rural_upi(b: UpiIn) -> dict:
+    from backend import rural
+    return rural.upi_check(b.text, b.lang)
+
+
+@app.get("/rural/upi/drills")
+async def rural_upi_drills(lang: str = "en") -> dict:
+    from backend import rural
+    return rural.upi_drills(lang)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

@@ -88,6 +88,7 @@ const CALLS: Record<string, (b: any) => [string, unknown[]]> = {
   "/rural/scheme": (b) => ["scheme_check", [b.text, b.put, b.get, b.months, b.lang]],
   "/rural/entitlements": (b) => ["entitlements", [b.profile, b.lang]],
   "/rural/readiness": (b) => ["readiness", [b.schemes, b.have, b.lang]],
+  "/rural/upi": (b) => ["upi_check", [b.text ?? "", b.lang]],
   "/rural/policy": (b) => ["policy_check", [b.premium, b.pay_years, b.term_years, b.maturity, b.sum_assured ?? null, b.term_quote ?? null, b.text ?? "", b.lang]],
   "/rural/income": (b) => ["income_plan", [b.income, b.monthly_cost, b.one_offs, b.savings, b.borrow_rate ?? 36, b.lang]],
 };
@@ -98,6 +99,10 @@ async function local(url: string, body?: any): Promise<any> {
   if (path === "/rural/schemes") {
     const lang = new URLSearchParams(url.split("?")[1] ?? "").get("lang") === "hi" ? "hi" : "en";
     return { schemes: JSON.parse(p.runPython(`json.dumps([{'id': s['id'], 'name': s['${lang}']} for s in rural.SCHEMES])`)) };
+  }
+  if (path === "/rural/upi/drills") {
+    const lang = new URLSearchParams(url.split("?")[1] ?? "").get("lang") === "hi" ? "hi" : "en";
+    return JSON.parse(p.runPython(`json.dumps(rural.upi_drills('${lang}'))`));
   }
   const spec = CALLS[path]?.(body);
   if (!spec) throw new Error("not available offline: " + path);

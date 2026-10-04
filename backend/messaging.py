@@ -104,6 +104,7 @@ MENU: list[tuple[str, str, str]] = [        # (tool, English, Hindi)
     ("fee", "What does a fund fee cost?", "फ़ंड की फ़ीस कितनी पड़ती है?"),
     ("emergency", "How long will my savings last?", "मेरी बचत कितने महीने चलेगी?"),
     ("goal", "Will my savings reach my goal?", "क्या मेरी बचत लक्ष्य तक पहुँचेगी?"),
+    ("upi", "Is this UPI request or QR safe?", "क्या यह UPI रिक्वेस्ट/QR सुरक्षित है?"),
     ("policy", "Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?"),
     ("scam", "I got a suspicious call or lost money", "मुझे ठग कॉल आई या पैसे गए"),
 ]
@@ -187,7 +188,7 @@ GREET = re.compile(r"^\s*(hi|hello|hey|hii+|namaste|namaskar|start|menu|help|opt
 SET_HI = re.compile(r"^\s*(hindi|हिंदी|हिन्दी|hindi me|in hindi)\W*$", re.I)
 SET_EN = re.compile(r"^\s*(english|अंग्रेज़ी|अंग्रेजी|in english)\W*$", re.I)
 CANCEL_OR_STOP = re.compile(r"^\s*(cancel|stop|reset|exit|रद्द|रुको|बंद)\W*$", re.I)
-ALLOWED = {"policy_check", "moneylender", "scheme_check", "entitlements", "docs_ready", "income_plan", "fee_drag", "emergency", "goal",
+ALLOWED = {"upi_check", "policy_check", "moneylender", "scheme_check", "entitlements", "docs_ready", "income_plan", "fee_drag", "emergency", "goal",
            "scam_help", "scam_recovery", "tip_scan", "define", "help", "chitchat", "predict", "simplify", "more"}
 
 

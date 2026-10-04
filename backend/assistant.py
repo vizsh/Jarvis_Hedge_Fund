@@ -120,6 +120,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
                   r"\bsunday (summary|update|brief)\b")),
     ("ledger", _r(r"\b(transaction|trade|order) history\b.{0,30}\b(edit|alter|chang|tamper|modif)\w*|\b(change|alter|edit|modify|rewrite|tamper|fake|backdate)\w*\b.{0,30}\b(past|old|previous|earlier|my)\b.{0,15}\b(trades?|entries|records?|ledger|history)\b|\b(ledger|audit (trail|log)|tamper\w*|hash[- ]?chain|trade history|trade log|trail of (my )?trades|"
                   r"record of (my )?(trades|decisions)|records? (been )?(changed|altered|edited))\b")),
+    ("upi_check", _r(r"@@b(collect request|payment request|money request)@@b|@@b(upi|phone ?pe|gpay|google pay|paytm|bhim)@@b.{0,70}@@b(safe|trick|refund|request|qr|scan|pin|link|stuck|mistake|cashback|customer care|anydesk|screen)@@b|@@b(qr code|scan)@@b.{0,50}@@b(receive|get paid|buyer|olx|pin|money)@@b|@@bpin@@b.{0,40}@@b(to receive|receiving|to get)@@b|@@b(sent|transferred) (me )?(money|rs|rupees|payment)? ?(by mistake|wrongly)@@b|@@bby mistake@@b.{0,40}@@b(send|return|back)@@b".replace("@@", chr(92)))),
     ("policy_check", _r(r"@@b(endowment|money ?back|ulip|surrender value|bima agent)@@b|@@b(lic|insurance|policy|bima)@@b.{0,50}@@b(premium|maturity|agent|returns?|worth|good|bonus|surrender|lapse|stop paying|sold|savings?|invest@@w*)@@b|@@b(premium|maturity)@@b.{0,50}@@b(policy|insurance|lic)@@b|@@bagent@@b.{0,40}@@b(policy|insurance|lic)@@b".replace("@@", chr(92)))),
     ("moneylender", _r(r"@@b(money ?lender|sahukar|sahukaar|saahukar|arhtiya|arthiya|adhatiya|loan shark|local lender|private lender)@@b|@@b(byaj|vyaj|sood)@@b|@@b(rupees?|rs|₹)@@s*@@d*@@s*(per|a|for every|on every|in every)@@s+(hundred|100)@@b|@@b(per|a|on every)@@s+(hundred|100)@@s+(rupees?|rs)@@b|@@b(sainkda|saikda|sekda)@@b|@@breal (rate|interest)@@b.{0,25}@@b(loan|lender|borrow)@@b|@@bhow much (interest|byaj) (am i|do i|will i)@@b|@@bcost of (my |this )?(loan|borrowing)@@b|@@binterest (rate )?of (@@d+) ?(rupees?|rs)@@b".replace("@@", chr(92)))),
     ("scheme_check", _r(r"@@b(double|triple|multiply) (my|the|your) money@@b|@@bmoney (will )?(double|triple)@@b|@@b(chit ?fund|ponzi|pyramid|mlm|network marketing|kameti|committee scheme)@@b|@@b(guaranteed|assured|fixed) (monthly|daily|weekly|high) (returns?|income|profit)@@b|@@b(is|are) (this|that|the) (scheme|offer|company|plan|app|business|investment|girvi|group)@@b.{0,25}@@b(real|genuine|legit|legitimate|fake|safe|a scam|true|trustworthy)@@b|@@b(scheme|offer|plan|company)@@b.{0,40}@@b(genuine|legit|fake|scam|fraud)@@b|@@bpay@@b.{0,25}@@bget@@b.{0,40}@@b(months?|weeks?|days?|years?)@@b|@@bjoining fee@@b|@@bbring (your )?(friends|members|people)@@b|@@brefer@@b.{0,15}@@bearn@@b|@@bmoney back in@@b.{0,15}@@b(months?|weeks?|days?)@@b".replace("@@", chr(92)))),
@@ -441,7 +442,7 @@ _INTENT_CHIP = {"fund_overlap": "overlap", "fund_list": "list", "fund_info": "li
                 "fee_drag": "fee", "emergency": "emerg", "goal": "goal", "panic": "panic", "digest": "digest",
                 "scam_help": "scam", "scam_recovery": "scam", "tip_scan": "scam", "predict": "scam", "ledger": "ledger", "help": "help",
                 "xray": "xray", "why": "why", "fix": "fix", "stress": "stress", "diversification": "div",
-                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
+                "correlation": "xray", "should_buy": "xray", "moneylender": "loan", "policy_check": "loan", "upi_check": "scam", "scheme_check": "schemes", "entitlements": "schemes", "docs_ready": "docs", "income_plan": "income", "define": "help", "simplify": "xray"}
 
 
 def suggestions(text: str, n: int = 3) -> list[tuple[str, str]]:
@@ -1237,6 +1238,20 @@ def h_policy_check(text: str, ctx: Ctx) -> Answer:
     a.data = {"policy": r}
     return _done(a, ctx, [_RURAL_FU["loan"], _RURAL_FU["schemes"]], "policy_check")
 
+
+# ---- UPI safety (backend/rural.py: upi_check) -------------------------------------------------
+def h_upi_check(text: str, ctx: Ctx) -> Answer:
+    from backend import rural
+    t = _t(ctx.lang)
+    r = rural.upi_check(text, ctx.lang)
+    bullets = [r["why"], *r["do"], r["rules"][0] if not r["matched"] else r["recover"]]
+    a = Answer(headline=r["headline"], bullets=bullets[:4], action=r["verdict"],
+               detail=t("Matched against the common UPI tricks. If no trick matches, the six rules below still catch almost every fraud.", "आम UPI चालों से मिलाया गया। कोई चाल न मिले तो भी नीचे के छह नियम लगभग हर ठगी पकड़ लेते हैं।"),
+               facts=[_fact(t("Verdict", "नतीजा"), {"red": t("Scam", "ठगी"), "amber": t("Careful", "सावधान"), "green": t("OK", "ठीक")}[r["level"]], {"red": "bad", "amber": "warn", "green": "good"}[r["level"]])],
+               visual={"page": "rural", "label": t("Open UPI safety", "UPI सुरक्षा खोलें"), "params": {"tool": "upi", "text": text[:300], "run": 1}})
+    a.data = {"upi": r}
+    return _done(a, ctx, [_RURAL_FU["upi_recover"], _RURAL_FU["policy"]], "upi_check")
+
 # ---- rural / low-income tools (backend/rural.py) ---------------------------------------
 def _open_rural(tool: str, label_en: str, label_hi: str, ctx: Ctx, params: dict | None = None) -> dict:
     return {"page": "rural", "label": _t(ctx.lang)(label_en, label_hi), "params": {"tool": tool, **(params or {})}}
@@ -1360,6 +1375,7 @@ def h_income_plan(text: str, ctx: Ctx) -> Answer:
 
 
 _RURAL_FU = {
+    "upi_recover": ("I already paid a scammer on UPI, what do I do?", "मैंने UPI से ठग को पैसे भेज दिए, अब क्या करूँ?"),
     "policy": ("Is my insurance policy a good deal?", "क्या मेरी बीमा पॉलिसी अच्छा सौदा है?"),
     "loan": ("What does 5 rupees per hundred a month really cost?", "5 रुपये सैकड़ा महीने का असल में कितना पड़ता है?"),
     "schemes": ("Which government schemes can I get?", "मुझे कौन सी सरकारी योजनाएँ मिल सकती हैं?"),
@@ -1373,7 +1389,7 @@ HANDLERS: dict[str, Callable[[str, Ctx], Answer]] = {
     "fund_overlap": h_fund_overlap, "fund_list": h_fund_list, "fund_info": h_fund_info, "fund_vs_direct": h_fund_vs_direct,
     "my_funds_add": h_my_funds_add, "my_funds_remove": h_my_funds_remove, "my_funds_show": h_my_funds_show,
     "fee_drag": h_fee_drag, "emergency": h_emergency, "goal": h_goal, "panic": h_panic, "digest": h_digest,
-    "should_buy": h_buy_advice, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
+    "should_buy": h_buy_advice, "upi_check": h_upi_check, "policy_check": h_policy_check, "moneylender": h_moneylender, "scheme_check": h_scheme_check, "entitlements": h_entitlements, "docs_ready": h_docs_ready, "income_plan": h_income_plan, "scam_help": h_scam_help, "scam_recovery": h_scam_recovery, "tip_scan": h_tip_scan, "ledger": h_ledger,
 }
 
 
@@ -1413,6 +1429,7 @@ INTENT_DOC = {
     "diversification": "is the portfolio spread out enough",
     "correlation": "which holdings move together",
     "should_buy": "should the user buy / add a specific stock",
+    "upi_check": "is a UPI request / QR / link / call asking for PIN or payment safe, or a UPI scam trick",
     "policy_check": "is an insurance policy / endowment / agent-sold plan a good deal, or a bonus-refund scam",
     "moneylender": "what a moneylender / private loan interest really costs per year",
     "scheme_check": "is a double-your-money / chit fund / pay-and-earn offer a scam",

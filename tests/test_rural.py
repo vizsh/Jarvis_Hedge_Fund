@@ -193,3 +193,50 @@ def test_policy_questions_route_and_numbers_match_the_calculator():
     assert A.answer("bank manager sold me a policy, is it worth it", _ctx()).data["intent"] == "policy_check"
     english, _ = asyncio.run(H.convert("मेरी बीमा पॉलिसी का प्रीमियम पचास हज़ार रुपये साल का है, दस साल तक भरता हूँ, बीस साल बाद दस लाख रुपये मिलेंगे", use_model=False))
     assert A.rule_intent(english) == "policy_check" and "50000" in english and "10 lakh" in english
+
+
+# ---- A4: UPI safety --------------------------------------------------------------------------
+UPI_TRICKS = [
+    ("the buyer on OLX sent a QR code, I should scan it to receive money", "qr_receive"),
+    ("they said enter my PIN to receive the refund", "receive_pin"),
+    ("I got a collect request, approve it to get a refund", "collect"),
+    ("install AnyDesk so they can fix my account", "remote_app"),
+    ("I found a customer care number on Google for my refund", "customer_care"),
+    ("click this link to update KYC or your account will be blocked", "refund_link"),
+    ("you won a lottery prize, pay a fee to claim", "prize"),
+    ("कहा पैसा पाने के लिए पिन डालो", "receive_pin"),
+    ("बिजली कट जाएगी लिंक भेजा है", "kyc"),
+]
+
+
+@pytest.mark.parametrize("text,case", UPI_TRICKS)
+def test_upi_tricks_are_named_and_marked_red_or_amber(text, case):
+    r = rural.upi_check(text)
+    assert r["matched"] == case and r["level"] in ("red", "amber") and r["do"]
+
+
+def test_every_tappable_situation_matches_a_trick():
+    for en, _hi in rural.UPI_MENU:
+        assert rural.upi_check(en)["matched"], en
+
+
+def test_mistaken_transfer_is_careful_not_called_a_certain_scam_and_ordinary_text_is_unmatched():
+    r = rural.upi_check("he sent money by mistake and wants it back")
+    assert r["matched"] == "mistaken_transfer" and r["level"] == "amber" and "Very likely" not in r["verdict"]
+    assert rural.upi_check("I bought vegetables and paid the shopkeeper")["matched"] is None
+
+
+def test_upi_drills_have_exactly_one_safe_answer_each_in_both_languages():
+    for lang in ("en", "hi"):
+        d = rural.upi_drills(lang)
+        assert len(d["drills"]) >= 8 and len(d["rules"]) == 6
+        for x in d["drills"]:
+            assert sum(o["right"] for o in x["options"]) == 1 and len(x["options"]) == 3 and x["why"]
+
+
+def test_upi_questions_route_to_the_coach_but_after_a_loss_to_the_recovery_coach():
+    assert A.answer("a buyer on olx sent a qr code to pay me, scan to receive", _ctx()).data["intent"] == "upi_check"
+    assert A.answer("is this UPI request safe", _ctx()).data["intent"] == "upi_check"
+    assert A.answer("I lost 50000 rupees on UPI to a fake bank officer", _ctx()).kind == "scam_recovery"
+    english, _ = asyncio.run(H.convert("कोई कहता है पैसा पाने के लिए पिन डालो फोनपे पर", use_model=False))
+    assert A.rule_intent(english) == "upi_check"
