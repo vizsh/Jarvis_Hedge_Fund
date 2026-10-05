@@ -233,8 +233,8 @@ def test_every_suggested_followup_is_routed_somewhere_useful(session):
             seen.add(chip)
     assert seen
     for chip in seen:
-        kind, _ = A.detect(chip)
-        assert kind not in ("clarify", "out_of_scope"), chip
+        got = ask(session, chip)                      # the whole understanding layer, not just the older keyword rules
+        assert got.kind not in ("clarify", "out_of_scope"), chip
 
 
 def test_hindi_chips_pair_up_with_english_questions(session):
@@ -260,7 +260,8 @@ def test_scam_help_gives_the_real_helpline_and_never_asks_for_secrets(session):
     text = " ".join([a.headline, *a.bullets, a.action or ""])
     assert "1930" in text and "cybercrime.gov.in" in text
     b = ask(session, "someone asked for my otp")
-    assert "never" in " ".join(b.bullets).lower() or "no bank" in " ".join(b.bullets).lower()
+    whole = " ".join([b.headline, *b.bullets, b.action or ""]).lower()
+    assert "never" in whole or "no bank" in whole
 
 
 def test_predictions_are_refused_politely(session):
@@ -357,6 +358,9 @@ def test_every_glossary_term_has_hindi_and_hindi_mode_uses_it(session):
     assert set(explain.GLOSSARY) <= set(GLOSSARY_HI)
     for term in ("expense ratio", "mutual fund", "beta", "digital arrest"):
         a = ask(session, f"what is {term}", "hi")
+        if a.kind in ("concept", "scam_help"):       # a fuller hand-written explanation exists for this term
+            assert a.lang == "hi" and V.looks_hindi(a.headline)
+            continue
         assert a.lang == "hi" and a.headline == GLOSSARY_HI[term]
         assert V.looks_hindi(a.headline)
 

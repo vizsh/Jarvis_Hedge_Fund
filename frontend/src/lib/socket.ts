@@ -3,6 +3,7 @@
 import { useChat, type AnswerData } from "./chat";
 import { follow, followVisual, type Guide } from "./pilot";
 import { useStore } from "./store";
+import { startTour } from "./tour";
 import { CLIENT_ID, useLang } from "./lang";
 import type { EvidenceItem, FundState, WireEvent } from "./types";
 import {
@@ -82,11 +83,15 @@ export function connect(): void {
       // line came with one, so the reply can be read as well as heard (or only read).
       useChat.getState().push({ who: "jarvis", text: line, answer: event.payload?.answer as AnswerData | undefined });
       pulseSpeech(line.length);
-      speak(line, (event.payload?.lang as string) || "en");
+      const tourId = (event.payload?.answer as AnswerData | undefined)?.data?.tour;
+      const walkMe = !!tourId && !(event.payload?.answer as AnswerData).data?.tour_manual;
+      // A feature walk-through narrates itself, step by step, so the short spoken line is left out to avoid two voices.
+      if (!walkMe) speak(line, (event.payload?.lang as string) || "en");
       // The guide moves the page and keeps the open question; any other answer that has a page of
       // its own opens it too, except on the Assistant page where the card is already inline.
       const ans = event.payload?.answer as (AnswerData & { data?: { guide?: Guide } }) | undefined;
-      if (ans?.data?.guide) follow(ans.data.guide);
+      if (walkMe && tourId) startTour(tourId);
+      else if (ans?.data?.guide) follow(ans.data.guide);
       else if (ans?.visual?.page && !location.hash.startsWith("#/assistant")) followVisual(ans.visual as { page: string; params?: Record<string, unknown> });
     }
   };
@@ -110,7 +115,7 @@ export function send(text: string, shown?: string): void {
   allowSpeech();          // asking is an explicit request to be answered
   useChat.getState().push({ who: "you", text: shown ?? text });
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: "command", text, lang: useLang.getState().lang, cid: CLIENT_ID }));
+    socket.send(JSON.stringify({ type: "command", text, lang: useLang.getState().lang, cid: CLIENT_ID, route: location.hash.replace(/^#/, "") || "/" }));
   }
 }
 

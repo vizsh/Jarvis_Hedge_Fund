@@ -106,3 +106,18 @@ Every line carries `confidence` (solid/light/weak from independent data kinds, s
 also shows how old each data kind is and how many checks had data. The extra data comes from `ingest/enrich.py`
 (`python -m tools.enrich` for the whole universe; `ingest.ondemand.add_stock` runs it for new stocks). The endpoint reads at
 the real clock, not the simulation clock, because enrichment is stamped when it is fetched.
+
+## The assistant: understanding, answers, and guided tours
+`backend/understand.py` reads the whole sentence before any keyword rule: it separates (1) questions about the app, (2) requests to
+analyse or compare companies, (3) general money questions, then falls back to the calculator tools. A local model, when used at all, only
+PICKS from a closed list; it never writes an answer or a figure.
+- **Feature questions** ("how do I use the fee slider", "help me understand this feature") return a structured answer and start a guided
+  tour. `backend/tours.py` (+ `tours_parts.py`) is the single source of the steps in English and Hindi; `lib/tour.ts` and
+  `components/TourOverlay.tsx` play them: open the page, press the tab, spotlight each part, read the caption aloud. "This feature" means the page
+  that is open (the client sends its route). `GET /tours`, `GET /tours/{id}?lang=`.
+- **Companies**: `analyse X` / `compare X and Y` answer in chat with facts, good points and watch-outs (each with a confidence mark), peer ranks
+  and a chart (`backend/charts.py`: live from Yahoo Finance when online, saved snapshot otherwise, labelled with its date), plus an optional
+  TradingView embed. The Research page's search sends `investigate X`, which still starts the analyst desks.
+- **Knowledge**: `backend/knowledge.py` holds checked, hand-written explanations (EN/HI) for common money questions; `backend/scams.py` holds one
+  script per scam type (bank OTP, digital arrest, courier, remote app, task job, loan app, prize, SIM/utility, investment group).
+- Layout: a question and its answer are one block; the answer card shows its kind, the short answer, figures, chart/table, steps, a caution, tools and follow-ups.

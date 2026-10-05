@@ -1,0 +1,35 @@
+/* Guided tour: a soft spotlight, a caption card that sits beside the part being explained, and a ghost pointer that presses
+   buttons so you can see how it is done. Nothing blocks the page: the dim is a shadow, not a layer that eats clicks. */
+.tour { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.tour-dim { position: absolute; inset: 0; background: rgba(8, 8, 10, .42); }
+.tour-spot { position: absolute; border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(8, 8, 10, .56); outline: 2px solid var(--accent); outline-offset: 0; transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease); }
+.tour-spot::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 1px solid var(--accent); opacity: .5; animation: tourPulse 2s ease-out infinite; }
+@keyframes tourPulse { 0% { transform: scale(.985); opacity: .65; } 100% { transform: scale(1.025); opacity: 0; } }
+
+.tour-card { position: fixed; width: min(430px, calc(100vw - 28px)); pointer-events: auto; padding: 16px 18px 14px; border-radius: 18px; background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); box-shadow: var(--shadow-2), 0 0 0 1px rgba(0,0,0,.2); opacity: 0; transform: translateY(8px); transition: opacity .3s var(--ease), transform .3s var(--ease), left .5s var(--ease), top .5s var(--ease); }
+.tour-card.in { opacity: 1; transform: none; }
+.tour-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tour-kicker { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.tour-x { background: transparent; border: 0; color: var(--text-dim); cursor: pointer; padding: 4px; border-radius: 8px; display: grid; place-items: center; }
+.tour-x:hover { color: var(--text); background: var(--surface-3); }
+.tour-card h3 { margin: 6px 0 4px; font-family: var(--serif); font-weight: 500; font-size: 20px; letter-spacing: -.01em; line-height: 1.25; }
+.tour-card p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.6; color: var(--text); }
+.tour-bar { height: 3px; border-radius: 3px; background: var(--surface-3); overflow: hidden; margin-bottom: 11px; }
+.tour-bar i { display: block; height: 100%; background: var(--accent); transition: width .4s var(--ease); }
+.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tour-btn { font: inherit; font-size: 13px; padding: 7px 13px; border-radius: 999px; cursor: pointer; background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); transition: background .15s, border-color .15s; }
+.tour-btn:hover:not(:disabled) { border-color: var(--accent); }
+.tour-btn:disabled { opacity: .4; cursor: default; }
+.tour-btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; margin-left: auto; }
+.tour-btn.on { border-color: var(--accent); color: var(--accent); }
+.tour-dots { display: flex; gap: 6px; margin-top: 11px; justify-content: center; flex-wrap: wrap; }
+.tour-dots button { width: 8px; height: 8px; padding: 0; border-radius: 50%; border: 0; background: var(--surface-3); cursor: pointer; transition: transform .15s, background .15s; }
+.tour-dots button.past { background: var(--cyan-dim); } .tour-dots button.on { background: var(--accent); transform: scale(1.35); }
+.tour-loading { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; padding: 9px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong); font-size: 13.5px; box-shadow: var(--shadow-2); }
+
+.tour-ghost { position: fixed; z-index: 91; width: 26px; height: 26px; margin: -3px 0 0 -3px; pointer-events: none; transition: left .65s var(--ease), top .65s var(--ease); filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+.tour-ghost i { position: absolute; left: -9px; top: -9px; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; transform: scale(.3); }
+.tour-ghost.tap i { animation: tourTap .5s ease-out; }
+@keyframes tourTap { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.1); } }
+@media (max-width: 700px) { .tour-card { left: 14px !important; right: 14px; width: auto; top: auto !important; bottom: 14px; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot, .tour-card, .tour-ghost { transition: none; } .tour-spot::after { animation: none; } }

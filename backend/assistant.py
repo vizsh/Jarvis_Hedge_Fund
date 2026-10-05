@@ -24,6 +24,7 @@ from analysis import goal as goal_mod
 from analysis import panic as panic_mod
 from analysis import tools
 from backend import digest as digest_mod
+from backend import understand
 from backend import explain, ledger as ledger_mod, practice
 from backend.explain import Answer
 from backend.glossary_hi import CLAIM_STATUS_HI, FLAG_LABEL_HI, GLOSSARY_HI
@@ -172,6 +173,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
                           r"\b(i|we)\b.{0,15}\b(shared|told|gave|sent)\b.{0,25}\b(otp|pin|cvv|password|code)\b|"
                           r"\bunauthori[sz]ed (transaction|debit|payment|withdrawal)\b|\bmoney (got |was |has been |is )?(debited|deducted|stolen|withdrawn|missing)\b.{0,30}\b(without|fraud|fake|scam|cyber|unknown)\b|"
                           r"\breport (a |an |this )?(cyber ?)?(fraud|scam|crime)\b|\bhow (do|can|to|should) (i )?(report|complain about) .{0,25}(fraud|scam|cyber)|"
+                          r"\b(lost|losing|lose)\b.{0,40}\b(on|in|to|through|via|because of)\b.{0,25}\b(whatsapp|telegram|instagram|youtube|facebook|tips?|group|channel|trading app|fake app|crypto)\b|"
                           r"\b(get|recover) my money back\b|\brecover (my |the )?(lost )?money\b|"
                           r"\bwhat (do|should) i do (after|if|when)\b.{0,30}\b(scam\w*|fraud\w*|cheat\w*|hack\w*)\b")),
     ("scam_help", _r(r"\bincome tax (department|officer)\b|\bsim (card )?(will be |is )?(blocked|deactivated|disconnected)\b|\b(claim|won) (a |your )?(prize|lottery|reward|gift)\b|\bclick (on )?(a|the|this) link\b|\bpolice\b.{0,25}\barrest\b.{0,20}\b(video|phone|call|online)\b|\bpenalty\b.{0,30}\bupi\b|\bshare the (code|otp)\b|\b(parcel|courier|customs)\b.{0,40}\b(illegal|drugs|contraband|seized|held|in my name|arrest)\b|\bcaller says\b|\b(transfer|send|move|pay)\b.{0,25}\bmoney\b.{0,40}\b(police|officer|rbi|bank|account|unblock|safe account|verification)\b|\b(screen[- ]?shar\w*|download|install)\b.{0,40}\bapps?\b.{0,40}\b(account|unblock|bank|kyc|fix)\b|\b(call|caller|sms|email|link|officer|message)\b.{0,30}\b(real|genuine|fake|legit|safe|authentic)\b|\blink\b.{0,40}\bkyc\b|\bkyc\b.{0,40}\blink\b|\b(otp|cvv|kyc (call|expired|update|pending)|digital arrest|scam\w*|fraud\w*|cheated|phishing|fake (call|caller|link|app|website|officer)|"
@@ -949,26 +951,26 @@ def _scam_scenario(text: str) -> str:
 
 
 def h_scam_help(text: str, ctx: Ctx) -> Answer:
+    """A scam that has not cost anything yet: the script that matches what was described, what is true instead,
+    and the first steps for THAT scam (not one generic reply for every mention of the word)."""
+    from backend import scams
     t = _t(ctx.lang)
-    lost = re.search(r"\b(lost|gave|shared|paid|sent|transferred|already|fell for|victim|scammed|cheated|defrauded|duped|debited|deducted|stolen|taken from my account)\b", text, re.I)
+    lg = "hi" if ctx.lang == "hi" else "en"
+    lost = re.search(r"\b(lost|gave|shared|paid|sent|transferred|already|fell for|victim|scammed|cheated|defrauded|duped|debited|deducted|stolen|taken from my account|told (him|her|them)|read out)\b", text, re.I)
     if lost:
         return h_scam_recovery(text, ctx)
-    flags = []
-    if re.search(r"otp|cvv|pin\b|password", text, re.I):
-        flags.append(t("It asks for an OTP, PIN or CVV: no bank or officer ever does.", "यह OTP, पिन या CVV माँगता है: कोई बैंक या अधिकारी कभी नहीं माँगता।"))
-    if re.search(r"anydesk|quicksupport|teamviewer|remote|install|download|app\b|link", text, re.I):
-        flags.append(t("It asks you to install an app or open a link: that hands them your phone.", "यह ऐप इंस्टॉल करने या लिंक खोलने को कहता है: इससे आपका फ़ोन उनके हाथ में चला जाता है।"))
-    if re.search(r"arrest|police|cbi|customs|court|parcel|warrant", text, re.I):
-        flags.append(t("Police and courts never arrest or ask for money over a call; there is no such thing as a digital arrest.", "पुलिस और अदालत कॉल पर गिरफ़्तारी या पैसा नहीं माँगती; डिजिटल अरेस्ट जैसी कोई चीज़ नहीं।"))
-    if re.search(r"kyc|blocked|expire|urgent|minutes|immediately", text, re.I):
-        flags.append(t("A deadline of minutes is a pressure tactic; real banks send written notices.", "मिनटों की समय-सीमा दबाव की चाल है; असली बैंक लिखित नोटिस भेजते हैं।"))
-    if not flags:
-        flags.append(t("Any unexpected call or message that rushes you or asks for money, a code or an app is a red flag.", "कोई भी अनचाही कॉल या संदेश जो जल्दी मचाए या पैसा, कोड या ऐप माँगे, ख़तरे की निशानी है।"))
-    a = Answer(headline=t("Treat this as a scam until you have checked it yourself.", "जब तक आप ख़ुद जाँच न लें, इसे ठगी ही मानिए।"),
-               bullets=flags[:3],
-               action=t("Hang up, then call the number printed on your card or the official website. Report at 1930.", "फ़ोन काटिए, फिर कार्ड पर छपे या आधिकारिक वेबसाइट के नंबर पर ख़ुद फ़ोन कीजिए। 1930 पर शिकायत कीजिए।"),
-               facts=[_fact(t("Helpline", "हेल्पलाइन"), "1930", "good")],
-               visual={"page": "practice", "label": t("Rehearse this call", "इस कॉल का अभ्यास करें"), "params": {"scenario": _scam_scenario(text)}})
+    sc = scams.pick(text)
+    says, truth = sc["says"][lg], sc["truth"][lg]
+    rows = [[a, b] for a, b in zip(says, truth)]
+    a = Answer(headline=sc["head"][lg],
+               bullets=[f"{i + 1}. {x}" for i, x in enumerate(sc["now"][lg])],
+               action=sc["never"][lg],
+               table={"columns": [t("What they say", "वे क्या कहते हैं"), t("What is actually true", "असल में क्या सच है")], "rows": rows},
+               facts=[_fact(t("Helpline", "हेल्पलाइन"), "1930", "good"), _fact(t("Report online", "ऑनलाइन शिकायत"), "cybercrime.gov.in")],
+               detail=t("Matched to the tells in your description. If money or a code has already gone, say so and I will give the first-hour steps instead.",
+                        "आपके बताए संकेतों से मिलाया गया। पैसा या कोड जा चुका हो तो बताइए, मैं पहले घंटे के क़दम दूँगा।"),
+               visual={"page": "practice", "label": t("Rehearse this call", "इस कॉल का अभ्यास करें"), "params": {"scenario": sc["rehearse"]}})
+    a.data = {"scam": sc["id"]}
     return _done(a, ctx, _chips("scam", "digest", "help"), "scam_help")
 
 
@@ -1684,6 +1686,9 @@ def answer(text: str, ctx: Ctx) -> Answer:
     convo = ctx.convo
     resolved = convo.resolve(text) if convo and hasattr(convo, "resolve") else text
     intent, how = detect(resolved)
+    better = understand.override(resolved, intent, how, ctx)
+    if better is not None:
+        return better
 
     # "explain that simpler" after a tool answer: replay that question at the simpler level.
     if intent == "simplify" and convo is not None and getattr(convo, "last_kind", None) in NEW_KINDS and getattr(convo, "last_question", None):
@@ -1698,6 +1703,9 @@ async def aanswer(text: str, ctx: Ctx) -> Answer:
     the intent. Anything it is not confident about is asked about, never guessed."""
     resolved = ctx.convo.resolve(text) if ctx.convo is not None and hasattr(ctx.convo, "resolve") else text
     intent, how = detect(resolved)
+    better = understand.override(resolved, intent, how, ctx)
+    if better is not None:
+        return better
     # Specific rules are trusted. The model is consulted when nothing matched, and also when
     # only one of the older loose keyword rules matched on a long sentence (a stray word like
     # "fall" or "invest" can mislead those); it must be confident to overrule them.
@@ -1708,4 +1716,13 @@ async def aanswer(text: str, ctx: Ctx) -> Answer:
         out = _run(picked, "llm", resolved, ctx)
         out.data["llm_confidence"] = round(conf, 2)
         return out
+    if intent == "clarify":
+        near = understand.similar_concept(resolved)
+        if near:
+            return understand.h_concept(near, ctx)
+        cid, cconf = await understand.llm_concept(resolved)
+        if cid and cconf >= LLM_MIN:
+            out = understand.h_concept(cid, ctx)
+            out.data["llm_confidence"] = round(cconf, 2)
+            return out
     return answer(text, ctx)

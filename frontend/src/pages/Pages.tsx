@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 
 import { Page } from "./Page";
 import { Orb } from "../three/Orb";
-import { go } from "../lib/router";
+import { go, hashParams, useHash } from "../lib/router";
 import { send } from "../lib/socket";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
@@ -68,12 +68,12 @@ export function Portfolio() {
   return (
     <Page title="Portfolio" lead="What you own, how it is spread, and how it has behaved. Click any number to see how it was worked out.">
       <div className="grid g2">
-        <XRayPanel onOpenBuilder={() => setBuilder(true)} />
-        <div className="stack"><PortfolioChart /><ProfileSwitch /></div>
+        <div data-tour="pf-xray"><XRayPanel onOpenBuilder={() => setBuilder(true)} /></div>
+        <div className="stack" data-tour="pf-chart"><PortfolioChart /><ProfileSwitch /></div>
       </div>
-      <div className="grid"><AllocationMap /></div>
-      <div className="grid"><ActionQueue /></div>
-      <div className="grid g2"><div className="stack"><PositionsPanel /><AttributionPanel /></div><CorrelationPanel /></div>
+      <div className="grid" data-tour="pf-alloc"><AllocationMap /></div>
+      <div className="grid" data-tour="pf-actions"><ActionQueue /></div>
+      <div className="grid g2" data-tour="pf-positions"><div className="stack"><PositionsPanel /><AttributionPanel /></div><CorrelationPanel /></div>
     </Page>
   );
 }
@@ -100,17 +100,17 @@ export function Learn() {
   const { t } = useT();
   return (
     <Page title="Learn" lead={t("Ask in your own words, see what a crash would do to you, and find out where every number comes from.", "अपने शब्दों में पूछिए, देखिए कि गिरावट का आप पर क्या असर होगा, और जानिए कि हर आँकड़ा कहाँ से आता है।")}>
-      <div className="grid"><GoalFan /></div>
+      <div className="grid" data-tour="learn-goal"><GoalFan /></div>
       <div className="grid g2">
         <div className="stack">
-          <AskPanel />
-          <section className="card">
+          <div data-tour="learn-ask"><AskPanel /></div>
+          <section className="card" data-tour="learn-doors">
             <h2>{t("Every number is a door", "हर आँकड़ा एक दरवाज़ा है")}</h2>
             <p className="muted">{t("Click any underlined figure to see what it is made of, the formula, and the exact prices and dates behind it.", "रेखांकित किसी भी आँकड़े को दबाइए और देखिए कि वह किससे बना है, उसका सूत्र क्या है, और उसके पीछे के सही भाव और तारीख़ें क्या हैं।")}</p>
             <p className="tryit">{t("Try it: your technology share is", "आज़माइए: आपका टेक्नोलॉजी हिस्सा है")} <Num metric="sector" k="IT" value={t("this number", "यह आँकड़ा")} /> {t("— or your overall", "— या आपका कुल")} <Num metric="score" value={t("score", "स्कोर")} />.</p>
           </section>
         </div>
-        <Glossary />
+        <div data-tour="learn-gloss"><Glossary /></div>
       </div>
       <div className="grid"><StressPanel /></div>
     </Page>
@@ -122,6 +122,13 @@ export function Research() {
   const [q, setQ] = useState("TCS");
   const orb = useStore((s) => s.orb);
   const { t } = useT();
+  const hash = useHash();
+  // A link from the chat ("Open the full research page") names the company; "run=1" also starts the analysts.
+  useEffect(() => {
+    const p = hashParams();
+    const tk = p.get("ticker");
+    if (tk) { useStore.setState({ ticker: tk }); if (p.get("run")) send(`investigate ${tk}`); }
+  }, [hash]);
   return (
     <Page title="Research desk" lead={t("Pick a company and get its good points and its watch-outs in plain words. No buy or sell call: you decide.", "कोई कंपनी चुनिए और उसकी अच्छी बातें और ध्यान देने की बातें सरल शब्दों में पाइए। ख़रीदने या बेचने की सलाह नहीं: फ़ैसला आपका।")}>
       <section className="card">
@@ -136,7 +143,7 @@ export function Research() {
         <div className="tech-body">
           <div className="grid g2"><DeskPanel /><ConvictionPanel /></div>
           <div className="grid g2">
-            <div className="stack"><ClaimsPanel /><SourcesPanel /><section className="card"><h2>Time machine</h2>
+            <div className="stack"><ClaimsPanel /><SourcesPanel /><section className="card" data-tour="res-time"><h2>Time machine</h2>
               <p className="muted">Rewind the clock: the analysts can then only see what was known on that day.</p><Scrubber /></section></div>
             <CalibrationPanel />
           </div>
@@ -146,26 +153,6 @@ export function Research() {
   );
 }
 
-/* ------------------------------------------------------------ Assistant */
-export function Assistant() {
-  return (
-    <div className="assistant-stage" data-theme="dark">
-      <div className="canvas-layer">
-        <Canvas camera={{ position: [0, 0.35, 6.0], fov: 54 }} dpr={[1, 1.5]}
-                gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}>
-          <Orb />
-          <EffectComposer>
-            <Bloom intensity={0.75} luminanceThreshold={0.22} luminanceSmoothing={0.6} mipmapBlur radius={0.6} />
-            <Vignette eskil={false} offset={0.22} darkness={0.85} />
-          </EffectComposer>
-        </Canvas>
-      </div>
-      <OrbMic />
-      <ChatThread />
-      <div className="assistant-side"><JobsLauncher compact /></div>
-      <div className="assistant-bottom"><CommandBar /></div>
-    </div>
-  );
-}
+export { Assistant } from "./AssistantPage";
 
 export { go };

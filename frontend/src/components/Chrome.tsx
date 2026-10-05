@@ -151,7 +151,7 @@ const SUGGESTIONS: [string, string][] = [
 
 /** Hindi speech is shown back before anything is answered: the words heard (editable), what they
  *  were understood as, and the figures that were read. A mishearing is fixed here, not answered. */
-function HeardDraft() {
+export function HeardDraft() {
   const { t } = useT();
   const draft = useVoice((s) => s.draft);
   const clear = useVoice((s) => s.clearDraft);

@@ -56,7 +56,7 @@ export function StockSearch() {
         setHits((l) => l.map((x) => (x.symbol === h.symbol ? { ...x, covered: true } : x)));
       }
       setStatus("");
-      send(`analyse ${h.symbol}`, t(`analyse ${h.name}`, `${h.name} का विश्लेषण`));
+      send(`investigate ${h.symbol}`, t(`analyse ${h.name}`, `${h.name} का विश्लेषण`));
     } catch {
       setStatus(t("Could not fetch that company. Check the connection and try again.", "उस कंपनी का डेटा नहीं ला सका। कनेक्शन जाँचकर फिर कोशिश कीजिए।"));
     } finally {

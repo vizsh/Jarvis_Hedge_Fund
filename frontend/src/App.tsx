@@ -20,6 +20,7 @@ import { useKiosk } from "./lib/kiosk";
 import Govern from "./pages/Govern";
 import Practice from "./pages/Practice";
 import { Assistant, Home, Learn, Portfolio, Research } from "./pages/Pages";
+import { TourOverlay } from "./components/TourOverlay";
 
 // Where each named panel lives, so the command palette and guided flows can send you there.
 const PANEL_ROUTE: Record<string, string> = {
@@ -55,7 +56,7 @@ export default function App() {
 
   const page =
     route === "/portfolio" ? <Portfolio />
-    : route === "/protect" ? <Protect />
+    : route === "/protect" ? <Protect key={hash} />
     : route === "/rural" ? <Rural key={hash} />
     : route === "/whatsapp" ? <WhatsApp />
     : route === "/learn" ? <Learn key={hash} />
@@ -76,6 +77,7 @@ export default function App() {
       <Palette />
       <DrillDown />
       <ReportView />
+      <TourOverlay />
     </div>
   );
 }

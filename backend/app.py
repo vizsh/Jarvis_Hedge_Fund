@@ -37,6 +37,8 @@ from backend import actions as actions_mod
 from backend import ledger as ledger_mod
 from backend import tts as tts_mod
 from backend import guide as guide_mod
+from backend import tours as tours_mod
+from backend import understand as understand_mod
 from backend import hindi_input
 from backend import vernacular as vernacular_mod
 from analysis import scanner as scanner_mod
@@ -340,6 +342,7 @@ class AskIn(BaseModel):
     level: str = "normal"        # normal | simple | maths
     lang: str | None = None
     cid: str | None = None
+    route: str | None = None     # the page the person is on, so "this feature" means this page's tool
 
 
 @app.post("/ask")
@@ -352,6 +355,7 @@ async def ask(body: AskIn) -> dict:
     having to rephrase anything.
     """
     _req_lang.set(body.lang if body.lang in vernacular_mod.LANGS else None)
+    understand_mod.REQ_ROUTE.set(body.route or "")
     question = body.question
     if hindi_input.has_devanagari(question):
         question = (await hindi_input.convert(question))[0] or question
@@ -816,7 +820,7 @@ _last_lang = "en"
 _MORE = re.compile(r"^\s*(tell me more|more( detail)?|go on|continue|read (it|that) (all|out)|full answer)\W*$", re.I)
 
 
-async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -> dict:
+async def dispatch(text: str, lang: str | None = None, cid: str | None = None, route: str | None = None) -> dict:
     """The single entry point for anything typed or spoken.
 
     Decides command vs question ONCE, here, so the two paths cannot diverge. They used
@@ -824,6 +828,7 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
     a trade proposal and "what if the market drops 20%" into a policy change.
     """
     _req_lang.set(lang if lang in vernacular_mod.LANGS else None)
+    understand_mod.REQ_ROUTE.set(route or "")
     orig, ckey = text, (cid or "default")
     # The guide goes first: an open question takes this line as its answer, and "open X" moves the page.
     if (ga := guide_mod.intercept(text, _lang(), ckey)) is not None:
@@ -843,7 +848,8 @@ async def dispatch(text: str, lang: str | None = None, cid: str | None = None) -
         bus.emit(EventType.SPEECH, text=_last_full, final=True, lang=_last_lang, cid=cid)
         return {"accepted": True, "kind": "more"}
     decision = route_input(text)
-    if decision.kind == "command" and decision.intent:
+    # "analyse TCS" in the chat is a request for the card (facts + chart), not for the desks to start running.
+    if decision.kind == "command" and decision.intent and not understand_mod.wants_card(text):
         _spawn(handle(session, bus, decision.intent))
         return {"accepted": True, "kind": "command", "why": decision.why,
                 "intent": decision.intent.as_payload()}
@@ -1512,6 +1518,21 @@ async def rural_credit(b: CreditIn) -> dict:
                              b.amount, b.years, b.good_rate, b.poor_rate, b.lang)
 
 
+@app.get("/tours")
+async def tours_list(lang: str = "en") -> dict:
+    """Every feature that has a guided tour, for the Assistant page's picker."""
+    return {"tours": tours_mod.catalogue(lang)}
+
+
+@app.get("/tours/{tour_id}")
+async def tour_steps(tour_id: str, lang: str = "en") -> dict:
+    """One tour's steps in one language: the page plays them (open the page, spotlight a part, read the caption)."""
+    t = tours_mod.BY_ID.get(tour_id)
+    if t is None:
+        raise HTTPException(404, "no such tour")
+    return tours_mod.public(t, lang)
+
+
 @app.get("/research/summary")
 async def research_summary(ticker: str = "TCS.NS", lang: str = "en") -> dict:
     """Plain pros and cons for one company (no buy/sell signal), set beside what the person already owns."""
@@ -1750,7 +1771,7 @@ async def _reader(socket: WebSocket) -> None:
         if message.get("type") == "command":
             if player and player.active:
                 continue   # a live command mid-replay would fight the recording
-            _spawn(dispatch(str(message.get("text", "")), message.get("lang"), message.get("cid")))
+            _spawn(dispatch(str(message.get("text", "")), message.get("lang"), message.get("cid"), message.get("route")))
         elif message.get("type") == "boot":
             _spawn(boot(session, bus))
         elif message.get("type") == "transcript":
