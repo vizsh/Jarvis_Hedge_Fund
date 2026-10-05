@@ -128,6 +128,13 @@ def menu_text(lang: str, first: bool = False) -> str:
 
 
 # --- rendering ---------------------------------------------------------------------------------
+MSG_BLOCKED = {"should_buy", "xray", "why", "fix", "stress", "correlation", "diversification", "portfolio_move", "simplify", "fund_vs_direct"}
+
+
+def menu_hint(lang: str) -> str:
+    return "और पूछिए, या MENU भेजिए।" if lang == "hi" else "Ask another question, or send MENU for the list."
+
+
 def _split(text: str, limit: int) -> list[str]:
     if len(text) <= limit:
         return [text]
@@ -274,8 +281,13 @@ async def handle(sender: str, body: str, channel: str | None = None, audio: byte
             out = render_answer(answer, channel, lang)
             link = _public_link(g)
             return _pack([prefix + out + (("\n\n🔗 " + link) if link and channel == "whatsapp" else "")], channel)
-        if intent in ALLOWED or kind in ("scam_help", "scam_recovery", "tip_scan", "define", "help", "chitchat", "predict"):
-            return _pack([prefix + render_answer(answer, channel, lang)], channel)
+        # Every real answer goes out as text: company cards, concept explanations, tours, tip checks, the portfolio.
+        # Only a question the assistant cannot place falls back to the menu.
+        # Buy and portfolio-advice answers stay in the app: on a phone a "yes, it can fit" with no screen to read it on is advice.
+        if kind not in ("clarify", "") and answer.headline and intent not in MSG_BLOCKED:
+            hint = menu_hint(lang) if kind in ("concept", "feature_help", "stock_analysis", "stock_compare") else ""
+            tail = "\n\n" + hint if hint else ""
+            return _pack([prefix + render_answer(answer, channel, lang) + tail], channel)
         note = ("यह सवाल मैं यहाँ नहीं सुलझा सकता। नीचे से चुनिए:" if lang == "hi" else "I can't help with that one here. Pick from the menu:")
         return _pack([note + "\n\n" + menu_text(lang)], channel)
     finally:

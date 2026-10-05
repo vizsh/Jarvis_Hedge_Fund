@@ -4,7 +4,7 @@ export type ThemePref = "system" | "light" | "dark";
 const KEY = "jarvis.theme";
 
 const system = (): "light" | "dark" => (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark");
-const read = (): ThemePref => { try { const v = localStorage.getItem(KEY); return v === "light" || v === "dark" ? v : "system"; } catch { return "system"; } };
+const read = (): ThemePref => { try { const v = localStorage.getItem(KEY); return v === "dark" ? "dark" : "light"; } catch { return "system"; } };
 export const resolved = (p: ThemePref): "light" | "dark" => (p === "system" ? system() : p);
 
 function apply(p: ThemePref): void {

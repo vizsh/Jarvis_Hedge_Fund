@@ -12,6 +12,7 @@ import "./styles-arena.css";
 import "./styles-deck.css";
 import "./styles-govern.css";
 import "./styles-theme.css";
+import "./styles-rural.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

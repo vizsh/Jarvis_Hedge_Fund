@@ -651,7 +651,9 @@ def fill(cid: str, text: str, lang: str) -> dict[str, Any] | None:
     if val is None or (val == [] and spec["name"] not in ("have", "out")):
         # Not an answer. A different clear question gets answered instead of being trapped here.
         from backend import assistant
-        if st["tries"] >= 1 and assistant.rule_intent(text):
+        # A long sentence with no figures is a new question, not a missing answer; a second miss also lets go, so nobody is trapped.
+        new_question = len(text.split()) >= 6 and not re.search(r"\d", text)
+        if st["tries"] >= 1 or new_question:
             STATE.pop(cid, None)
             return None
         st["tries"] += 1

@@ -1332,7 +1332,7 @@ def _hold_args(text: str) -> dict:
     low = text.lower()
     out: dict = {}
     taken: list[tuple[int, int]] = []
-    m = re.search(r"(\d[\d,]*(?:\.\d+)?)\s*(quintals?|qtl|q|क्विंटल)", low)
+    m = re.search(r"(\d[\d,]*(?:\.\d+)?)\s*(quintals?|qtl|q\b|क्विंटल)", low)
     if m:
         out["qty"] = float(m.group(1).replace(",", ""))
         taken.append(m.span(1))

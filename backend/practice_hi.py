@@ -46,7 +46,7 @@ SCENARIOS_HI: dict[str, dict[str, Any]] = {
                  "hints": ["ठीक है, अभी पचास हज़ार जमा करता हूँ।", "क्या मैं जब चाहूँ पैसा निकाल सकता हूँ?", "स्क्रीनशॉट नक़ली भी बन जाते हैं। मैं पैसा जमा नहीं करूँगा। नमस्ते।"]}]},
 }
 
-# Substring matching, not : Devanagari vowel signs are not "word" characters, so  splits
+# Substring matching, not \b: Devanagari vowel signs are not "word" characters, so \b splits
 # words in the middle.
 def norm(t: str) -> str:
     """Spoken replies arrive from a transcriber that spells Hindi loosely (ठगी as तगी, फ़ोन as फों),
