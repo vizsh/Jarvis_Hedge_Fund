@@ -55,3 +55,14 @@ def test_portfolio_context_and_hindi(sess):
     hi = proscons.pros_cons(sess.pit, "TCS.NS", "hi")
     assert re.search(r"[ऀ-ॿ]", hi["about"]) and re.search(r"[ऀ-ॿ]", hi["pros"][0]["title"])
     assert not proscons.pros_cons(sess.pit, "TCS.NS", "en")["for_you"]
+
+
+def test_chart_readings_are_tagged_explained_and_capped_so_one_fact_is_not_counted_four_times(sess):
+    for tk in ("TCS.NS", "HDFCBANK.NS", "RELIANCE.NS", "SBIN.NS", "ITC.NS"):
+        r = proscons.pros_cons(sess.pit, tk, "en")
+        for side in ("pros", "cons"):
+            assert sum(1 for x in r[side] if x["tag"] == "Price and trend") <= 3
+            assert all(x["tag"] in {"The business", "Price and trend", "Size", "News"} for x in r[side])
+        assert not SIGNAL_WORDS.search(text_of(r))
+    titles = " ".join(x["title"] for tk in ("TCS.NS", "SBIN.NS") for x in proscons.pros_cons(sess.pit, tk, "en")["pros"] + proscons.pros_cons(sess.pit, tk, "en")["cons"])
+    assert "long-term averages" in titles or "similar companies" in titles

@@ -1,0 +1,14 @@
+.deck { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 4px 0 22px; }
+.deck-card { text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 16px 16px 15px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); color: var(--text); cursor: pointer; font-family: var(--sans); position: relative; transition: transform .22s var(--ease), border-color .18s, background .18s, box-shadow .18s; box-shadow: var(--shadow-1); }
+.deck-card:hover { transform: translateY(-2px); border-color: var(--line-strong); }
+.deck-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-dim); margin-bottom: 6px; transition: all .18s; }
+.deck-t { font-family: var(--serif); font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
+.deck-b { font-size: 13px; line-height: 1.45; color: var(--text-dim); }
+.deck-card.on { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), transparent 70%), var(--surface); box-shadow: 0 0 0 1px var(--accent) inset, var(--shadow-1); }
+.deck-card.on .deck-ic { background: var(--accent); color: var(--accent-ink); }
+.deck-card.on::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 14px; height: 14px; background: var(--surface); border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent); transform: translateX(-50%) rotate(45deg); }
+.deck-card.urgent .deck-ic { background: rgba(255,122,112,.14); color: var(--red); } .deck-card.urgent.on { border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset, var(--shadow-1); background: linear-gradient(180deg, rgba(255,122,112,.08), transparent 70%), var(--surface); }
+.deck-card.urgent.on .deck-ic { background: var(--red); color: #fff; } .deck-card.urgent.on::after { border-color: var(--red); }
+.deck-stage { animation: rise .35s var(--ease) both; scroll-margin-top: calc(var(--nav-h, 56px) + 12px); }
+.deck-stage > .grid, .deck-stage > section { margin-bottom: 18px; }
+@media (max-width: 700px) { .deck { grid-template-columns: repeat(2, 1fr); } .deck-b { display: none; } .deck-card { padding: 12px; } .deck-card.on::after { display: none; } }

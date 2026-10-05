@@ -90,3 +90,9 @@ Backend support: `agents/orchestrator.run_desks(on_event=...)` reports `analysts
 
 ## Govern page
 A permanent "Your limits, right now" header draws the three rules the firewall enforces (largest single stock, largest industry, cash floor) as bars with the limit marked, then a segmented control switches between Check a trade, Rebalance, Audit record and Tamper test, so the page is no longer one 5,000 px scroll.
+
+## Practice and Protect: tool decks
+Both pages open with a row of selectable tool cards (`components/ToolDeck.tsx`) and show one tool at a time beneath it, instead of every tool stacked in a long scroll. Protect leads with the urgent one ("I think I was scammed"), tinted coral. A deep link such as `#/practice?tool=fee` or `#/protect?type=upi_card` opens the right tool, which is how the guide lands on them.
+
+## Research summary: technical readings
+Besides fundamentals, the plain summary now reads the price history the way a technician would, and explains each reading in a sentence without turning it into a signal: price against its 50- and 200-day averages, a momentum reading (RSI) for a fast run-up or drop, one-year performance against similar companies (separates "the sector moved" from "this company moved"), unusually heavy trading, and distance from the year's high and low. Price-based readings are capped at three, because they move together and would otherwise count one fact several times.

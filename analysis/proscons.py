@@ -49,7 +49,7 @@ def pros_cons(pit, ticker: str, lang: str = "en", holding: dict[str, float] | No
     gaps: list[str] = []
 
     def add(bucket, w, title_en, title_hi, why_en, why_hi):
-        bucket.append({"w": w, "title": t(title_en, title_hi), "why": t(why_en, why_hi)})
+        bucket.append({"w": w, "title": t(title_en, title_hi), "why": t(why_en, why_hi), "k": title_en})
 
     # ---- the business, against sector peers -------------------------------------------------------
     peers = [x for x in universe.tickers() if x != ticker and universe.sector(x) == sector]
@@ -110,7 +110,8 @@ def pros_cons(pit, ticker: str, lang: str = "en", holding: dict[str, float] | No
                 f"इसका बाज़ार मूल्य लगभग {_money(mcap, cur)} है। छोटी कंपनियों में भाव ज़्यादा झूलता है और जल्दी बेचना कठिन हो सकता है।")
 
     # ---- how the price itself has behaved --------------------------------------------------------
-    px = [r["close"] for r in pit.prices(ticker, 250) if r.get("close")]
+    rows = [r for r in pit.prices(ticker, 250) if r.get("close")]
+    px = [r["close"] for r in rows]
     ret = dd = vol = off_high = None
     if len(px) >= 60:
         ret = px[-1] / px[0] - 1
@@ -145,6 +146,66 @@ def pros_cons(pit, ticker: str, lang: str = "en", holding: dict[str, float] | No
     else:
         gaps.append(t("The past year of prices: not enough history saved.", "पिछले साल के भाव: पर्याप्त इतिहास सहेजा नहीं।"))
 
+
+    # ---- the chart, read the way a technician would, but explained and never turned into a signal --------------
+    if len(px) >= 200:
+        last = px[-1]
+        ma200, ma50 = sum(px[-200:]) / 200, sum(px[-50:]) / 50
+        if last > ma200 and ma50 > ma200:
+            add(pros, 2, "Trading above its long-term averages", "अपने लंबी अवधि के औसत से ऊपर चल रहा है",
+                f"The price (₹{last:,.0f}) is above both its 50-day average (₹{ma50:,.0f}) and its 200-day average (₹{ma200:,.0f}). That is what a steady uptrend looks like; it describes the past, not the future.",
+                f"भाव (₹{last:,.0f}) अपने 50-दिन (₹{ma50:,.0f}) और 200-दिन (₹{ma200:,.0f}) दोनों औसत से ऊपर है। स्थिर बढ़त ऐसी दिखती है; यह बीते कल की बात है, आने वाले कल की नहीं।")
+        elif last < ma200 and ma50 < ma200:
+            add(cons, 2, "Trading below its long-term averages", "अपने लंबी अवधि के औसत से नीचे चल रहा है",
+                f"The price (₹{last:,.0f}) is below both its 50-day average (₹{ma50:,.0f}) and its 200-day average (₹{ma200:,.0f}). That is what a downtrend looks like. Trends can turn, so treat it as a description, not a verdict.",
+                f"भाव (₹{last:,.0f}) अपने 50-दिन (₹{ma50:,.0f}) और 200-दिन (₹{ma200:,.0f}) दोनों औसत से नीचे है। गिरावट का रुझान ऐसा दिखता है। रुझान पलट सकते हैं, इसलिए इसे वर्णन समझिए, फ़ैसला नहीं।")
+    if len(px) >= 30:
+        gains = [max(0.0, b - a) for a, b in zip(px[-15:], px[-14:])]
+        losses = [max(0.0, a - b) for a, b in zip(px[-15:], px[-14:])]
+        ag, al = sum(gains) / 14, sum(losses) / 14
+        rsi = 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
+        if rsi >= 70:
+            add(cons, 1, "It has run up fast recently", "हाल में तेज़ी से चढ़ा है",
+                f"Over the last two weeks it rose far more days than it fell (a standard momentum reading, RSI, is {rsi:.0f}; above 70 is usually called stretched). Fast rises are sometimes followed by a pause.",
+                f"पिछले दो हफ़्तों में यह गिरने से कहीं ज़्यादा दिन चढ़ा (मानक गति-पैमाना RSI {rsi:.0f} है; 70 से ऊपर को आम तौर पर खिंचा हुआ कहते हैं)। तेज़ चढ़ाव के बाद कभी-कभी ठहराव आता है।")
+        elif rsi <= 30:
+            add(cons, 1, "It has dropped fast recently", "हाल में तेज़ी से गिरा है",
+                f"Over the last two weeks it fell far more days than it rose (momentum reading RSI is {rsi:.0f}; below 30 is usually called oversold). Sharp drops sometimes bounce, and sometimes keep going.",
+                f"पिछले दो हफ़्तों में यह चढ़ने से कहीं ज़्यादा दिन गिरा (गति-पैमाना RSI {rsi:.0f} है; 30 से नीचे को आम तौर पर ज़्यादा बिका हुआ कहते हैं)। तेज़ गिरावट के बाद कभी उछाल आता है, कभी गिरावट जारी रहती है।")
+    if len(px) >= 120:
+        def yr(tk):
+            q = [r["close"] for r in pit.prices(tk, 250) if r.get("close")]
+            return (q[-1] / q[0] - 1) if len(q) >= 120 else None
+        peer_rets = [v for v in (yr(x) for x in peers[:12]) if v is not None]
+        if len(peer_rets) >= 3 and ret is not None:
+            pm = _median(peer_rets)
+            diff = (ret - pm) * 100
+            if diff >= 8:
+                add(pros, 2, "It has done better than similar companies", "समान कंपनियों से बेहतर रहा है",
+                    f"Over the same period its price moved {ret * 100:+.0f}%, against about {pm * 100:+.0f}% for similar {sec_label.lower()} companies. Doing better than the group means the move is not just the whole sector rising.",
+                    f"इसी अवधि में इसका भाव {ret * 100:+.0f}% चला, जबकि समान {sec_label} कंपनियों में लगभग {pm * 100:+.0f}%। समूह से बेहतर होने का मतलब है कि यह सिर्फ़ पूरे सेक्टर के चढ़ने से नहीं हुआ।")
+            elif diff <= -8:
+                add(cons, 2, "It has lagged similar companies", "समान कंपनियों से पीछे रहा है",
+                    f"Over the same period its price moved {ret * 100:+.0f}%, against about {pm * 100:+.0f}% for similar {sec_label.lower()} companies. Lagging the group suggests the weakness is about this company, not just the sector.",
+                    f"इसी अवधि में इसका भाव {ret * 100:+.0f}% चला, जबकि समान {sec_label} कंपनियों में लगभग {pm * 100:+.0f}%। समूह से पीछे रहने का मतलब है कि कमज़ोरी इसी कंपनी की है, सिर्फ़ सेक्टर की नहीं।")
+    vols = [r.get("volume") or 0 for r in rows]
+    if len(vols) >= 120 and sum(vols[-120:-20]) > 0:
+        ratio = (sum(vols[-20:]) / 20) / (sum(vols[-120:-20]) / 100)
+        if ratio >= 1.6:
+            add(cons, 1, "Unusually heavy trading lately", "हाल में असामान्य रूप से भारी कारोबार",
+                f"Shares changed hands about {ratio:.1f} times as often as usual over the last month. That usually means news or a change of mind among big holders: worth finding out why before you decide.",
+                f"पिछले महीने शेयर सामान्य से लगभग {ratio:.1f} गुना बार हाथ बदले। इसका मतलब आम तौर पर कोई ख़बर या बड़े धारकों का मन बदलना होता है: फ़ैसले से पहले कारण जानना ठीक रहेगा।")
+    if off_high is not None and len(px) >= 120:
+        lo = min(px)
+        if px[-1] <= lo * 1.05:
+            add(cons, 1, "Close to its lowest price of the year", "साल के सबसे निचले भाव के क़रीब",
+                f"It is within about 5% of the lowest level of the past year (₹{lo:,.0f}). A low price is not a bargain by itself; check why it is low.",
+                f"यह पिछले साल के सबसे निचले स्तर (₹{lo:,.0f}) के लगभग 5% के भीतर है। नीचा भाव अपने आप सौदा नहीं होता; देखिए कि नीचा क्यों है।")
+        elif off_high >= -0.03:
+            add(pros, 1, "Close to its highest price of the year", "साल के सबसे ऊँचे भाव के क़रीब",
+                "It is within about 3% of its highest level of the past year, so the market has recently been willing to pay this much. It also means little cushion if sentiment turns.",
+                "यह पिछले साल के सबसे ऊँचे स्तर के लगभग 3% के भीतर है, यानी बाज़ार हाल में इतना देने को तैयार रहा है। साथ ही रुख़ पलटे तो गुंजाइश कम है।")
+
     # ---- the news ---------------------------------------------------------------------------------
     tones = [s.value_num for s in pit.signals(ticker, kind="news_tone", limit=30) if s.value_num is not None]
     if len(tones) >= 5:
@@ -176,7 +237,29 @@ def pros_cons(pit, ticker: str, lang: str = "en", holding: dict[str, float] | No
     cons.sort(key=lambda x: -x["w"])
     about = t(f"{name} is in the {sec_label} sector" + (f", with a market value of about {_money(mcap, cur)}." if mcap else "."),
               f"{name} {sec_label} सेक्टर की कंपनी है" + (f", जिसका बाज़ार मूल्य लगभग {_money(mcap, cur)} है।" if mcap else "।"))
-    strip = lambda xs: [{"title": x["title"], "why": x["why"]} for x in xs]      # noqa: E731
+    def tag(k: str) -> str:
+        low = k.lower()
+        if "news" in low:
+            return t("News", "ख़बरें")
+        if any(w in low for w in ("price has", "fall", "swings", "steady", "averages", "run up", "dropped", "lagged", "done better", "trading lately", "lowest", "highest")):
+            return t("Price and trend", "भाव और रुझान")
+        if any(w in low for w in ("large", "smaller")):
+            return t("Size", "आकार")
+        return t("The business", "कारोबार")
+    price_tag = t("Price and trend", "भाव और रुझान")
+
+    def strip(xs):
+        """Price-based readings move together (a falling price is also below its averages and behind its peers), so
+        more than three of them would count one fact four times. The strongest three are kept."""
+        out, n = [], 0
+        for x in xs:
+            tg = tag(x["k"])
+            if tg == price_tag:
+                n += 1
+                if n > 3:
+                    continue
+            out.append({"title": x["title"], "why": x["why"], "tag": tg})
+        return out
     return {"ticker": ticker, "name": name, "about": about, "pros": strip(pros), "cons": strip(cons), "gaps": gaps, "for_you": for_you,
             "counts": {"pros": len(pros), "cons": len(cons)},
             "facts": {"pe": pe, "pe_peers": pe_m, "roe": roe, "roe_peers": roe_m, "margin": mar, "margin_peers": mar_m, "market_cap": mcap, "pb": pb,

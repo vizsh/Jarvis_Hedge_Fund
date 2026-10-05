@@ -8,6 +8,7 @@ import { MicIcon } from "../components/VoiceInput";
 import { useLang } from "../lib/lang";
 import { hashParams } from "../lib/router";
 import { EmergencyMeter, FeeDrag, WeeklyDigest } from "./PracticeMore";
+import { ToolDeck, type Tool } from "../components/ToolDeck";
 
 const post = (url: string, body: unknown) =>
   fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
@@ -379,13 +380,26 @@ export function ScamCall({ init, compact = false }: { init?: Record<string, stri
 
 export default function Practice() {
   const hi = useLang((s) => s.lang) === "hi";
+  const q = hashParams();
+  const start = ({ fee: "fee", emergency: "emergency", digest: "digest", rehearsal: "rehearsal", overlap: "overlap" } as Record<string, string>)[q.get("tool") ?? ""] ?? (q.get("a") ? "overlap" : "overlap");
+  const [tool, setTool] = useState(start);
+  const t = (en: string, h: string) => (hi ? h : en);
+  const TOOLS: Tool[] = [
+    { id: "overlap", icon: "overlap", title: t("Fund overlap", "फ़ंड ओवरलैप"), blurb: t("Two funds that quietly hold the same stocks", "दो फ़ंड जो चुपचाप एक ही शेयर रखते हैं") },
+    { id: "fee", icon: "percent", title: t("Fee drag", "फ़ीस का असर"), blurb: t("What a small yearly fee costs over decades", "छोटी सालाना फ़ीस दशकों में कितनी पड़ती है") },
+    { id: "emergency", icon: "policy", title: t("Emergency meter", "इमरजेंसी मीटर"), blurb: t("How many months your money lasts", "आपका पैसा कितने महीने चलेगा") },
+    { id: "digest", icon: "speaker", title: t("Weekly digest", "साप्ताहिक सार"), blurb: t("Your week in a minute, spoken", "आपका हफ़्ता एक मिनट में, बोलकर") },
+    { id: "rehearsal", icon: "phone", title: t("Scam-call rehearsal", "ठग कॉल का अभ्यास"), blurb: t("Practise the call before a real one comes", "असली कॉल आने से पहले अभ्यास कीजिए") },
+  ];
   return (
-    <Page title="Practice" lead={hi ? "करके सीखिए: एक जैसे दो फ़ंड ख़रीदने से पहले तुलना कीजिए, और असली ठग कॉल आने से पहले अभ्यास कीजिए।" : "Learn by doing: compare funds before you buy two of the same, and rehearse a scam call before a real one arrives."}>
-      <div className="grid"><OverlapChecker /></div>
-      <div className="grid"><FeeDrag /></div>
-      <div className="grid"><EmergencyMeter /></div>
-      <div className="grid"><WeeklyDigest /></div>
-      <div className="grid"><ScamCall /></div>
+    <Page title="Practice" lead={t("Learn by doing: compare funds before you buy two of the same, and rehearse a scam call before a real one arrives.", "करके सीखिए: एक जैसे दो फ़ंड ख़रीदने से पहले तुलना कीजिए, और असली ठग कॉल आने से पहले अभ्यास कीजिए।")}>
+      <ToolDeck tools={TOOLS} active={tool} onPick={setTool} label={t("Practice tools", "अभ्यास के औज़ार")}>
+        {tool === "overlap" && <div className="grid"><OverlapChecker /></div>}
+        {tool === "fee" && <div className="grid"><FeeDrag /></div>}
+        {tool === "emergency" && <div className="grid"><EmergencyMeter /></div>}
+        {tool === "digest" && <div className="grid"><WeeklyDigest /></div>}
+        {tool === "rehearsal" && <div className="grid"><ScamCall /></div>}
+      </ToolDeck>
     </Page>
   );
 }

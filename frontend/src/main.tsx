@@ -9,6 +9,7 @@ import "./styles-guide.css";
 import "./styles-pages.css";
 
 import "./styles-arena.css";
+import "./styles-deck.css";
 import "./styles-govern.css";
 import "./styles-theme.css";
 

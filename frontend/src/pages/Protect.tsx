@@ -1,4 +1,6 @@
 import { PanicSim } from "./Demos";
+import { ToolDeck, type Tool } from "../components/ToolDeck";
+import { hashParams } from "../lib/router";
 import { RecoveryCoach } from "./Recovery";
 import { useEffect, useState } from "react";
 
@@ -214,13 +216,25 @@ function TaxShield() {
 
 export default function Protect() {
   const { t } = useT();
+  const prm = hashParams();
+  const start = ({ recovery: "recovery", tip: "tip", tax: "tax", panic: "panic", watch: "watch" } as Record<string, string>)[prm.get("tool") ?? ""] ?? (prm.get("type") ? "recovery" : prm.get("episode") ? "panic" : "recovery");
+  const [tool, setTool] = useState(start);
+  const TOOLS: Tool[] = [
+    { id: "recovery", icon: "lifebuoy", tone: "urgent", title: t("I think I was scammed", "मुझे लगता है ठगी हुई"), blurb: t("The first hour, in order, with the words to say", "पहला घंटा, क्रम से, बोलने के शब्दों के साथ") },
+    { id: "tip", icon: "tip", title: t("Check a stock tip", "स्टॉक टिप जाँचें"), blurb: t("Paste a Telegram or WhatsApp tip and test its facts", "टेलीग्राम या व्हाट्सऐप की टिप डालकर उसके तथ्य जाँचें") },
+    { id: "tax", icon: "loan", title: t("Tax shield", "टैक्स बचत"), blurb: t("When waiting a few days would cost you less tax", "कुछ दिन रुकने पर कब कम टैक्स लगेगा") },
+    { id: "panic", icon: "trend", title: t("Panic-sell replay", "घबराकर बेचने का असर"), blurb: t("What selling in a past crash would have cost", "पिछली गिरावट में बेचने की क़ीमत क्या होती") },
+    { id: "watch", icon: "bell", title: t("Tell me if…", "बताइए अगर…"), blurb: t("Standing rules that speak up only when something flips", "स्थायी नियम जो सिर्फ़ तब बोलते हैं जब कुछ पलटे") },
+  ];
   return (
     <Page title="Protect" lead={t("Catch scams before they cost you, and stop paying tax you didn't need to.", "ठगी को पैसे ख़र्च कराने से पहले पकड़िए, और जो टैक्स देना ज़रूरी नहीं था, उसे देना बंद कीजिए।")}>
-      <div className="grid"><RecoveryCoach /></div>
-      <div className="grid g2">
-        <div className="stack"><TipScanner /><PanicSim /><WatchlistPanel /></div>
-        <div className="cap-tall"><TaxShield /></div>
-      </div>
+      <ToolDeck tools={TOOLS} active={tool} onPick={setTool} label={t("Protection tools", "सुरक्षा के औज़ार")}>
+        {tool === "recovery" && <div className="grid"><RecoveryCoach /></div>}
+        {tool === "tip" && <div className="grid"><TipScanner /></div>}
+        {tool === "tax" && <div className="grid"><TaxShield /></div>}
+        {tool === "panic" && <div className="grid"><PanicSim /></div>}
+        {tool === "watch" && <div className="grid"><WatchlistPanel /></div>}
+      </ToolDeck>
     </Page>
   );
 }

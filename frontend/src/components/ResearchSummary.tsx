@@ -6,7 +6,7 @@ import { useLang } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { useStore } from "../lib/store";
 
-type Item = { title: string; why: string };
+type Item = { title: string; why: string; tag?: string };
 type Sum = { name: string; about: string; pros: Item[]; cons: Item[]; gaps: string[]; for_you: string[]; how_to_read: string[] };
 
 /** The research result in plain words: what looks good, what to watch, what could not be checked. No buy or sell signal. */
@@ -33,7 +33,7 @@ export function ResearchSummary() {
     ...(d.cons.length ? [t("Things to watch: ", "ध्यान देने की बातें: ") + d.cons.map((x) => x.title).join(". ")] : []),
     d.how_to_read[1]].join(" "), lang === "hi" ? "hi" : "en", true);
   const list = (items: Item[], empty: string) => items.length
-    ? <ul>{items.map((x) => <li key={x.title}><b>{x.title}</b><span>{x.why}</span></li>)}</ul>
+    ? <ul>{items.map((x) => <li key={x.title}>{x.tag && <i className="sum-tag">{x.tag}</i>}<b>{x.title}</b><span>{x.why}</span></li>)}</ul>
     : <p className="sum-none">{empty}</p>;
 
   return (
