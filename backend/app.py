@@ -1823,6 +1823,18 @@ async def _no_cache_entrypoint(request: Request, call_next):
     return response
 
 
+LANDING = Path(__file__).resolve().parent.parent / "landing" / "out"
+if LANDING.exists():
+    from fastapi.responses import RedirectResponse
+    from fastapi.staticfiles import StaticFiles as _SF
+
+    @app.get("/", include_in_schema=False)
+    async def landing_entry() -> RedirectResponse:
+        """The landing page is the front door. The prototype itself is at /index.html (its hash routes are unchanged)."""
+        return RedirectResponse("/landing/")
+
+    app.mount("/landing", _SF(directory=str(LANDING), html=True), name="landing")
+
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if FRONTEND.exists():
     from fastapi.staticfiles import StaticFiles

@@ -24,3 +24,5 @@ JARVIS_Alpha_OS_Dossier.docx
 ~$*
 
 data/nse_equities.csv
+landing/node_modules/
+landing/.next/

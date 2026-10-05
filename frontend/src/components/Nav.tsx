@@ -81,7 +81,7 @@ export function TopNav() {
   }, []);
   return (
     <header className="topnav" ref={ref}>
-      <a className="brand-mini" href="#/"><Mark size={28} /><b>Jarvis</b></a>
+      <a className="brand-mini" href="/landing/" title="Back to the landing page"><Mark size={28} /><b>Jarvis</b></a>
       <nav className="navlinks" aria-label="Pages">
         {ROUTES.filter((r) => setupFeatures.includes(featureOf(r.path))).map((r) => (
           <a key={r.path} href={"#" + r.path} className={route === r.path ? "on" : ""}>{lang === "hi" ? HI_LABEL[r.label] ?? r.label : r.label}</a>
