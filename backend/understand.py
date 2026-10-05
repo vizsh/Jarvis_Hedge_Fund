@@ -455,7 +455,7 @@ def _concept_wins(text: str, intent: str, how: str) -> str | None:
 def override(text: str, intent: str, how: str, ctx) -> Answer | None:
     """Called by the assistant after the older rules have named an intent: returns a better-fitting answer, or None to keep it."""
     # 0. a stock tip someone forwarded or asked us to judge goes to the tip checker
-    if _TIP_WORDS.search(text) and len(text.split()) >= 6 and not feature_tour(text):
+    if _TIP_WORDS.search(text) and len(text.split()) >= 6 and not feature_tour(text) and not _LOSS.search(text):
         from backend import assistant
         return assistant.h_tip_scan(text, ctx)
     # 1. the app itself
@@ -492,6 +492,7 @@ _SIMPLE = re.compile(r"\blike (i('?m| am) )?(5|five|10|ten|a (child|kid))\b|\bel
 _MOVE = re.compile(r"\bwhy (did|has|is|was|are|were)\b.{0,15}\b(my )?(portfolio|money|investments?|holdings?|stocks?|shares)\b.{0,20}\b(fall|fell|drop\w*|down|lose|lost|go down|decline\w*|rise|rose|up|gain\w*|change\w*|move\w*)\b|\bwhat (made|caused|drove|is driving)\b.{0,25}\bmy (portfolio|investments?|money|returns?)\b|\bwhere did (my )?(money|gains?|losses?|returns?|profits?)\b.{0,15}\b(come from|go)\b|\bhow (did|has|have) my (portfolio|investments?|stocks?) (do|done|perform\w*|move\w*|fare\w*)\b|\bwhat (hurt|helped|dragged|pulled) my\b", _I)
 
 
+_LOSS = re.compile(r"(lost|losing|paid|gave|sent|transferred|scammed|cheated|fell for|duped|taken|stolen|recover)", re.I)
 _TIP_WORDS = re.compile(r"\b(tip|tips|telegram|forwarded|forward this|my friend (said|told)|sure[- ]?shot|vip group|check this (message|post|call))\b", re.I)
 _ANALYSE_TARGET = re.compile(r"\b(analy[sz]e|research|investigate|study|examine|review|look at|check out|deep dive (on|into))\b", _I)
 

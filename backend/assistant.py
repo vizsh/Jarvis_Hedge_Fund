@@ -1011,6 +1011,8 @@ def _tip_body(text: str) -> str:
 
 def h_tip_scan(text: str, ctx: Ctx) -> Answer:
     from analysis import scanner
+    if re.search(r"\b(lost|losing|paid|gave|sent|transferred|scammed|cheated|fell for|duped|taken|stolen)\b", text, re.I):
+        return h_scam_recovery(text, ctx)          # someone who already lost money needs the steps, not the tip checker
     t = _t(ctx.lang)
     body = _tip_body(text)
     if len(body.split()) < 6:

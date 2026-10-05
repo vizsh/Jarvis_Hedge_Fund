@@ -39,116 +39,183 @@ h3 { font-size: 1.15rem; }
 p, li, label, td, th { font-size: 1rem; }
 .muted, .faint, .small, small { font-size: .92rem; }
 
-/* ---- the top bar: green pill for where you are, big labels */
-.topnav { background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(16, 38, 26, .04); min-height: 64px; }
-.brand-mini b { font-size: 1.25rem; color: var(--strong); }
-.navlinks { gap: 6px; }
-.navlinks a { font-size: 1rem; padding: 10px 16px; border-radius: 999px; border-bottom: 0; color: var(--text-dim); font-weight: 600; }
-.navlinks a:hover { background: var(--surface-3); color: var(--text); }
-.navlinks a.on { background: var(--accent); color: #fff; border-bottom-color: transparent; }
-.nav-right .btn, .theme-toggle, .langsw button, .voicesel, .force-stop { min-height: 44px; font-size: .98rem; }
-.langsw button { padding: 8px 14px; font-weight: 700; }
-.langsw button.on { background: var(--accent); color: #fff; }
 
-/* ---- page heads */
-.page-head h1, .page-title { color: var(--strong); }
-.page-lead, .lead { font-size: 1.1rem; color: var(--text-dim); max-width: 60ch; }
-
-/* ---- cards and panels: round, calm, a little more air */
-.card, .panel, .sum, .acard, .ac, .pc { border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-1); }
-.card { padding: 22px 24px; }
-
-/* ---- home: big doors, one icon each, the way the reference shows them */
-.tiles { gap: 18px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 26px 24px; min-height: 190px; box-shadow: var(--shadow-1); }
-.tile:hover, .tile:focus-visible { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-2); }
-.tile-ic { width: 60px; height: 60px; border-radius: 18px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 0; }
-.tile-ic svg { width: 30px; height: 30px; }
-.tile h2 { font-family: var(--sans); font-weight: 700; font-size: 1.45rem; color: var(--strong); }
-.tile p { font-size: 1.02rem; color: var(--text-dim); }
-.tile-go { color: var(--accent); font-size: 1.02rem; font-weight: 700; }
-
-/* ---- tool decks: the cards are the menu, so make them the biggest thing on the page */
-.deck { gap: 14px; }
-.deck-card { border-radius: 20px; padding: 20px; min-height: 132px; background: var(--surface); border: 1.5px solid var(--line); }
-.deck-card.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent) inset; }
-.deck-card.on::after { background: var(--accent-soft); border-color: var(--accent); }
-.deck-ic { width: 46px; height: 46px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); }
-.deck-card.on .deck-ic { background: var(--accent); color: #fff; }
-.deck-t { font-family: var(--sans); font-weight: 700; font-size: 1.2rem; color: var(--strong); }
-.deck-b { font-size: 1rem; color: var(--text-dim); }
-.deck-card.urgent .deck-ic { background: rgba(184, 58, 46, .12); color: var(--red); }
-.deck-card.urgent.on { background: rgba(184, 58, 46, .06); border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset; }
-.deck-card.urgent.on .deck-ic { background: var(--red); }
-@media (max-width: 700px) { .deck-b { display: block; } .deck-card { min-height: 0; padding: 14px; } }
-
-/* ---- every button: finger-sized, clearly pressable */
-.btn, .abtn, .achip, .chip, .tour-btn, .ac-btn, .ac-chip, .dock-chips button, .wa-opts button {
-  min-height: 48px; font-size: 1rem; font-weight: 700; border-radius: 14px; padding: 10px 18px;
+/* ---- the original Rural page styles (kept as they were) ---- */
+.rural-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.rural-tabs button { display: flex; gap: 8px; align-items: center; padding: 12px 16px; font-size: 16px; border-radius: 12px; background: rgb(var(--wash) / .05); border: 1px solid rgb(var(--wash) / .14); color: inherit; cursor: pointer; }
+.rural-tabs button.on { border-color: var(--green); background: rgba(98, 210, 162,.1); }
+.rural-card h2 { font-size: 22px; }
+.rural-card .muted { font-size: 15px; line-height: 1.5; }
+.rural-card h3 { margin: 16px 0 6px; font-size: 16px; }
+.rural-form { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.rural-form > * { flex: 1 1 230px; min-width: 0; }
+.rural-form.three > * { flex: 1 1 150px; }
+.rural-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--text); }
+.rural-form input, .rural-form select, .rural-card textarea, .rural-row input, .rural-row select { font-size: 17px; padding: 10px 12px; border-radius: 10px; background: rgb(var(--wash) / .06); border: 1px solid rgb(var(--wash) / .2); color: inherit; width: 100%; font-family: inherit; }
+.rural-card textarea { resize: vertical; }
+.rural-form .inline { display: flex; gap: 6px; }
+.rural-form .inline input { max-width: 90px; }
+.rural-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin: 8px 0; }
+.rural-check { display: flex; gap: 10px; align-items: center; font-size: 15px; padding: 8px 10px; border-radius: 10px; background: rgb(var(--wash) / .04); cursor: pointer; }
+.rural-check input { width: 22px; height: 22px; accent-color: var(--green); flex: none; }
+.rural-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; align-items: center; }
+.rural-actions .btn.go { font-size: 17px; padding: 12px 22px; }
+.rural-big { display: flex; align-items: baseline; gap: 10px; padding: 16px 18px; margin: 14px 0 8px; border-radius: 14px; border: 1px solid var(--rule); }
+.rural-big span { font-size: 54px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.rural-big small { font-size: 16px; color: var(--text); }
+.rural-big.red { background: rgba(255, 122, 112,.12); border-color: rgba(255, 122, 112,.5); } .rural-big.red span { color: #ff968c; }
+.rural-big.amber { background: rgba(255, 159, 90,.1); border-color: rgba(255, 159, 90,.5); } .rural-big.amber span { color: #ffb86b; }
+.rural-big.green { background: rgba(98, 210, 162,.08); border-color: rgba(98, 210, 162,.45); } .rural-big.green span { color: var(--green); }
+.rural-head { font-size: 17px; line-height: 1.5; margin: 6px 0 10px; }
+.rural-facts { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 12px; }
+.rural-facts > div { flex: 1 1 160px; padding: 10px 14px; border-radius: 12px; background: rgb(var(--wash) / .05); }
+.rural-facts small { display: block; color: var(--text-dim); font-size: 13px; } .rural-facts b { font-size: 22px; }
+.rural-table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 6px 0; }
+.rural-table th, .rural-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgb(var(--wash) / .1); vertical-align: top; }
+.rural-table td small { display: block; color: var(--text-dim); font-size: 12px; }
+.rural-table tr.bad td { color: #ff9db0; } .rural-table td.good, .good { color: var(--green); } .bad { color: #ff9db0; }
+.rural-note { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin: 8px 0; }
+.rural-rule { padding: 10px 14px; border-left: 3px solid var(--amber); background: rgba(255, 159, 90,.07); margin: 10px 0; font-size: 15px; }
+.rural-flags { margin: 8px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15.5px; line-height: 1.5; }
+.rural-flags:not(.good) li::marker { content: "⚠ "; }
+.rural-links { font-size: 14.5px; line-height: 1.7; }
+.rural-schemes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; margin: 10px 0; }
+.rural-scheme { padding: 12px 14px; border-radius: 12px; background: rgb(var(--wash) / .045); border: 1px solid rgb(var(--wash) / .12); display: flex; flex-direction: column; gap: 5px; }
+.rural-scheme.likely { border-color: rgba(98, 210, 162,.45); }
+.rural-scheme header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.rural-scheme p { margin: 2px 0; font-size: 15px; line-height: 1.5; }
+.rural-scheme small { color: var(--text-dim); font-size: 12.5px; line-height: 1.4; }
+.rural-card .tag { flex: none; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: rgb(var(--wash) / .1); }
+.rural-steps { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; }
+.rural-steps p { margin: 3px 0 0; color: var(--text); font-size: 14px; line-height: 1.5; }
+.rural-rows { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; }
+.rural-row { display: grid; grid-template-columns: 120px 140px minmax(0, 1fr) 40px; gap: 8px; }
+.rural-bars { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; margin: 12px 0 4px; }
+.rural-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rural-bar .col { height: 90px; width: 100%; display: flex; align-items: flex-end; border-bottom: 1px solid rgb(var(--wash) / .2); }
+.rural-bar i { display: block; width: 100%; border-radius: 4px 4px 0 0; }
+.rural-bar i.pos { background: var(--green); } .rural-bar i.neg { background: var(--red); }
+.rural-bar small { font-size: 11px; color: var(--text-dim); }
+@media (max-width: 640px) {
+  .rural-row { grid-template-columns: 1fr 1fr 40px; } .rural-row input:nth-child(3) { grid-column: 1 / 3; }
+  .rural-big span { font-size: 42px; } .rural-tabs button { flex: 1 1 100%; }
 }
-.btn.go, .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
-.btn.go:hover { background: #17633b; color: #fff; box-shadow: none; }
-.btn.ghost { background: var(--surface); color: var(--text); border: 1.5px solid var(--line-strong); }
-.btn:disabled { opacity: .45; }
-.chip, .achip, .ac-chip { border-radius: 999px; }
-.achip, .ac-chip { background: var(--surface); color: var(--strong); border: 1.5px solid var(--line-strong); }
-.achip:hover, .ac-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
-button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-/* ---- inputs: big, obvious */
-input, select, textarea { font-size: 1.05rem; min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--text); padding: 10px 14px; }
-label { font-weight: 600; color: var(--text); }
-input[type="range"] { min-height: 32px; accent-color: var(--accent); }
+.rural-wait { margin: 10px 0; padding: 12px 14px; border-radius: 12px; font-size: 18px; font-weight: 700; background: rgba(98, 210, 162,.1); border: 1px dashed var(--green); }
 
-/* ---- answers: the number is the star, the rest is easy to scan */
-.acard-head, .ac-lead { color: var(--strong); }
-.afact-v, .ac-fact b { color: var(--strong); }
-.ac { border-top-width: 4px; }
-.ac-kind { font-size: .95rem; }
-.ac-points li, .ac-steps li, .ac-read li span, .ac-note { font-size: 1.05rem; line-height: 1.6; }
-.ac-steps li::before { width: 30px; height: 30px; font-size: 1rem; }
+.offline-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; font-size: 15px; background: rgb(var(--wash) / .05); border: 1px solid rgb(var(--wash) / .14); }
+.offline-bar.ready { border-color: rgba(98, 210, 162,.45); background: rgba(98, 210, 162,.07); }
+.offline-bar.off { border-color: var(--amber); background: rgba(255, 159, 90,.1); }
+.offline-bar .btn { padding: 8px 16px; font-size: 15px; }
+.offline-prog { flex: 1 1 200px; height: 10px; border-radius: 5px; background: rgb(var(--wash) / .12); overflow: hidden; }
+.offline-prog div { height: 100%; background: var(--green); transition: width .3s; }
 
-/* ---- the WhatsApp phone: looks like the real app, with big replies */
-.wa-phone { border-radius: 26px; }
-.wa-bubble { font-size: 1.05rem; line-height: 1.5; }
-.wa-opts button { font-size: 1rem; min-height: 44px; }
+.upi-opts { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.upi-opts button { text-align: left; padding: 14px 16px; font-size: 16px; border-radius: 12px; cursor: pointer; color: inherit; background: rgb(var(--wash) / .05); border: 1px solid rgb(var(--wash) / .2); }
+.upi-opts button:hover:not(.right):not(.wrong):not(.dim) { border-color: var(--cyan); }
+.upi-opts button.right { border-color: var(--green); background: rgba(98, 210, 162,.14); }
+.upi-opts button.wrong { border-color: var(--red); background: rgba(255, 122, 112,.14); }
+.upi-opts button.dim { opacity: .45; }
+.rural-rule.bad { border-left-color: var(--red); background: rgba(255, 122, 112,.08); }
 
-/* ---- the assistant: the message box is the one thing to find, so make it big */
-.cmp { border-width: 2px; }
-.cmp textarea { font-size: 1.15rem; }
-.cmp-mic, .cmp-send { width: 52px; height: 52px; }
-.cmp-mic { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.turn-q p { font-size: 1.12rem; }
-.turn-label { font-size: .85rem; }
-.as-empty h3 { font-size: 1.9rem; }
-.as-group button { font-size: 1.05rem; padding: 12px 14px; }
+.rural-letter { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--wash) / .04); border: 1px solid rgb(var(--wash) / .12); }
+.rural-letter summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+.rural-letter pre { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line-height: 1.55; margin: 10px 0; }
 
-/* ---- the voice orb caption: readable from a distance */
-.orbmic-cap { font-size: 1.05rem; }
-.orbmic-sub { font-size: .95rem; }
-.jarvis-line, .dock-line { font-size: 1.02rem; }
-.dock { border-radius: 22px; box-shadow: var(--shadow-2); }
-.dock-input { font-size: 1.05rem; min-height: 48px; }
+.rural-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px 22px; margin: 0 0 16px; }
+.rural-group-label { font-size: 11.5px; letter-spacing: .12em;  color: var(--text-dim); margin: 0 0 6px 2px; }
+.rural-groups .rural-tabs { margin: 0; }
+.rural-groups .rural-tabs button { padding: 10px 14px; font-size: 15px; }
 
-/* ---- the tour overlay: bigger captions, bigger buttons */
-.tour-card h3 { font-size: 1.4rem; }
-.tour-card p { font-size: 1.08rem; }
 
-/* ---- helpers for a shared device: the kiosk bar is clear and high contrast */
-.kiosk-bar { font-size: 1rem; }
+/* ==========================================================================================================
+   Layout for the village screens. Compact, one column per task, consistent 8-12-16-24 spacing, nothing crowded.
+   ========================================================================================================== */
 
-@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* the page reads as one column, centred, with air around each block */
+.rural-card { max-width: 980px; margin: 0 auto 20px; padding: 26px 28px 24px; }
+.rural-card h2 { margin: 0 0 8px; font-size: 1.5rem; line-height: 1.3; color: var(--strong); }
+.rural-card > .muted, .rural-card > p.muted { margin: 0 0 16px; max-width: 64ch; font-size: 1.02rem; }
+.rural-card h3 { margin: 22px 0 8px; font-size: 1.12rem; color: var(--strong); }
+.rural-card > * + * { margin-top: 0; }
 
-/* ---- Rural: bigger tool picker, labels above their fields, selects that look like fields */
-.rural-groups { gap: 12px; }
-.rural-group-label { font-size: .98rem; font-weight: 700; color: var(--text-dim); margin: 14px 0 6px; letter-spacing: .01em; }
-.rural-tabs { gap: 8px; }
-.rural-tabs button { min-height: 50px; font-size: 1.02rem; font-weight: 700; padding: 10px 16px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--line-strong); color: var(--strong); }
+/* tool picker: one row per group, label on the left, tools wrapping neatly beside it */
+.rural-groups { display: flex; flex-direction: column; gap: 10px; margin: 0 0 20px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-1); }
+.rural-group { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 14px; align-items: start; }
+.rural-group-label { margin: 0; padding-top: 12px; font-size: .95rem; font-weight: 700; color: var(--text-dim); letter-spacing: 0; text-transform: none; }
+.rural-groups .rural-tabs { margin: 0; gap: 8px; }
+.rural-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.rural-tabs button { min-height: 46px; padding: 0 16px; gap: 8px; font-size: 1rem; font-weight: 600; border-radius: 12px; background: var(--surface); border: 1.5px solid var(--line-strong); color: var(--strong); }
+.rural-tabs button:hover { border-color: var(--accent); }
 .rural-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.rural-tabs button svg { width: 22px; height: 22px; }
-.rural-card label, .card label { display: flex; flex-direction: column; gap: 6px; font-size: 1rem; margin: 6px 0; }
-.rural-card .row, .card .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
-select { background: var(--surface); color: var(--text); border: 1.5px solid var(--line-strong); }
-.offline-bar { flex-wrap: wrap; gap: 10px; font-size: 1rem; }
-.offline-bar .btn { min-height: 48px; }
-.offline-bar .btn { position: static; margin-left: auto; }
+.rural-tabs button svg { width: 20px; height: 20px; }
+
+/* the form: a tidy grid, label above each field, a clear gap between fields */
+.rural-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px 18px; margin: 18px 0 6px; align-items: end; }
+.rural-form > * { flex: none; min-width: 0; }
+.rural-form.three { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.rural-form label { display: flex; flex-direction: column; gap: 6px; font-size: .95rem; font-weight: 600; color: var(--text-dim); }
+.rural-form input, .rural-form select, .rural-card textarea, .rural-row input, .rural-row select {
+  height: 50px; padding: 0 14px; font-size: 1.08rem; color: var(--strong); background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 12px; width: 100%; box-sizing: border-box; }
+.rural-card textarea { height: auto; min-height: 96px; padding: 12px 14px; line-height: 1.5; }
+.rural-form .inline { display: flex; gap: 8px; align-items: center; }
+.rural-form .inline input { max-width: 110px; }
+.rural-form .inline select { min-width: 0; }
+
+/* actions sit on one line under the form with room to breathe */
+.rural-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 18px 0 4px; }
+.rural-actions .btn, .rural-actions .btn.go { min-height: 50px; padding: 0 22px; font-size: 1.05rem; border-radius: 12px; }
+.rural-card .btn { min-height: 46px; }
+
+/* the answer: one big figure, a plain sentence under it, the figures in a row */
+.rural-big { margin: 22px 0 10px; padding: 20px 24px; gap: 14px; border-radius: 18px; align-items: center; }
+.rural-big span { font-size: clamp(2.6rem, 6vw, 3.4rem); font-weight: 800; }
+.rural-big small { font-size: 1.1rem; font-weight: 600; }
+.rural-head { margin: 4px 0 14px; font-size: 1.12rem; line-height: 1.6; color: var(--text); max-width: 68ch; }
+.rural-facts { gap: 14px; margin: 12px 0 18px; }
+.rural-facts > div { flex: 1 1 180px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.rural-facts small { font-size: .9rem; margin-bottom: 2px; }
+.rural-facts b { font-size: 1.5rem; color: var(--strong); }
+.rural-rule { margin: 14px 0; padding: 14px 16px; font-size: 1.05rem; line-height: 1.55; border-radius: 0 12px 12px 0; }
+.rural-note { font-size: .98rem; line-height: 1.6; margin: 12px 0; color: var(--text-dim); }
+
+/* lists and tables: more room between rows */
+.rural-flags { gap: 10px; margin: 12px 0; font-size: 1.05rem; line-height: 1.6; }
+.rural-steps { gap: 16px; font-size: 1.05rem; }
+.rural-steps p { font-size: 1rem; }
+.rural-table { font-size: 1.02rem; }
+.rural-table th, .rural-table td { padding: 12px 14px; }
+.rural-table th { font-size: .92rem; color: var(--text-dim); }
+.rural-check { font-size: 1.05rem; padding: 12px 14px; border-radius: 12px; }
+.rural-checks { gap: 10px; margin: 12px 0; }
+.rural-scheme { padding: 16px 18px; border-radius: 14px; gap: 8px; }
+.rural-scheme p { font-size: 1.02rem; }
+.rural-schemes { gap: 14px; margin: 14px 0; }
+.rural-links { font-size: 1.02rem; line-height: 1.8; }
+.rural-wait { font-size: 1.1rem; padding: 16px 18px; border-radius: 14px; }
+
+/* the offline pack: one calm bar, button on the right */
+.offline-bar { margin: 0 0 20px; padding: 14px 16px; font-size: 1.02rem; border-radius: 14px; background: var(--surface); }
+.offline-bar .btn { min-height: 46px; padding: 0 18px; font-size: 1rem; }
+
+/* small screens: the picker stacks, labels go above their tools, nothing overlaps */
+@media (max-width: 760px) {
+  .rural-card { padding: 20px 18px; }
+  .rural-group { grid-template-columns: 1fr; gap: 6px; }
+  .rural-group-label { padding-top: 0; }
+  .rural-tabs button { flex: 1 1 calc(50% - 4px); min-height: 50px; justify-content: center; }
+  .rural-form { grid-template-columns: 1fr 1fr; }
+  .rural-big span { font-size: 2.6rem; }
+  .rural-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .rural-form { grid-template-columns: 1fr; }
+  .rural-tabs button { flex: 1 1 100%; }
+}
+/* the tool card spans the whole page width, whatever grid holds it */
+.grid > .rural-card, .grid > .card.wide, .rural-card.card.wide { grid-column: 1 / -1; width: 100%; box-sizing: border-box; }
+.grid:has(> .rural-card) { display: block; }
+.rural-groups { max-width: 980px; margin-left: auto; margin-right: auto; }
+/* warnings and good news read on the light background */
+.rural-table tr.bad td, .bad { color: var(--red); font-weight: 600; }
+.rural-table td.good, .good { color: var(--green); font-weight: 600; }
