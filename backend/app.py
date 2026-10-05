@@ -1512,6 +1512,23 @@ async def rural_credit(b: CreditIn) -> dict:
                              b.amount, b.years, b.good_rate, b.poor_rate, b.lang)
 
 
+@app.get("/research/summary")
+async def research_summary(ticker: str = "TCS.NS", lang: str = "en") -> dict:
+    """Plain pros and cons for one company (no buy/sell signal), set beside what the person already owns."""
+    from analysis import proscons
+    from core import universe
+    ticker = ticker.strip().upper()
+    nav = session.portfolio.nav(session.prices) or 0.0
+    price = session.prices.get(ticker) or session.pit.last_close(ticker) or 0.0
+    sector = universe.sector(ticker)
+    holding = None
+    if nav:
+        holding = {"weight": session.portfolio.positions.get(ticker, 0) * price / nav,
+                   "sector_weight": session.portfolio.sector_value(sector, session.prices, universe.sectors()) / nav,
+                   "sector_limit": session.policy.limits.max_sector_pct}
+    return proscons.pros_cons(session.pit, ticker, lang if lang in ("en", "hi") else "en", holding)
+
+
 @app.get("/offline/assets")
 async def offline_assets() -> dict:
     """Every file the app needs to open with no network, so the browser can keep a copy."""

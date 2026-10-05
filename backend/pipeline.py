@@ -160,14 +160,14 @@ async def do_investigate(session: Session, bus: EventBus, ticker: str) -> None:
              claims_accepted=verdict.claims_accepted,
              claims_rejected=verdict.claims_rejected)
 
-    stance = ("bullish" if verdict.net_stance > 0.15 else
-              "bearish" if verdict.net_stance < -0.15 else "mixed")
-    line = (f"{ticker}: desks are {stance}, conviction {verdict.conviction:.2f}. "
-            f"{verdict.claims_accepted} claims accepted, "
-            f"{verdict.claims_rejected} dropped for citation failure.")
-    if verdict.groupthink:
-        line += (" Warning: all desks agreed and the red team found no counter-case, "
-                 "so conviction has been discounted rather than confirmed.")
+    # What is said (and shown in chat) is the plain pros-and-cons, never a bullish/bearish call: the desks'
+    # internal stance stays in the technical panel, where it is explained as a measure, not a signal.
+    from analysis import proscons
+    pc = proscons.pros_cons(session.pit, ticker, "en")
+    good = "; ".join(x["title"] for x in pc["pros"][:3]) or "nothing stands out in the numbers we hold"
+    watch = "; ".join(x["title"] for x in pc["cons"][:3]) or "nothing stands out in the numbers we hold"
+    line = (f"{pc['name']} in plain words. Good points: {good}. Things to watch: {watch}. "
+            f"This is not a buy or sell call: the details are on the Research page, and the decision is yours.")
     say(bus, line)
     emit_telemetry(session, bus, orb="alert" if verdict.groupthink else "idle")
 

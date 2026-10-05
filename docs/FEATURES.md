@@ -195,3 +195,9 @@ Nine step-by-step flows on the Assistant page, each opening the right panels for
 | Command palette (`Ctrl+K`), presenter mode (`T`), recorded replay (`R`) | [GOVERNANCE_ENGINE](GOVERNANCE_ENGINE.md) |
 | **Next Best Action queue**: the app proposes a short ranked list of things worth doing (by stake and deadline), each attached to the guided job that resolves it | `backend/actions.py`, `GET /actions` |
 | **One-page report** you can print or keep: position, findings, what to do, what it survived, tax cost and the provenance of every figure | `backend/report.py`, `GET /report` |
+
+
+## Research desk: the plain-words summary
+The Research page now opens with **"In plain words"**: the company in one sentence, **Good points** and **Things to watch**, each with a one-sentence explanation and the measured figure behind it, a short **How it sits with what you already own** note (your holding and sector against your own limit), and **What we could not check** (a missing figure is listed, never guessed). There is **no buy, sell or hold call, no target price and no prediction**; a test fails if such words appear. The four analyst desks, conviction and net stance are still there, but folded under "How the analyst desks reasoned (technical detail)", and the spoken/chat line after "analyse X" is now the same pros and cons instead of "desks are bullish".
+
+How it works: `analysis/proscons.py` computes, from the saved point-in-time data, the P/E, return on equity and profit margin against sector peers, market size, one-year price change, worst fall from a peak, volatility and recent news tone, applies fixed thresholds, and writes each line from a hand-written English and Hindi template. API: `GET /research/summary?ticker=&lang=`.

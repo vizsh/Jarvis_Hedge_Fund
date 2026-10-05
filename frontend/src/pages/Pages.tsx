@@ -1,4 +1,5 @@
 import { StockSearch } from "../components/StockSearch";
+import { ResearchSummary } from "../components/ResearchSummary";
 import { useT } from "../lib/i18n";
 import { ChatThread } from "../components/ChatThread";
 import { GoalFan } from "./Demos";
@@ -116,19 +117,26 @@ export function Learn() {
 export function Research() {
   const [q, setQ] = useState("TCS");
   const orb = useStore((s) => s.orb);
+  const { t } = useT();
   return (
-    <Page title="Research desk" lead="Four AI analysts and a forced dissenter study a company. Their claims must cite real evidence, or they are thrown away.">
+    <Page title="Research desk" lead={t("Pick a company and get its good points and its watch-outs in plain words. No buy or sell call: you decide.", "कोई कंपनी चुनिए और उसकी अच्छी बातें और ध्यान देने की बातें सरल शब्दों में पाइए। ख़रीदने या बेचने की सलाह नहीं: फ़ैसला आपका।")}>
       <section className="card">
         <StockSearch />
-        <p className="faint small">Runs entirely on this machine. The track record of each desk is shown below —
-          including the ones that do worse than a coin flip.</p>
+        <p className="faint small">{t("Runs entirely on this machine, from saved prices, company numbers and headlines.", "पूरी तरह इसी मशीन पर चलता है, सहेजे गए भाव, कंपनी के आँकड़ों और सुर्ख़ियों से।")}</p>
       </section>
-      <div className="grid g2"><DeskPanel /><ConvictionPanel /></div>
-      <div className="grid g2">
-        <div className="stack"><ClaimsPanel /><SourcesPanel /><section className="card"><h2>Time machine</h2>
-          <p className="muted">Rewind the clock: the analysts can then only see what was known on that day.</p><Scrubber /></section></div>
-        <CalibrationPanel />
-      </div>
+      <ResearchSummary />
+      <details className="tech-details">
+        <summary>{t("How the analyst desks reasoned (technical detail)", "विश्लेषक डेस्क ने कैसे सोचा (तकनीकी ब्योरा)")}
+          <small>{t("Four AI analysts and a forced dissenter study the company; their claims must cite real evidence or are thrown away. Includes their track record, including desks worse than a coin flip. Not needed to use the summary above.", "चार AI विश्लेषक और एक अनिवार्य असहमत कंपनी का अध्ययन करते हैं; उनके दावों को असली सबूत देना होता है, नहीं तो हटा दिए जाते हैं। उनका रिकॉर्ड भी है, जिसमें सिक्का उछालने से बुरे डेस्क भी हैं। ऊपर का सारांश पढ़ने के लिए इसकी ज़रूरत नहीं।")}</small></summary>
+        <div className="tech-body">
+          <div className="grid g2"><DeskPanel /><ConvictionPanel /></div>
+          <div className="grid g2">
+            <div className="stack"><ClaimsPanel /><SourcesPanel /><section className="card"><h2>Time machine</h2>
+              <p className="muted">Rewind the clock: the analysts can then only see what was known on that day.</p><Scrubber /></section></div>
+            <CalibrationPanel />
+          </div>
+        </div>
+      </details>
     </Page>
   );
 }
