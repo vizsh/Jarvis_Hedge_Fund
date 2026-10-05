@@ -1173,7 +1173,8 @@ class ScanIn(BaseModel):
 @app.post("/scan")
 async def scan_tip(body: ScanIn) -> dict:
     """Check a pasted stock tip against dated data on file. Deterministic -- no model."""
-    return scanner_mod.scan(session.pit, body.text)
+    from analysis import tipminds
+    return await tipminds.analyse(session.pit, body.text)
 
 
 @app.get("/tax/shield")

@@ -1017,33 +1017,46 @@ def h_tip_scan(text: str, ctx: Ctx) -> Answer:
         a = Answer(headline=t("Paste the tip itself and I will check it for scam tactics and for claims I can test.", "टिप ख़ुद चिपकाइए, मैं ठगी की चालें और जाँच लायक़ दावे परखूँगा।"),
                    bullets=[t("For example: Is this tip legit: SURE SHOT! TCS profit up 300%, target 9000, join my VIP group.", "जैसे: क्या यह टिप सही है: पक्की टिप! TCS का मुनाफ़ा 300% बढ़ा, टारगेट 9000, मेरे VIP ग्रुप में जुड़ें।")])
         return _done(a, ctx, _chips("scam"), "tip_scan")
-    r = scanner.scan(ctx.pit, body)
+    from analysis import tipminds
+    r = tipminds.analyse_sync(ctx.pit, body)
+    return tip_answer(r, ctx)
+
+
+_ACTION_TITLE = {"IGNORE_REPORT": ("Do not act. Report it.", "कार्रवाई मत कीजिए। शिकायत कीजिए।"), "IGNORE": ("Do not act on it.", "इस पर कार्रवाई मत कीजिए।"),
+                 "VERIFY": ("Verify before anything else.", "पहले जाँच कीजिए।"), "RESEARCH": ("Research it yourself first.", "पहले ख़ुद शोध कीजिए।"), "INFO": ("Nothing to act on.", "कार्रवाई की कोई बात नहीं।")}
+_STANCE = {"against": ("Against", "ख़िलाफ़"), "for": ("For", "पक्ष में"), "neutral": ("Neutral", "तटस्थ"), "unknown": ("Cannot tell", "पता नहीं")}
+
+
+def tip_answer(r: dict, ctx: Ctx) -> Answer:
+    """The tip verdict, in the order a person needs it: what the tip is suggesting, what the analysts found, what to do."""
+    t = _t(ctx.lang)
     if r.get("empty"):
         a = Answer(headline=t("I could not find anything to check in that.", "उसमें जाँचने लायक़ कुछ नहीं मिला।"))
         return _done(a, ctx, _chips("scam"), "tip_scan")
     band = r.get("tone", "")
-    chk = r.get("checked", {})
-    verdict = {"red": t("High risk of a scam", "ठगी का ऊँचा जोखिम"),
-               "amber": t("Unverified: treat with caution", "अप्रमाणित: सावधानी रखिए") if chk.get("directive") and not r["flags"] else t("Some warning signs", "कुछ चेतावनी के संकेत"),
-               "green": t("Nothing wrong found, still not advice", "कुछ ग़लत नहीं मिला, फिर भी यह सलाह नहीं")}.get(band, r.get("verdict", ""))
-    ev = [[f["label"], f["quote"], f["why"]] for f in r["flags"]] + \
-         [[c["text"], c["status"].title(), c.get("evidence") or ""] for c in r["claims"]]
-    why = {"red": t("Do not act on it, and never pay anyone to join a tips group or hand over account access.", "इस पर कार्रवाई मत कीजिए, और टिप ग्रुप में जुड़ने या खाते की पहुँच देने के लिए पैसे कभी मत दीजिए।"),
-           "amber": t("Do not act on it alone. Ask the sender for the filing or result behind it, check the company on the exchange site and the sender on sebi.gov.in.", "सिर्फ़ इसके भरोसे कुछ मत कीजिए। भेजने वाले से इसके पीछे की फ़ाइलिंग या नतीजे माँगिए, कंपनी को एक्सचेंज की साइट पर और भेजने वाले को sebi.gov.in पर जाँचिए।"),
-           "green": t("What it says is consistent with the data we hold. That is not a reason to buy: check the company yourself.", "इसकी बातें हमारे पास के डेटा से मेल खाती हैं। यह ख़रीदने की वजह नहीं: कंपनी को ख़ुद जाँचिए।")}.get(band, "")
-    a = Answer(headline=t(f"{verdict}: risk score {r['score']} out of 100.", f"{verdict}: जोखिम स्कोर सौ में से {r['score']}।"),
-               bullets=[t("Why: " + f["label"].lower() + f" ({f['quote']}). " + f["why"], "कारण: " + FLAG_LABEL_HI.get(f["code"], f["label"]) + f" ({f['quote']})।") for f in r["flags"][:4]] +
-                       [t(f"Checked against our data: {c['text']} is {c['status'].lower()}. {c.get('evidence') or ''}", f"हमारे डेटा से जाँचा: {c['text']} → {CLAIM_STATUS_HI.get(c['status'], c['status'])}।") for c in r["claims"][:3]],
-               action=why,
-               table={"columns": [t("What we looked at", "हमने क्या देखा"), t("What we found", "क्या मिला"), t("Why it matters", "यह क्यों मायने रखता है")], "rows": ev[:8]} if ev and ctx.lang != "hi" else None,
-               facts=[_fact(t("Risk score", "जोखिम स्कोर"), f"{r['score']}/100", {"red": "bad", "amber": "warn", "green": "good"}.get(band, "")),
-                      _fact(t("Claims tested against data", "डेटा से जाँचे दावे"), f"{chk.get('tested', 0)} / {chk.get('claims', 0)}")],
+    rd = r.get("reading", {})
+    agents = r["agents"]
+    verdict_en = r["verdict"].capitalize() if False else r["verdict"]
+    reading = rd.get("summary") or t("It suggests a " + (rd.get("action") or "action") + " on " + (", ".join(rd.get("instruments", [])) or "a stock that was not identified") + ".",
+                                    "यह " + (", ".join(rd.get("instruments", [])) or "किसी अनजान शेयर") + " पर कदम उठाने को कहता है।")
+    a = Answer(headline=t(f"{verdict_en}. Scam likelihood {r['scam_likelihood']}%, backing for the idea {r['reliability']}/100.",
+                          f"{ {'red': 'ठगी या अविश्वसनीय', 'amber': 'अप्रमाणित', 'green': 'कुछ आधार दिखा'}.get(band, '') }: ठगी की संभावना {r['scam_likelihood']}%, विचार का आधार {r['reliability']}/100।"),
+               bullets=[t(f"What it suggests: {reading}", f"यह क्या सुझाता है: {reading}")] +
+                       [f"{f['agent']} ({_STANCE[f['stance']][1 if ctx.lang == 'hi' else 0]}): {f['headline']}" for f in agents if f["stance"] != "unknown" or f["agent"] in ("Feasibility", "Fundamentals")][:7] +
+                       [t("Wording found: " + f["label"].lower() + f" ({f['quote']})", "भाषा में मिला: " + FLAG_LABEL_HI.get(f["code"], f["label"]) + f" ({f['quote']})") for f in r["flags"][:3] if f["code"] in FLAG_LABEL_HI and f["code"] not in ("NO_BASIS", "CHASING", "FAST_TARGET")] +
+                       [f"{i + 1}. {x}" for i, x in enumerate(r["steps"][:4])],
+               action=t(_ACTION_TITLE[r["action"]][0] + " " + (r["steps"][0] if r["steps"] else ""), _ACTION_TITLE[r["action"]][1]),
+               table={"columns": [t("Specialist", "विशेषज्ञ"), t("Finding", "निष्कर्ष"), t("Why", "क्यों")],
+                      "rows": [[f"{f['agent']}: {_STANCE[f['stance']][0]}", f["headline"], f["reasoning"]] for f in agents]},
+               facts=[_fact(t("Scam likelihood", "ठगी की संभावना"), f"{r['scam_likelihood']}%", {"red": "bad", "amber": "warn", "green": "good"}.get(band, "")),
+                      _fact(t("Backing for the idea", "विचार का आधार"), f"{r['reliability']}/100", "good" if r["reliability"] >= 60 else "warn" if r["reliability"] >= 30 else "bad"),
+                      _fact(t("Read by", "समझा गया"), t("local model + rules", "लोकल मॉडल + नियम") if rd.get("how") == "model+rules" else t("rules", "नियम"))],
                detail=r.get("summary"),
-               visual={"page": "protect", "label": t("Open the tip scanner", "टिप स्कैनर खोलें"), "params": {}})
-    return _done(a, ctx, _chips("scam", "predict" if False else "panic", "help"), "tip_scan")
+               visual={"page": "protect", "label": t("Open the tip checker", "टिप जाँचक खोलें"), "params": {"tool": "tip"}})
+    a.data = {"tip": {"action": r["action"], "scam": r["scam_likelihood"], "reliability": r["reliability"]}}
+    return _done(a, ctx, _chips("scam", "panic", "help"), "tip_scan")
 
 
-# ---- ledger ----------------------------------------------------------------------------
 def h_ledger(text: str, ctx: Ctx) -> Answer:
     t = _t(ctx.lang)
     v = ledger_mod.verify(ctx.conn)
@@ -1716,6 +1729,13 @@ async def aanswer(text: str, ctx: Ctx) -> Answer:
     better = understand.override(resolved, intent, how, ctx)
     if better is not None:
         return better
+    if intent == "tip_scan":                      # the full panel, with the local model reading the wording
+        from analysis import tipminds
+        body = _tip_body(resolved)
+        if len(body.split()) >= 6:
+            out = tip_answer(await tipminds.analyse(ctx.pit, body), ctx)
+            out.data["intent"] = "tip_scan"
+            return out
     # Specific rules are trusted. The model is consulted when nothing matched, and also when
     # only one of the older loose keyword rules matched on a long sentence (a stray word like
     # "fall" or "invest" can mislead those); it must be confident to overrule them.

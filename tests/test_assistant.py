@@ -252,7 +252,7 @@ def test_simpler_applies_to_tool_answers(session):
 # ----------------------------------------------------------------------------- safety of content
 def test_tip_scanner_flags_an_obvious_scam(session):
     a = ask(session, "is this telegram tip legit: SURE SHOT! TCS profit up 300%, target 9000, guaranteed returns, join my VIP group today")
-    assert a.kind == "tip_scan" and "High risk" in a.headline
+    assert a.kind == "tip_scan" and "SCAM" in a.headline.upper()
 
 
 def test_scam_help_gives_the_real_helpline_and_never_asks_for_secrets(session):

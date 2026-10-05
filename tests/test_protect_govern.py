@@ -168,4 +168,46 @@ def test_the_tip_answer_gives_its_reasoning(session):
     from backend import assistant, explain
     ctx = assistant.Ctx(pit=session.pit, portfolio=session.portfolio, prices=session.prices, policy=session.policy, conn=session.conn, convo=explain.Conversation(), lang="en")
     a = assistant.h_tip_scan("Is this tip legit: I think Infosys is a good time to buy. Looks like it will go up soon. Target 1500.", ctx)
-    assert a.facts and a.table and a.table["rows"] and a.bullets[0].startswith("Why:")
+    assert a.facts and a.table and a.table["rows"] and a.bullets[0].startswith("What it suggests")
+
+
+# ---------------------------------------------------------------- the panel of specialists
+def test_first_passage_probability_matches_the_formula_and_shrinks_with_the_target():
+    from analysis import tipminds
+    a = tipminds.p_touch(100, 120, 0.3, 90)
+    b = tipminds.p_touch(100, 150, 0.3, 90)
+    assert 0 < b < a < 1 and tipminds.p_touch(100, 90, 0.3, 30) == 1.0
+    assert abs(tipminds.p_touch(100, 110, 0.2, 365) - 2 * (1 - tipminds._phi(__import__("math").log(1.1) / 0.2))) < 1e-9
+
+
+def test_a_model_cannot_invent_a_number_the_tip_never_states():
+    from analysis import tipminds
+    assert tipminds._in_text(1500, "target 1,500 soon") and not tipminds._in_text(9000, "target 1,500 soon")
+
+
+def test_the_panel_reads_meaning_not_tone(session):
+    from analysis import tipminds
+    calm_pay = tipminds.analyse_sync(session.pit, "Kindly share your demat login so I can trade on your behalf. Registration fee 5000. Results will be good.")
+    assert calm_pay["action"] == "IGNORE_REPORT" and "credentials" in calm_pay["reading"]["asks"]
+    fixed = tipminds.analyse_sync(session.pit, "Our plan gives 4% every month as steady income, withdraw anytime, start with 50000.")
+    assert fixed["action"] == "IGNORE_REPORT"
+    feas = next(a for a in fixed["agents"] if a["agent"] == "Feasibility")
+    assert feas["stance"] == "against" and "a year" in feas["reasoning"]
+
+
+def test_a_far_target_is_tested_against_the_stocks_own_volatility(session):
+    from analysis import tipminds
+    r = tipminds.analyse_sync(session.pit, "Buy TCS, target Rs 9000 within 2 weeks.")
+    feas = next(a for a in r["agents"] if a["agent"] == "Feasibility")
+    assert feas["stance"] == "against" and "under 1%" in feas["reasoning"]
+    fund = next(a for a in r["agents"] if a["agent"] == "Fundamentals")
+    assert "times a year's profit" in fund["reasoning"]
+
+
+def test_information_is_not_treated_as_a_tip_and_every_result_says_what_to_do(session):
+    from analysis import tipminds
+    info = tipminds.analyse_sync(session.pit, "Wipro will announce its quarterly results next week.")
+    assert info["action"] == "INFO" and info["steps"]
+    for text in ("Buy Infosys now, target 1500.", "TCS is debt free with strong growth, a good buy for the next few months."):
+        r = tipminds.analyse_sync(session.pit, text)
+        assert r["steps"] and r["action"] in ("IGNORE_REPORT", "IGNORE", "VERIFY", "RESEARCH") and len(r["agents"]) == 8

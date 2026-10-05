@@ -76,7 +76,7 @@ function TipScanner() {
   return (
     <section className="card">
       <h2>{t("Check a stock tip", "स्टॉक टिप जाँचिए")}</h2>
-      <p className="muted">{t("Paste something from Telegram, WhatsApp or Instagram. It is checked against dated company data on this machine — no AI opinion involved.", "टेलीग्राम, व्हाट्सऐप या इंस्टाग्राम से कुछ चिपकाइए। इसे इसी मशीन पर दर्ज तारीख़ वाले कंपनी डेटा से परखा जाता है — कोई AI राय शामिल नहीं।")}</p>
+      <p className="muted">{t("Paste something from Telegram, WhatsApp or Instagram. A panel of specialists reads what the tip is really suggesting, then tests it against price, company numbers, market facts and the rules. Numbers come from code and dated data.", "टेलीग्राम, व्हाट्सऐप या इंस्टाग्राम से कुछ चिपकाइए। इसे इसी मशीन पर दर्ज तारीख़ वाले कंपनी डेटा से परखा जाता है — कोई AI राय शामिल नहीं।")}</p>
       {hi && <p className="faint small">ध्यान दें: टिप का पाठ अंग्रेज़ी में होना चाहिए; जाँचने वाले नियम अंग्रेज़ी शब्दों पर चलते हैं।</p>}
       <textarea id="tip-text" className="tip-box" rows={5} value={text}
                 placeholder={t("Paste the tip here…", "टिप यहाँ चिपकाइए…")} onChange={(e) => setText(e.target.value)} />
@@ -101,6 +101,24 @@ function TipScanner() {
             <div className="v-score">{t("Risk score", "जोखिम स्कोर")} <b>{res.score}</b>/100</div>
           </div>
           <p className="summary">{d(res.summary)}</p>
+
+          {res.agents && (
+            <div className="panel-tip">
+              <div className="pt-meters">
+                <div><b>{res.scam_likelihood}%</b><span>{t("chance it is a scam", "ठगी की संभावना")}</span></div>
+                <div><b>{res.reliability}/100</b><span>{t("real backing for the idea", "विचार के पीछे असली आधार")}</span></div>
+              </div>
+              {res.reading?.summary && <p className="pt-read"><b>{t("What it is suggesting:", "यह क्या सुझाता है:")}</b> {res.reading.summary} <small>({res.reading.how === "model+rules" ? t("read by the local model and checked against the text", "लोकल मॉडल ने समझा और पाठ से मिलाया") : t("read by rules", "नियमों से समझा")})</small></p>}
+              <h3>{t("What each specialist found", "हर विशेषज्ञ ने क्या पाया")}</h3>
+              {res.agents.map((a: any) => (
+                <details className={`pt-agent ${a.stance}`} key={a.agent} open={a.stance === "against"}>
+                  <summary><i>{a.stance === "against" ? t("Against", "ख़िलाफ़") : a.stance === "for" ? t("For", "पक्ष में") : a.stance === "neutral" ? t("Neutral", "तटस्थ") : t("Cannot tell", "पता नहीं")}</i> <b>{a.agent}</b>: {a.headline}</summary>
+                  <p>{a.reasoning}</p>
+                </details>))}
+              {!!res.reliability_reasons?.length && <p className="faint small">{t("How the backing score was reached", "आधार का अंक कैसे बना")}: {res.reliability_reasons.join("; ")}</p>}
+              <h3>{t("What to do", "क्या करें")}</h3>
+              <ol className="pt-steps">{res.steps.map((x: string) => <li key={x}>{x}</li>)}</ol>
+            </div>)}
 
           {!!res.flags.length && (
             <>
