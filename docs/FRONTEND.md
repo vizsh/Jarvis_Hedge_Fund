@@ -107,6 +107,17 @@ also shows how old each data kind is and how many checks had data. The extra dat
 (`python -m tools.enrich` for the whole universe; `ingest.ondemand.add_stock` runs it for new stocks). The endpoint reads at
 the real clock, not the simulation clock, because enrichment is stamped when it is fetched.
 
+## Routes and the setup gate
+
+Hash routes: `#/` home, `#/portfolio`, `#/protect` (`?tool=` for the tool), `#/rural`, `#/whatsapp`, `#/learn`, `#/practice`,
+`#/govern`, `#/research` (`?ticker=`), `#/assistant`, and `#/setup`. On the first visit the app opens `#/setup`. The menu (`Nav.tsx`), the
+home tiles (`Pages.tsx`) and the page chain (`App.tsx`) read the saved feature list (`lib/setup.ts`). A route whose feature is not in the
+list shows the locked page (`Locked` in `pages/Setup.tsx`), which adds the feature in one tap.
+
+Stylesheets: `styles-theme.css` holds the theme tokens; `styles-rural.css` loads after it and holds the village-first layout, with the
+original Rural rules kept beneath; `styles-whatsapp.css` styles the phone simulator in its own colours; `styles-setup.css` styles the
+setup form.
+
 ## The assistant: understanding, answers, and guided tours
 `backend/understand.py` reads the whole sentence before any keyword rule: it separates (1) questions about the app, (2) requests to
 analyse or compare companies, (3) general money questions, then falls back to the calculator tools. A local model, when used at all, only

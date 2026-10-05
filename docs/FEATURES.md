@@ -6,6 +6,9 @@ Every feature, who it helps, how it works, and where it stops. Screens are from 
 
 ---
 
+> Which feature is for whom, its price and its use case: see [CONTEXT](CONTEXT.md#4-the-ten-features) and the baskets in
+> [CONTEXT section 3](CONTEXT.md#3-who-it-is-for-the-reform-scope-by-audience).
+
 ## Assistant
 
 ![Assistant: chat thread, orb and inline fee slider](img/assistant-chat.jpg)

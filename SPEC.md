@@ -10,6 +10,8 @@ governance layer only works with a frontier model, it isn't a governance layer."
 
 ---
 
+> This is the original hackathon plan. The current, complete description is [docs/CONTEXT.md](docs/CONTEXT.md).
+
 ## Non-negotiables
 
 1. **Frozen snapshot.** Zero live API calls during the demo. One ingestion run → SQLite.

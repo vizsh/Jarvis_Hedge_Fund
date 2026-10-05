@@ -2,6 +2,10 @@
 
 Difficulty: **S** days of work, **M** about a week, **L** several weeks.
 
+## Reform: scope by audience (done, 5 Oct 2026)
+
+Five starting baskets, a feature picker, dummy paid tiers, locked features that add in one tap. See `docs/CONTEXT.md` section 3.
+
 ## Honest gaps today
 
 | Gap | Impact |

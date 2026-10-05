@@ -2,7 +2,7 @@
 
 **A free, local, bilingual (English / हिन्दी) assistant that helps ordinary Indian savers protect their money, understand it, and keep it honest.**
 
-[![tests](https://img.shields.io/badge/tests-348%20passing-brightgreen)](docs/TESTING.md)
+[![tests](https://img.shields.io/badge/tests-532%20passing-brightgreen)](docs/TESTING.md)
 ![local first](https://img.shields.io/badge/runs-100%25%20local-blue)
 ![languages](https://img.shields.io/badge/languages-English%20%7C%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-orange)
 ![paper trading](https://img.shields.io/badge/money-paper%20only-lightgrey)
@@ -19,6 +19,25 @@
 More screenshots: [docs/FEATURES.md](docs/FEATURES.md).
 
 ---
+
+> **Start here:** [docs/CONTEXT.md](docs/CONTEXT.md) is the complete knowledge base: the problem with sourced numbers, every feature
+> and its use case, the audiences and pricing, how each part works, the honesty rules, status, gaps and next steps.
+
+## Who it is for: five starting baskets
+
+Setup (`#/setup`) asks who the prototype is for and starts from one basket. Every feature works in every basket; you can add or remove
+features at any time with **My setup**. Prices are dummy and nothing is charged.
+
+| Basket | Features it starts with | Demo price |
+|---|---|---|
+| Full prototype (for pitching) | All ten | Free in the demo |
+| Banks and co-operative banks | Assistant, Rural, WhatsApp, Scam protection, Learn, Govern & audit | ₹499/month |
+| Farmers and rural families | Assistant, Rural, WhatsApp, Scam protection, Learn | Free |
+| Self-help groups and NGOs | Assistant, Rural, WhatsApp, Scam protection, Learn | Free |
+| Middle-class retail investors | Assistant, Portfolio X-ray, Research, Practice, Scam protection, Learn | ₹597/month |
+
+Rural and self-help features are always free. Paid features are Portfolio X-ray (₹199), Research desk (₹299), Practice tools (₹99) and
+Govern & audit (₹499) per month.
 
 ## Why it exists
 
@@ -50,6 +69,7 @@ JARVIS makes each of those *visible and interactive*: you drag a slider, replay 
 | **WhatsApp / SMS** | The same tools by message (numbered menu, voice notes, Hindi), Twilio-ready webhook and a browser simulator | [MESSAGING](docs/MESSAGING.md) |
 | **Learn / Practice** | Goal chart, fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam call rehearsal, glossary, drill-downs | [FEATURES](docs/FEATURES.md#learn-and-practice) |
 | **Govern** | Risk firewall, rebalance simulator, tamper-evident audit ledger and tamper test | [FEATURES](docs/FEATURES.md#govern) |
+| **Setup** | Five starting baskets by audience, a feature picker, a live menu preview and a dummy price; locked features add in one tap | [CONTEXT](docs/CONTEXT.md#3-who-it-is-for-the-reform-scope-by-audience) |
 | **Research** | **Search and analyse any listed stock**, four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
 | **Voice** | Local neural voices (Kokoro, Piper), instant Stop, local Whisper speech-to-text | [VOICE](docs/VOICE.md) |
 | **Bilingual** | English and Hindi chosen per screen, including **speaking and typing Hindi**; hand-written Hindi with numbers placed by code | [LANGUAGE](docs/LANGUAGE.md) |

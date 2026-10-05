@@ -1,10 +1,22 @@
 # Testing
 
 ```bash
-python -m pytest tests/ -q       # 385 tests, ~40 s
+python -m pytest tests/ -q       # 532 tests, ~70 s
 ```
 
 ## What is tested
+
+Newer areas (added since the table below was written):
+
+| File | What it protects |
+|---|---|
+| `test_understand.py` | whole-question routing: app questions and their tours, companies (analysis and comparison), general money concepts, the scam scripts, Hindi answers, the portfolio-move answer |
+| `test_setup.py` | five baskets name only real features; the pitch basket has every feature; the rural baskets are free; a saved setup round-trips |
+| `test_protect_govern.py` (extended) | tip checker: calm tips are never certified safe; fixed periodic returns and requests for money or login are decisive; the panel gives reasons and steps |
+| `test_messaging.py` | WhatsApp answers and the menu fallback; buy and portfolio-advice answers stay in the app |
+
+Older table (counts were correct when written; the total is now 532):
+
 
 | File | Tests | What it protects |
 |---|---|---|
