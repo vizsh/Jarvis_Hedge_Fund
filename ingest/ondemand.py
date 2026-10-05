@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from core import universe
 from core.db import DB_PATH, init
-from ingest import sources as S
+from ingest import enrich, sources as S
 from ingest.base import Writer
 
 START = "2019-06-01"
@@ -42,6 +42,11 @@ def add_stock(symbol: str, name: str | None = None) -> dict:
         sigs, _ = S.fetch_yf_quarterly([symbol])
         got["signals"] += w.signals(sigs) or len(sigs)
 
+    def deeper():
+        # growth, cash flow, debt, ownership and the company's own past valuation, for the research summary
+        sigs = enrich.fetch_enriched(symbol)
+        got["signals"] += w.signals(sigs) or len(sigs)
+
     def news():
         rows, _ = S.fetch_google_news({symbol: f"{label} stock"})
         got["documents"] = w.documents(rows) or len(rows)
@@ -54,6 +59,7 @@ def add_stock(symbol: str, name: str | None = None) -> dict:
         return got
     attempt("ratios", ratios)
     attempt("quarterly", quarterly)
+    attempt("deeper", deeper)
     attempt("news", news)
     conn.commit()
     conn.close()

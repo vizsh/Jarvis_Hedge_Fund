@@ -66,6 +66,7 @@ def test_a_fetched_stock_is_registered_and_then_resolvable_by_name(monkeypatch, 
     monkeypatch.setattr(coredb, "DB_PATH", db)
     monkeypatch.setattr(universe, "_extra_conn", lambda: _conn(db))
     monkeypatch.setattr(universe, "_EXTRA", {})
+    monkeypatch.setattr(ondemand.enrich, "fetch_enriched", lambda t: [])
     monkeypatch.setattr(ondemand.S, "fetch_prices", lambda t, start: ([("FAKECO.NS", "2026-01-02", 1, 2, 1, 2, 10, "2026-01-02")], None))
     monkeypatch.setattr(ondemand.S, "fetch_yf_fundamentals", lambda t: ([], None))
     monkeypatch.setattr(ondemand.S, "fetch_yf_quarterly", lambda t: ([], None))

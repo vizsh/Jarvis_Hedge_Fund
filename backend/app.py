@@ -1526,7 +1526,12 @@ async def research_summary(ticker: str = "TCS.NS", lang: str = "en") -> dict:
         holding = {"weight": session.portfolio.positions.get(ticker, 0) * price / nav,
                    "sector_weight": session.portfolio.sector_value(sector, session.prices, universe.sectors()) / nav,
                    "sector_limit": session.policy.limits.max_sector_pct}
-    return proscons.pros_cons(session.pit, ticker, lang if lang in ("en", "hi") else "en", holding)
+    # The summary describes what we hold today, so it reads at the real clock: company data refreshed after the last
+    # price bar is included, and the freshness panel says how old each kind of data is.
+    from datetime import datetime, timezone
+    from core.pit import PointInTimeStore
+    today = PointInTimeStore(session.conn, datetime.now(timezone.utc))
+    return proscons.pros_cons(today, ticker, lang if lang in ("en", "hi") else "en", holding)
 
 
 @app.get("/offline/assets")

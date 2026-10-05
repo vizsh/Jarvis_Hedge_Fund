@@ -62,7 +62,50 @@ def test_chart_readings_are_tagged_explained_and_capped_so_one_fact_is_not_count
         r = proscons.pros_cons(sess.pit, tk, "en")
         for side in ("pros", "cons"):
             assert sum(1 for x in r[side] if x["tag"] == "Price and trend") <= 3
-            assert all(x["tag"] in {"The business", "Price and trend", "Size", "News"} for x in r[side])
+            assert all(x["tag"] in {"The business", "Price and trend", "Size", "News", "Growth", "Cash and safety", "Valuation in context", "Who owns it"} for x in r[side])
         assert not SIGNAL_WORDS.search(text_of(r))
     titles = " ".join(x["title"] for tk in ("TCS.NS", "SBIN.NS") for x in proscons.pros_cons(sess.pit, tk, "en")["pros"] + proscons.pros_cons(sess.pit, tk, "en")["cons"])
     assert "long-term averages" in titles or "similar companies" in titles
+
+
+def _today(sess):
+    from datetime import datetime, timezone
+    from core.pit import PointInTimeStore
+    return PointInTimeStore(sess.conn, datetime.now(timezone.utc))
+
+
+def test_every_line_says_how_much_to_trust_it_and_the_page_says_how_old_the_data_is(sess):
+    r = proscons.pros_cons(_today(sess), "TCS.NS", "en")
+    for x in r["pros"] + r["cons"]:
+        assert x["confidence"] in ("solid", "light", "weak") and x["basis"]
+    assert {f["label"] for f in r["freshness"]} >= {"Prices", "Ownership", "Headlines"}
+    assert 0 <= r["coverage"]["ran"] <= r["coverage"]["of"]
+    assert len(r["pros"]) <= 8 and len(r["cons"]) <= 8
+
+
+def test_banks_are_not_scored_on_debt_or_cash_conversion(sess):
+    r = proscons.pros_cons(_today(sess), "HDFCBANK.NS", "en")
+    text = " ".join(x["title"] for x in r["pros"] + r["cons"]).lower()
+    assert "interest bill" not in text and "turns into real cash" not in text and "distress score" not in text
+    assert any("banks and lenders" in g for g in r["gaps"])
+
+
+def test_ownership_trend_needs_two_snapshots_and_pledging_is_declared_missing(sess):
+    r = proscons.pros_cons(_today(sess), "TCS.NS", "en")
+    assert any("pledging" in g for g in r["gaps"])
+    assert not any("reduced their stake" in x["title"] or "raised their stake" in x["title"] for x in r["pros"] + r["cons"])
+
+
+def test_enriched_summary_stays_free_of_signals_in_both_languages(sess):
+    for lang in ("en", "hi"):
+        for tk in ("TCS.NS", "RELIANCE.NS", "HDFCBANK.NS", "INFY.NS"):
+            assert not SIGNAL_WORDS.search(text_of(proscons.pros_cons(_today(sess), tk, lang))), (tk, lang)
+
+
+def test_summary_endpoint_returns_confidence_freshness_and_ranks():
+    from fastapi.testclient import TestClient
+    from backend.app import app
+    with TestClient(app) as c:
+        r = c.get("/research/summary?ticker=TCS.NS").json()
+    assert r["freshness"] and r["coverage"]["of"] > 0 and "ranks" in r
+    assert all(x["confidence"] for x in r["pros"] + r["cons"])

@@ -96,3 +96,13 @@ Both pages open with a row of selectable tool cards (`components/ToolDeck.tsx`) 
 
 ## Research summary: technical readings
 Besides fundamentals, the plain summary now reads the price history the way a technician would, and explains each reading in a sentence without turning it into a signal: price against its 50- and 200-day averages, a momentum reading (RSI) for a fast run-up or drop, one-year performance against similar companies (separates "the sector moved" from "this company moved"), unusually heavy trading, and distance from the year's high and low. Price-based readings are capped at three, because they move together and would otherwise count one fact several times.
+
+## Research summary: what it reads and how it is trusted
+`analysis/proscons.py` turns measured facts into plain pros and cons (no buy/sell signal). Beyond price and chart it reads
+growth, cash conversion and free cash flow, debt, interest cover, liquidity, dividend and payout, Piotroski and Altman scores
+(skipped for banks), the company's own past P/E range and growth-adjusted P/E, a peer rank table, and ownership (insider and
+institutional share; a trend appears once two snapshots at least three weeks apart exist; pledging is declared missing).
+Every line carries `confidence` (solid/light/weak from independent data kinds, sample size and age) and `basis`; the page
+also shows how old each data kind is and how many checks had data. The extra data comes from `ingest/enrich.py`
+(`python -m tools.enrich` for the whole universe; `ingest.ondemand.add_stock` runs it for new stocks). The endpoint reads at
+the real clock, not the simulation clock, because enrichment is stamped when it is fetched.
