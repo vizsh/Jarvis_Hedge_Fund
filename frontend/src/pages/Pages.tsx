@@ -1,4 +1,6 @@
 import { StockSearch } from "../components/StockSearch";
+import { Icon } from "../components/Icon";
+import { AllocationMap } from "../components/charts/AllocationMap";
 import { ResearchSummary } from "../components/ResearchSummary";
 import { useT } from "../lib/i18n";
 import { ChatThread } from "../components/ChatThread";
@@ -29,15 +31,15 @@ import { CorrelationPanel, AttributionPanel } from "../components/FundDesk";
 /* ------------------------------------------------------------ Home */
 // Home is a menu, not a long page: one screen of doors. Each opens its own page.
 const TILES: { to: string; icon: string; en: [string, string]; hi: [string, string] }[] = [
-  { to: "/portfolio", icon: "📊", en: ["Portfolio", "What you own, how it is spread, what to do next."], hi: ["पोर्टफोलियो", "आपके पास क्या है, कैसे बँटा है, आगे क्या करें।"] },
-  { to: "/protect", icon: "🛡️", en: ["Protect", "Check a tip, a scam call, or what to do after losing money."], hi: ["सुरक्षा", "टिप, ठग कॉल की जाँच, या पैसे गँवाने के बाद क्या करें।"] },
-  { to: "/rural", icon: "🌾", en: ["Rural", "Moneylender interest, government schemes, harvest planning."], hi: ["ग्रामीण", "साहूकार का ब्याज, सरकारी योजनाएँ, फ़सल के हिसाब से योजना।"] },
-  { to: "/whatsapp", icon: "📱", en: ["WhatsApp", "The same tools as a phone chat: menu, voice notes, Hindi. Ready for a real number."], hi: ["व्हाट्सऐप", "वही औज़ार फ़ोन चैट में: मेनू, वॉइस नोट, हिंदी। असली नंबर के लिए तैयार।"] },
-  { to: "/learn", icon: "📘", en: ["Learn", "Ask in plain words, test a crash, see where numbers come from."], hi: ["सीखें", "सरल शब्दों में पूछिए, गिरावट आज़माइए, आँकड़ों का स्रोत देखिए।"] },
-  { to: "/practice", icon: "🎯", en: ["Practice", "Fee slider, emergency meter, fund overlap, scam-call rehearsal."], hi: ["अभ्यास", "फ़ीस स्लाइडर, इमरजेंसी मीटर, फ़ंड ओवरलैप, ठग कॉल का अभ्यास।"] },
-  { to: "/govern", icon: "⚖️", en: ["Govern", "Try a trade against your limits, rebalance, audit trail."], hi: ["नियम", "अपनी सीमाओं में ट्रेड परखिए, रीबैलेंस, ऑडिट रिकॉर्ड।"] },
-  { to: "/research", icon: "🔎", en: ["Research", "Analyse any listed stock, with the desks' views and evidence."], hi: ["शोध", "कोई भी सूचीबद्ध शेयर परखिए, विश्लेषकों की राय और सबूत के साथ।"] },
-  { to: "/assistant", icon: "💬", en: ["Assistant", "Talk or type. It opens the right page and does the task."], hi: ["सहायक", "बोलिए या लिखिए। यह सही पेज खोलकर काम कर देता है।"] },
+  { to: "/portfolio", icon: "portfolio", en: ["Portfolio", "What you own, how it is spread, what to do next."], hi: ["पोर्टफोलियो", "आपके पास क्या है, कैसे बँटा है, आगे क्या करें।"] },
+  { to: "/protect", icon: "protect", en: ["Protect", "Check a tip, a scam call, or what to do after losing money."], hi: ["सुरक्षा", "टिप, ठग कॉल की जाँच, या पैसे गँवाने के बाद क्या करें।"] },
+  { to: "/rural", icon: "rural", en: ["Rural", "Moneylender interest, government schemes, harvest planning."], hi: ["ग्रामीण", "साहूकार का ब्याज, सरकारी योजनाएँ, फ़सल के हिसाब से योजना।"] },
+  { to: "/whatsapp", icon: "whatsapp", en: ["WhatsApp", "The same tools as a phone chat: menu, voice notes, Hindi. Ready for a real number."], hi: ["व्हाट्सऐप", "वही औज़ार फ़ोन चैट में: मेनू, वॉइस नोट, हिंदी। असली नंबर के लिए तैयार।"] },
+  { to: "/learn", icon: "learn", en: ["Learn", "Ask in plain words, test a crash, see where numbers come from."], hi: ["सीखें", "सरल शब्दों में पूछिए, गिरावट आज़माइए, आँकड़ों का स्रोत देखिए।"] },
+  { to: "/practice", icon: "practice", en: ["Practice", "Fee slider, emergency meter, fund overlap, scam-call rehearsal."], hi: ["अभ्यास", "फ़ीस स्लाइडर, इमरजेंसी मीटर, फ़ंड ओवरलैप, ठग कॉल का अभ्यास।"] },
+  { to: "/govern", icon: "govern", en: ["Govern", "Try a trade against your limits, rebalance, audit trail."], hi: ["नियम", "अपनी सीमाओं में ट्रेड परखिए, रीबैलेंस, ऑडिट रिकॉर्ड।"] },
+  { to: "/research", icon: "research", en: ["Research", "Analyse any listed stock, with the desks' views and evidence."], hi: ["शोध", "कोई भी सूचीबद्ध शेयर परखिए, विश्लेषकों की राय और सबूत के साथ।"] },
+  { to: "/assistant", icon: "assistant", en: ["Assistant", "Talk or type. It opens the right page and does the task."], hi: ["सहायक", "बोलिए या लिखिए। यह सही पेज खोलकर काम कर देता है।"] },
 ];
 
 export function Home() {
@@ -48,10 +50,10 @@ export function Home() {
       <nav className="tiles" aria-label={t("Pages", "पेज")}>
         {TILES.map((x) => (
           <a className="tile" key={x.to} href={"#" + x.to}>
-            <span className="tile-ic" aria-hidden>{x.icon}</span>
+            <span className="tile-ic" aria-hidden><Icon name={x.icon} size={22} /></span>
             <h2>{hi ? x.hi[0] : x.en[0]}</h2>
             <p>{hi ? x.hi[1] : x.en[1]}</p>
-            <span className="tile-go">{t("Open", "खोलें")} →</span>
+            <span className="tile-go">{t("Open", "खोलें")} <Icon name="arrow" size={15} /></span>
           </a>
         ))}
       </nav>
@@ -64,11 +66,12 @@ export function Portfolio() {
   const setBuilder = useUI((s) => s.setBuilder);
   return (
     <Page title="Portfolio" lead="What you own, how it is spread, and how it has behaved. Click any number to see how it was worked out.">
-      <div className="grid"><ActionQueue /></div>
       <div className="grid g2">
         <XRayPanel onOpenBuilder={() => setBuilder(true)} />
         <div className="stack"><PortfolioChart /><ProfileSwitch /></div>
       </div>
+      <div className="grid"><AllocationMap /></div>
+      <div className="grid"><ActionQueue /></div>
       <div className="grid g2"><div className="stack"><PositionsPanel /><AttributionPanel /></div><CorrelationPanel /></div>
     </Page>
   );
@@ -150,7 +153,7 @@ export function Assistant() {
                 gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}>
           <Orb />
           <EffectComposer>
-            <Bloom intensity={2.0} luminanceThreshold={0.05} luminanceSmoothing={0.5} mipmapBlur radius={0.7} />
+            <Bloom intensity={0.75} luminanceThreshold={0.22} luminanceSmoothing={0.6} mipmapBlur radius={0.6} />
             <Vignette eskil={false} offset={0.22} darkness={0.85} />
           </EffectComposer>
         </Canvas>

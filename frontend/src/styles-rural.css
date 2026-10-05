@@ -1,6 +1,6 @@
 .rural-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .rural-tabs button { display: flex; gap: 8px; align-items: center; padding: 12px 16px; font-size: 16px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); color: inherit; cursor: pointer; }
-.rural-tabs button.on { border-color: var(--green); background: rgba(34,255,160,.1); }
+.rural-tabs button.on { border-color: var(--green); background: rgba(98, 210, 162,.1); }
 .rural-card h2 { font-size: 22px; }
 .rural-card .muted { font-size: 15px; line-height: 1.5; }
 .rural-card h3 { margin: 16px 0 6px; font-size: 16px; }
@@ -20,9 +20,9 @@
 .rural-big { display: flex; align-items: baseline; gap: 10px; padding: 16px 18px; margin: 14px 0 8px; border-radius: 14px; border: 1px solid var(--rule); }
 .rural-big span { font-size: 54px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .rural-big small { font-size: 16px; color: #b9cbdc; }
-.rural-big.red { background: rgba(255,71,107,.12); border-color: rgba(255,71,107,.5); } .rural-big.red span { color: #ff6b87; }
-.rural-big.amber { background: rgba(255,176,32,.1); border-color: rgba(255,176,32,.5); } .rural-big.amber span { color: #ffc24d; }
-.rural-big.green { background: rgba(34,255,160,.08); border-color: rgba(34,255,160,.45); } .rural-big.green span { color: var(--green); }
+.rural-big.red { background: rgba(255, 122, 112,.12); border-color: rgba(255, 122, 112,.5); } .rural-big.red span { color: #ff968c; }
+.rural-big.amber { background: rgba(255, 159, 90,.1); border-color: rgba(255, 159, 90,.5); } .rural-big.amber span { color: #ffb86b; }
+.rural-big.green { background: rgba(98, 210, 162,.08); border-color: rgba(98, 210, 162,.45); } .rural-big.green span { color: var(--green); }
 .rural-head { font-size: 17px; line-height: 1.5; margin: 6px 0 10px; }
 .rural-facts { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 12px; }
 .rural-facts > div { flex: 1 1 160px; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,.05); }
@@ -32,13 +32,13 @@
 .rural-table td small { display: block; color: #8fa3b8; font-size: 12px; }
 .rural-table tr.bad td { color: #ff9db0; } .rural-table td.good, .good { color: var(--green); } .bad { color: #ff9db0; }
 .rural-note { font-size: 13.5px; color: #9fb3c8; line-height: 1.5; margin: 8px 0; }
-.rural-rule { padding: 10px 14px; border-left: 3px solid var(--amber); background: rgba(255,176,32,.07); margin: 10px 0; font-size: 15px; }
+.rural-rule { padding: 10px 14px; border-left: 3px solid var(--amber); background: rgba(255, 159, 90,.07); margin: 10px 0; font-size: 15px; }
 .rural-flags { margin: 8px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15.5px; line-height: 1.5; }
 .rural-flags:not(.good) li::marker { content: "⚠ "; }
 .rural-links { font-size: 14.5px; line-height: 1.7; }
 .rural-schemes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; margin: 10px 0; }
 .rural-scheme { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 5px; }
-.rural-scheme.likely { border-color: rgba(34,255,160,.45); }
+.rural-scheme.likely { border-color: rgba(98, 210, 162,.45); }
 .rural-scheme header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .rural-scheme p { margin: 2px 0; font-size: 15px; line-height: 1.5; }
 .rural-scheme small { color: #9fb3c8; font-size: 12.5px; line-height: 1.4; }
@@ -58,11 +58,11 @@
   .rural-big span { font-size: 42px; } .rural-tabs button { flex: 1 1 100%; }
 }
 
-.rural-wait { margin: 10px 0; padding: 12px 14px; border-radius: 12px; font-size: 18px; font-weight: 700; background: rgba(34,255,160,.1); border: 1px dashed var(--green); }
+.rural-wait { margin: 10px 0; padding: 12px 14px; border-radius: 12px; font-size: 18px; font-weight: 700; background: rgba(98, 210, 162,.1); border: 1px dashed var(--green); }
 
 .offline-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; font-size: 15px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); }
-.offline-bar.ready { border-color: rgba(34,255,160,.45); background: rgba(34,255,160,.07); }
-.offline-bar.off { border-color: var(--amber); background: rgba(255,176,32,.1); }
+.offline-bar.ready { border-color: rgba(98, 210, 162,.45); background: rgba(98, 210, 162,.07); }
+.offline-bar.off { border-color: var(--amber); background: rgba(255, 159, 90,.1); }
 .offline-bar .btn { padding: 8px 16px; font-size: 15px; }
 .offline-prog { flex: 1 1 200px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 .offline-prog div { height: 100%; background: var(--green); transition: width .3s; }
@@ -70,16 +70,16 @@
 .upi-opts { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .upi-opts button { text-align: left; padding: 14px 16px; font-size: 16px; border-radius: 12px; cursor: pointer; color: inherit; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.2); }
 .upi-opts button:hover:not(.right):not(.wrong):not(.dim) { border-color: var(--cyan); }
-.upi-opts button.right { border-color: var(--green); background: rgba(34,255,160,.14); }
-.upi-opts button.wrong { border-color: var(--red); background: rgba(255,71,107,.14); }
+.upi-opts button.right { border-color: var(--green); background: rgba(98, 210, 162,.14); }
+.upi-opts button.wrong { border-color: var(--red); background: rgba(255, 122, 112,.14); }
 .upi-opts button.dim { opacity: .45; }
-.rural-rule.bad { border-left-color: var(--red); background: rgba(255,71,107,.08); }
+.rural-rule.bad { border-left-color: var(--red); background: rgba(255, 122, 112,.08); }
 
 .rural-letter { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); }
 .rural-letter summary { cursor: pointer; font-weight: 600; font-size: 15px; }
 .rural-letter pre { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line-height: 1.55; margin: 10px 0; }
 
 .rural-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px 22px; margin: 0 0 16px; }
-.rural-group-label { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 6px 2px; }
+.rural-group-label { font-size: 11.5px; letter-spacing: .12em;  color: var(--text-dim); margin: 0 0 6px 2px; }
 .rural-groups .rural-tabs { margin: 0; }
 .rural-groups .rural-tabs button { padding: 10px 14px; font-size: 15px; }

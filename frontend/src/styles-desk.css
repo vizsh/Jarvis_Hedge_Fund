@@ -6,11 +6,11 @@
   border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.35);
   padding: 4px 8px; font-size: 9.5px; white-space: nowrap;
 }
-.voicebar.live { border-color: var(--cyan-dim); box-shadow: 0 0 16px rgba(37, 217, 255, 0.12) inset; }
-.voicebar.muted { border-color: rgba(255, 176, 32, 0.4); }
+.voicebar.live { border-color: var(--cyan-dim); box-shadow: 0 0 16px rgba(242, 185, 75, 0.12) inset; }
+.voicebar.muted { border-color: rgba(255, 159, 90, 0.4); }
 .vb-state {
-  display: flex; align-items: center; gap: 6px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--text-faint); white-space: nowrap;
+  display: flex; align-items: center; gap: 6px; 
+   color: var(--text-faint); white-space: nowrap;
 }
 .vb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
 .vb-dot.speaking { background: var(--cyan); box-shadow: 0 0 9px var(--cyan); animation: pulse 0.9s infinite; }
@@ -29,7 +29,7 @@
   background: rgba(8, 6, 18, 0.98); border: 1px solid var(--cyan-dim); min-width: 90px;
 }
 .vb-menu div { padding: 6px 10px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
-.vb-menu div:hover { background: rgba(37, 217, 255, 0.14); color: var(--cyan); }
+.vb-menu div:hover { background: rgba(242, 185, 75, 0.14); color: var(--cyan); }
 
 .vb-rate { display: flex; align-items: center; gap: 5px; }
 .vb-rate input[type=range] { width: 52px; appearance: none; height: 3px; background: var(--rule); }
@@ -48,7 +48,7 @@
   border: 1px solid var(--rule-soft); padding: 8px; margin-bottom: 10px;
 }
 .ba-label {
-  font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  font-size: 8.5px;  
   color: var(--text-faint); margin-bottom: 5px;
 }
 .ba-col.after .ba-label { color: var(--green); }
@@ -87,7 +87,7 @@
 .pair-r { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------- screener */
-.ask-chip.on { border-color: var(--cyan); color: var(--cyan); background: rgba(37, 217, 255, 0.14); }
+.ask-chip.on { border-color: var(--cyan); color: var(--cyan); background: rgba(242, 185, 75, 0.14); }
 .screen-row {
   display: grid; grid-template-columns: 1fr auto auto; gap: 9px; align-items: baseline;
   padding: 5px 0; border-bottom: 1px solid var(--rule-soft); font-size: 11px;
@@ -110,8 +110,8 @@
 .a-name { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .a-bar { height: 8px; background: rgba(255, 255, 255, 0.05); position: relative; }
 .a-bar span { display: block; height: 100%; }
-.a-bar .pos { background: linear-gradient(90deg, rgba(34, 255, 160, 0.4), var(--green)); }
-.a-bar .neg { background: linear-gradient(90deg, rgba(255, 71, 107, 0.4), var(--red)); }
+.a-bar .pos { background: linear-gradient(90deg, rgba(98, 210, 162, 0.4), var(--green)); }
+.a-bar .neg { background: linear-gradient(90deg, rgba(255, 122, 112, 0.4), var(--red)); }
 .attr-row .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
 
 /* Chips take the space they need; the voice transport is pinned right and never wraps
@@ -146,21 +146,21 @@
 .legend { display: flex; align-items: center; gap: 5px; }
 .legend i { width: 12px; height: 2px; display: inline-block; }
 .legend .l-port { background: var(--cyan); }
-.legend .l-bench { background: rgba(139, 92, 246, 0.85); margin-left: 7px; }
+.legend .l-bench { background: rgba(141, 162, 255, 0.85); margin-left: 7px; }
 
 /* ---------------------------------------------------------------- tax */
 .tax-total { margin-bottom: 9px; }
 .tt-value {
   display: block; font-family: var(--display); font-size: 25px; font-weight: 700;
-  color: var(--amber); text-shadow: 0 0 16px rgba(255, 176, 32, 0.35);
+  color: var(--amber); text-shadow: 0 0 16px rgba(255, 159, 90, 0.35);
 }
 .defer {
-  border: 1px solid rgba(34, 255, 160, 0.34); background: rgba(34, 255, 160, 0.06);
+  border: 1px solid rgba(98, 210, 162, 0.34); background: rgba(98, 210, 162, 0.06);
   padding: 9px 10px; margin-top: 9px;
 }
 .defer .code {
   font-family: var(--display); font-weight: 700; font-size: 11px;
-  letter-spacing: 0.18em; color: var(--green); margin-bottom: 5px;
+   color: var(--green); margin-bottom: 5px;
 }
 .defer-row { font-size: 10.5px; line-height: 1.55; color: var(--text-dim); padding: 3px 0; }
 .defer-row b { color: var(--text); }

@@ -71,3 +71,11 @@ Rule: send **English questions** to the router even when showing a Hindi label (
 ## Accessibility and responsiveness
 
 Designed for 1440x900; rails narrow below 1360, low-value stats drop below 1180, the left rail folds at 1040, and everything stacks with the orb on top at 820. The chat panel becomes a full-width block on narrow screens. Interactive charts have `aria-label`s; the Stop control is always visible while speaking. The paper-only disclosure never disappears at any size.
+
+## Design system (the "Jarvis, money plainly" theme)
+`frontend/src/styles-theme.css` is the single design layer, loaded after everything else. World: a private-bank ledger at night. Warm graphite surfaces, ivory text, **one marigold accent** used only for what the person can act on; green and coral are reserved for meaning (good / bad), indigo for a secondary data series. Display type is **Fraunces** (soft serif) for headings and big figures; UI type is **Instrument Sans** with tabular numerals; Noto Sans Devanagari covers Hindi. No scanlines, no grid, no glow, no uppercase labels. Icons are a drawn set (`components/Icon.tsx`, one 1.6 stroke), not emoji.
+
+Charts (all interactive, keyboard-reachable, reduced-motion safe):
+- `components/Chart.tsx`: portfolio value vs benchmark (TradingView lightweight-charts, themed), with 1M/3M/6M/1Y range chips and a live crosshair readout.
+- `components/charts/FanChart.tsx`: goal range-of-outcomes (bad / typical / good paths, goal line, hover or arrow-key readout, animated reveal).
+- `components/charts/AllocationMap.tsx`: squarified treemap by sector then company; a sector over the person's own cap is outlined in coral.

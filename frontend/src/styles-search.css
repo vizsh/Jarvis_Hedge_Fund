@@ -8,7 +8,7 @@
 .ss-name { color: #c9d9e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ss-ex { font-size: 11px; color: #7e93a8; }
 .ss-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
-.ss-tag.ready { background: rgba(34, 255, 160, .14); color: #22ffa0; }
-.ss-tag.fetch { background: rgba(255, 176, 32, .14); color: #ffc24d; }
+.ss-tag.ready { background: rgba(98, 210, 162, .14); color: #62d2a2; }
+.ss-tag.fetch { background: rgba(255, 159, 90, .14); color: #ffb86b; }
 .ss-status { margin-top: 8px; font-size: 13px; color: #8fd6e6; }
 @media (max-width: 600px) { .ss-list li { grid-template-columns: 70px 1fr auto; } .ss-ex { display: none; } }

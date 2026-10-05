@@ -67,8 +67,8 @@ export function Orb() {
       uAlert: { value: 0 },
       uSize: { value: 1.55 },
       uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-      uColdColor: { value: new THREE.Color("#7c4dff") },
-      uWarmColor: { value: new THREE.Color("#25d9ff") },
+      uColdColor: { value: new THREE.Color("#6f7fe0") },
+      uWarmColor: { value: new THREE.Color("#f2b94b") },
     }),
     [],
   );

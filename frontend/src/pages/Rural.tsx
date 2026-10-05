@@ -12,6 +12,7 @@ import { pstore } from "../lib/pstore";
 import { ruralFetch } from "../lib/offline";
 import { useKiosk } from "../lib/kiosk";
 import { OfflineBar } from "../components/OfflineBar";
+import { Icon } from "../components/Icon";
 
 /** While the guide is still asking for something, the page shows what it has so far and holds the result back. */
 function Waiting({ tool }: { tool: string }) {
@@ -819,8 +820,8 @@ export default function Rural() {
       <div ref={top} className="rural-groups" role="tablist">
         {GROUPS.map(([gen, ghi, ids]) => (
           <div key={gen} className="rural-group"><div className="rural-group-label">{t(gen, ghi)}</div>
-            <div className="rural-tabs">{ids.map((id) => { const [, ic, en, hiT] = TABS.find((x) => x[0] === id)!; return (
-              <button key={id} role="tab" aria-selected={tool === id} className={tool === id ? "on" : ""} onClick={() => setTool(id)}><span aria-hidden>{ic}</span>{t(en, hiT)}</button>); })}</div></div>))}
+            <div className="rural-tabs">{ids.map((id) => { const [, , en, hiT] = TABS.find((x) => x[0] === id)!; return (
+              <button key={id} role="tab" aria-selected={tool === id} className={tool === id ? "on" : ""} onClick={() => setTool(id)}><Icon name={id} size={18} />{t(en, hiT)}</button>); })}</div></div>))}
       </div>
       <div className="grid">
         {tool === "loan" && <LoanTool init={params} />}

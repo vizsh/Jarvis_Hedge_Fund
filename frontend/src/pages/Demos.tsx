@@ -1,3 +1,4 @@
+import { FanChart } from "../components/charts/FanChart";
 import { useEffect, useMemo, useState } from "react";
 
 import { useLang } from "../lib/lang";
@@ -58,7 +59,7 @@ export function PanicSim({ init, compact = false }: { init?: Record<string, stri
         <polyline points={hline} fill="none" stroke="var(--cyan)" strokeWidth="2" />
         <polyline points={sline} fill="none" stroke="var(--red)" strokeWidth="2" strokeDasharray="5 4" />
         <circle cx={geo.x(day)} cy={geo.y(sellVal)} r="6" fill="var(--red)" />
-        <circle cx={geo.x(d.trough_index)} cy={geo.y(d.trough_value)} r="4" fill="none" stroke="var(--amber, #ffb020)" strokeWidth="2" />
+        <circle cx={geo.x(d.trough_index)} cy={geo.y(d.trough_value)} r="4" fill="none" stroke="var(--amber, #ff9f5a)" strokeWidth="2" />
       </svg>
       <input type="range" min={0} max={d.points.length - 1} value={day} aria-label={hi ? "बेचने का दिन" : "Day you sell"}
              onChange={(e) => setDay(Number(e.target.value))} style={{ width: "100%" }} />
@@ -180,11 +181,8 @@ export function GoalFan({ init, compact = false }: { init?: Record<string, strin
       </div>
       {g && d && (
         <>
-          <svg viewBox={`0 0 ${W} ${H}`} className="panicchart" role="img" aria-label={hi ? "नतीजों की रेंज" : "Range of outcomes"}>
-            <polygon points={g.band} fill="var(--cyan)" opacity="0.18" />
-            <polyline points={g.mid} fill="none" stroke="var(--cyan)" strokeWidth="2" />
-            <line x1="0" x2={W} y1={g.ty} y2={g.ty} stroke="var(--amber, #ffb020)" strokeDasharray="6 4" />
-          </svg>
+          <FanChart points={d.points} years={years} target={target} fmt={inr}
+                    labels={{ bad: hi ? "बुरा (10 में 1)" : "Bad case", mid: hi ? "सामान्य" : "Typical", good: hi ? "अच्छा (10 में 1)" : "Good case", goal: hi ? "लक्ष्य" : "Goal", year: hi ? "व" : "y" }} />
           <div className="sim">
             <div><div className="muted small">{hi ? "बुरा हाल (10 में से 1)" : "Bad case (1 in 10)"}</div><b className="big">{inr(g.last.p10)}</b></div>
             <div className={`vbanner ${d.prob_target >= 0.7 ? "green" : d.prob_target >= 0.4 ? "amber" : "red"}`}>

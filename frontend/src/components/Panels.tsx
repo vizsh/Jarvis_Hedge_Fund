@@ -287,15 +287,15 @@ export function PriceChart() {
                 fontFamily: "JetBrains Mono, monospace" },
       grid: { vertLines: { color: "rgba(120,160,190,0.06)" },
               horzLines: { color: "rgba(120,160,190,0.06)" } },
-      rightPriceScale: { borderColor: "rgba(37,217,255,0.16)" },
-      timeScale: { borderColor: "rgba(37,217,255,0.16)", fixLeftEdge: true },
-      crosshair: { vertLine: { color: "rgba(37,217,255,0.4)", width: 1 },
-                   horzLine: { color: "rgba(37,217,255,0.4)", width: 1 } },
+      rightPriceScale: { borderColor: "rgba(242, 185, 75,0.16)" },
+      timeScale: { borderColor: "rgba(242, 185, 75,0.16)", fixLeftEdge: true },
+      crosshair: { vertLine: { color: "rgba(242, 185, 75,0.4)", width: 1 },
+                   horzLine: { color: "rgba(242, 185, 75,0.4)", width: 1 } },
       handleScroll: false, handleScale: false,
     });
     series.current = chart.current.addAreaSeries({
-      lineColor: "#25d9ff", topColor: "rgba(37,217,255,0.28)",
-      bottomColor: "rgba(37,217,255,0.01)", lineWidth: 2,
+      lineColor: "#f2b94b", topColor: "rgba(242, 185, 75,0.28)",
+      bottomColor: "rgba(242, 185, 75,0.01)", lineWidth: 2,
     });
     const onResize = () => box.current && chart.current?.applyOptions({ width: box.current.clientWidth });
     window.addEventListener("resize", onResize);

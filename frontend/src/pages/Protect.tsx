@@ -33,7 +33,7 @@ function RiskGauge({ score }: { score: number }) {
   };
   return (
     <svg viewBox="0 0 200 118" className="gauge" role="img" aria-label={`Risk ${score} out of 100`}>
-      {arc(0, 33, "#22ffa0")}{arc(33, 66, "#ffb020")}{arc(66, 100, "#ff476b")}
+      {arc(0, 33, "#62d2a2")}{arc(33, 66, "#ff9f5a")}{arc(66, 100, "#ff7a70")}
       <g className="needle" style={{ transform: `rotate(${ang}deg)` }}>
         <line x1="100" y1="100" x2="100" y2="34" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
       </g>

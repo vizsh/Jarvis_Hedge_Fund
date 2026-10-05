@@ -17,6 +17,9 @@ export function PortfolioChart() {
   const port = useRef<any>(null);
   const bench = useRef<any>(null);
   const [meta, setMeta] = useState<any>(null);
+  const [hover, setHover] = useState<{ t: string; v?: number; b?: number } | null>(null);
+  const [range, setRange] = useState<"1M" | "3M" | "6M" | "1Y">("1Y");
+  const all = useRef<any[]>([]);
   const fund = useStore((s) => s.fund);
   const simClock = useStore((s) => s.simClock);
 
@@ -24,25 +27,30 @@ export function PortfolioChart() {
     if (!box.current) return;
     chart.current = createChart(box.current, {
       width: box.current.clientWidth,
-      height: 170,
-      layout: { background: { color: "transparent" }, textColor: "#6c8296", fontSize: 9,
-                fontFamily: "JetBrains Mono, monospace" },
-      grid: { vertLines: { color: "rgba(120,160,190,0.05)" },
-              horzLines: { color: "rgba(120,160,190,0.05)" } },
-      rightPriceScale: { borderColor: "rgba(37,217,255,0.16)" },
-      timeScale: { borderColor: "rgba(37,217,255,0.16)", fixLeftEdge: true },
-      crosshair: { vertLine: { color: "rgba(37,217,255,0.4)", width: 1 },
-                   horzLine: { color: "rgba(37,217,255,0.4)", width: 1 } },
+      height: 230,
+      layout: { background: { color: "transparent" }, textColor: "#7d7f87", fontSize: 11,
+                fontFamily: "Instrument Sans, system-ui, sans-serif" },
+      grid: { vertLines: { visible: false },
+              horzLines: { color: "rgba(255,255,255,0.045)" } },
+      rightPriceScale: { borderColor: "rgba(242, 185, 75,0.16)" },
+      timeScale: { borderColor: "rgba(242, 185, 75,0.16)", fixLeftEdge: true },
+      crosshair: { vertLine: { color: "rgba(242, 185, 75,0.4)", width: 1 },
+                   horzLine: { color: "rgba(242, 185, 75,0.4)", width: 1 } },
       handleScroll: false, handleScale: false,
     });
+    chart.current.subscribeCrosshairMove((p: any) => {
+      if (!p.time || !p.seriesData) { setHover(null); return; }
+      const a = p.seriesData.get(port.current), b = p.seriesData.get(bench.current);
+      setHover({ t: String(p.time), v: a?.value, b: b?.value });
+    });
     port.current = chart.current.addAreaSeries({
-      lineColor: "#25d9ff", topColor: "rgba(37,217,255,0.26)",
-      bottomColor: "rgba(37,217,255,0.01)", lineWidth: 2, priceLineVisible: false,
+      lineColor: "#f2b94b", topColor: "rgba(242, 185, 75,0.30)",
+      bottomColor: "rgba(242, 185, 75,0.0)", lineWidth: 3, priceLineVisible: false,
     });
     // Benchmark as a dashed line, deliberately quieter: it is the reference, not
     // the subject.
     bench.current = chart.current.addLineSeries({
-      color: "rgba(139,92,246,0.85)", lineWidth: 1, lineStyle: 2,
+      color: "rgba(141, 162, 255,0.85)", lineWidth: 1, lineStyle: 2,
       priceLineVisible: false, crosshairMarkerVisible: false,
     });
     const onResize = () =>
@@ -50,6 +58,14 @@ export function PortfolioChart() {
     window.addEventListener("resize", onResize);
     return () => { window.removeEventListener("resize", onResize); chart.current?.remove(); };
   }, []);
+
+  const applyRange = () => {
+    const s = all.current; if (!s.length || !chart.current) return;
+    const n = { "1M": 21, "3M": 63, "6M": 126, "1Y": 250 }[range];
+    const from = s[Math.max(0, s.length - n)].date, to = s[s.length - 1].date;
+    chart.current.timeScale().setVisibleRange({ from, to } as any);
+  };
+  useEffect(applyRange, [range]);
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +75,8 @@ export function PortfolioChart() {
       if (d.benchmark?.length) {
         bench.current?.setData(d.benchmark.map((p: any) => ({ time: p.date, value: p.value })));
       }
-      chart.current?.timeScale().fitContent();
+      all.current = d.series;
+      applyRange();
       const first = d.series[0].value;
       const last = d.series[d.series.length - 1].value;
       const bFirst = d.benchmark?.[0]?.value;
@@ -94,7 +111,11 @@ export function PortfolioChart() {
           )}
         </div>
       )}
-      <div className="chart-wrap" style={{ height: 170 }} ref={box} />
+      <div className="chart-readout">
+        {hover && hover.v != null ? <span><b>{rupees(hover.v)}</b> · {hover.t}{hover.b != null && meta?.label ? ` · ${meta.label} ${rupees(hover.b)}` : ""}</span> : <span>Move over the chart to read any day.</span>}
+        <span className="range-chips">{(["1M", "3M", "6M", "1Y"] as const).map((r) => <button key={r} className={range === r ? "on" : ""} onClick={() => setRange(r)}>{r}</button>)}</span>
+      </div>
+      <div className="chart-wrap" style={{ height: 230 }} ref={box} />
       {meta && (
         <div className="chart-foot">
           <span className="tiny">low {rupees(meta.low)} · high {rupees(meta.high)}</span>

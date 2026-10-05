@@ -41,8 +41,8 @@ export function Waveform({ active }: { active: boolean }) {
         const v = (bins[i] ?? 0) / 255;
         const bh = Math.max(1.5, v * h * 0.92);
         ctx.fillStyle = weak
-          ? `rgba(255,176,32,${0.25 + v * 0.7})`
-          : `rgba(37,217,255,${0.25 + v * 0.75})`;
+          ? `rgba(255, 159, 90,${0.25 + v * 0.7})`
+          : `rgba(242, 185, 75,${0.25 + v * 0.75})`;
         ctx.fillRect(i * bar, (h - bh) / 2, Math.max(1, bar - 1), bh);
       }
       raf.current = requestAnimationFrame(draw);

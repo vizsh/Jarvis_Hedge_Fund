@@ -10,6 +10,7 @@ import { setVoiceFor, useLang, voiceFor } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
+import { Mark } from "./Icon";
 import { KioskToggle } from "./KioskBar";
 import { usePilot } from "../lib/pilot";
 import { send } from "../lib/socket";
@@ -64,7 +65,7 @@ export function TopNav() {
   }, []);
   return (
     <header className="topnav" ref={ref}>
-      <a className="brand-mini" href="#/"><b>JARVIS</b><span>//</span>ALPHA OS</a>
+      <a className="brand-mini" href="#/"><Mark size={28} /><b>Jarvis</b></a>
       <nav className="navlinks" aria-label="Pages">
         {ROUTES.map((r) => (
           <a key={r.path} href={"#" + r.path} className={route === r.path ? "on" : ""}>{lang === "hi" ? HI_LABEL[r.label] ?? r.label : r.label}</a>
@@ -98,7 +99,7 @@ export function Dock() {
   const guide = usePilot((s) => s.guide);
   const [typed, setTyped] = useState("");
   const hi = useLang((s) => s.lang) === "hi";
-  const [min, setMin] = useState<boolean>(() => { try { return localStorage.getItem("jarvis.dock.min") === "1"; } catch { return false; } });
+  const [min, setMin] = useState<boolean>(() => { try { const v = localStorage.getItem("jarvis.dock.min"); return v === null ? window.innerWidth < 700 : v === "1"; } catch { return false; } });
   const setMinSaved = (v: boolean) => { setMin(v); try { localStorage.setItem("jarvis.dock.min", v ? "1" : "0"); } catch { /* storage blocked */ } };
   const [talking, setTalking] = useState(false);
   useEffect(() => onVoice((st) => setTalking(st === "speaking")), []);
