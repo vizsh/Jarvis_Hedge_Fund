@@ -47,8 +47,9 @@ def test_an_absurd_price_target_is_called_out(session):
 
 def test_an_ordinary_note_is_never_certified_safe(session):
     r = scanner.scan(session.pit, "HDFC Bank reported steady results. Reasonable to hold long term.")
-    assert r["tone"] == "green"
-    assert "NOT ADVICE" in r["verdict"]          # no red flags is not the same as safe
+    assert r["tone"] == "amber"                  # calm wording with no verifiable reason is unsupported, not safe
+    assert any(f["code"] == "NO_BASIS" for f in r["flags"])
+    assert "NOT ADVICE" in scanner.scan(session.pit, "Wipro will announce its quarterly results next week.")["verdict"]
 
 
 def test_unknown_companies_are_reported_not_invented(session):
@@ -133,3 +134,38 @@ def test_spoken_answers_are_short_but_full_is_available():
     assert len(a.spoken().split()) <= 30
     assert "—" not in a.spoken()
     assert len(a.spoken_full().split()) > len(a.spoken().split())
+
+
+
+CALM = [
+    ("I think Infosys is a good time to buy. Looks like it will go up soon. Target 1500.", "NO_BASIS"),
+    ("Our fund gives 4% return every month, steady monthly income, start with 50000.", "RETURN_RATE"),
+    ("Kindly share your demat login with me and I will trade on your behalf. Registration fee 5000.", "PAYMENT"),
+    ("My last 10 calls all hit target. Accuracy 92%. Reliance looks strong, buy for target 1700 in 2 weeks.", "TRACK_RECORD"),
+    ("Penny stock under Rs 10, low risk, only for selected members.", "PENNY"),
+]
+
+
+def test_calm_polite_tips_are_still_caught_by_what_they_do_not_by_how_loud_they_are(session):
+    for text, code in CALM:
+        r = scanner.scan(session.pit, text)
+        assert code in {f["code"] for f in r["flags"]}, text
+        assert r["tone"] in ("amber", "red") and r["score"] >= 25, (text, r["tone"], r["score"])
+    for text in (CALM[1][0], CALM[2][0]):
+        assert scanner.scan(session.pit, text)["tone"] == "red", text      # a fixed periodic return or a request for account access is decisive
+
+
+def test_qualitative_claims_are_tested_against_the_numbers(session):
+    r = scanner.scan(session.pit, "SBIN is at a breakout above its 52 week high, strong momentum, buy.")
+    c = next(c for c in r["claims"] if "breakout" in c["text"].lower())
+    assert c["status"] in ("SUPPORTED", "CONTRADICTED") and c["evidence"] and c["source"]
+    r2 = scanner.scan(session.pit, "TCS is debt free and undervalued with strong growth.")
+    assert {c["status"] for c in r2["claims"]} <= {"SUPPORTED", "CONTRADICTED", "UNVERIFIED"} and len(r2["claims"]) >= 2
+    assert all(c["evidence"] for c in r2["claims"])
+
+
+def test_the_tip_answer_gives_its_reasoning(session):
+    from backend import assistant, explain
+    ctx = assistant.Ctx(pit=session.pit, portfolio=session.portfolio, prices=session.prices, policy=session.policy, conn=session.conn, convo=explain.Conversation(), lang="en")
+    a = assistant.h_tip_scan("Is this tip legit: I think Infosys is a good time to buy. Looks like it will go up soon. Target 1500.", ctx)
+    assert a.facts and a.table and a.table["rows"] and a.bullets[0].startswith("Why:")

@@ -14,6 +14,33 @@ from backend.hindi_rules import R, SECTORS
 # --------------------------------------------------------------------- fixed sentences
 STATIC: dict[str, str] = {
     # scanner: tactic names and why each is a warning sign
+    "Promises a fixed return every day, week or month": "हर दिन, हफ़्ते या महीने तय रिटर्न का वादा",
+    "Offers a track record as proof": "पिछले रिकॉर्ड को सबूत बताना",
+    "Plays down the risk": "जोखिम को हल्का बताना",
+    "Asks for money, account details or control of your account": "पैसा, खाते की जानकारी या आपके खाते का नियंत्रण माँगना",
+    "Asks you to keep it quiet or says it is exclusive": "चुप रहने को कहना या इसे ख़ास बताना",
+    "Pushes a penny or tiny stock": "पेनी या बहुत छोटे शेयर पर ज़ोर",
+    "The price has already run up": "भाव पहले ही बहुत चढ़ चुका है",
+    "A call with nothing checkable behind it": "ऐसी सलाह जिसके पीछे जाँचने लायक़ कुछ नहीं",
+    "Expects a very fast move": "बहुत तेज़ चाल की उम्मीद",
+    "Markets do not pay a steady rate every week. A fixed periodic payout is the signature of a Ponzi-style scheme.":
+        "बाज़ार हर हफ़्ते तय दर से नहीं देता। तय समय पर तय भुगतान पोंज़ी-जैसी स्कीम की पहचान है।",
+    "A track record posted by the seller cannot be checked and is usually cherry-picked; real advisers publish audited, complete records.":
+        "बेचने वाले का दिखाया रिकॉर्ड जाँचा नहीं जा सकता और आम तौर पर चुनिंदा होता है; असली सलाहकार जाँचे हुए, पूरे रिकॉर्ड छापते हैं।",
+    "Every share can fall. A message that removes the downside from the picture is selling comfort, not information.":
+        "हर शेयर गिर सकता है। जो संदेश गिरावट को तस्वीर से हटा दे वह जानकारी नहीं, तसल्ली बेच रहा है।",
+    "A genuine adviser never takes money into a personal account or access to yours. This is how the money disappears.":
+        "असली सलाहकार निजी खाते में पैसा या आपके खाते की पहुँच कभी नहीं लेता। पैसा ऐसे ही ग़ायब होता है।",
+    "Secrecy stops you asking anyone who could tell you it is a scam.":
+        "गोपनीयता आपको उन लोगों से पूछने से रोकती है जो बता सकते हैं कि यह ठगी है।",
+    "Thinly traded stocks are easy to push up for a few days and hard to sell, which is why pump groups prefer them.":
+        "कम कारोबार वाले शेयर कुछ दिन चढ़ाना आसान और बेचना कठिन होता है, इसीलिए पंप ग्रुप इन्हें पसंद करते हैं।",
+    "Tips usually arrive after a big move, when the people who bought early want buyers to sell to.":
+        "टिप आम तौर पर बड़ी चाल के बाद आती है, जब पहले ख़रीदने वालों को बेचने के लिए ख़रीदार चाहिए होते हैं।",
+    "A real research note says why: a result, a filing, a valuation. A bare call asks you to trust the sender, and calm wording is not evidence.":
+        "असली शोध नोट कारण बताता है: नतीजे, फ़ाइलिंग, मूल्यांकन। सिर्फ़ कॉल भेजने वाले पर भरोसा माँगती है, और शांत भाषा सबूत नहीं है।",
+    "A well-run large company rarely moves this far this fast without news; tips that promise it are usually trying to start the move themselves.":
+        "अच्छी बड़ी कंपनी बिना ख़बर के इतनी तेज़ी से इतना नहीं चलती; जो टिप यह वादा करे वह अक्सर ख़ुद चाल शुरू करवाना चाहती है।",
     "Promises guaranteed returns": "पक्के मुनाफ़े का वादा",
     "Promises a huge multiple": "कई गुना मुनाफ़े का वादा",
     "Pushes you to act now": "तुरंत कदम उठाने का दबाव",

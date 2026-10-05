@@ -1022,13 +1022,23 @@ def h_tip_scan(text: str, ctx: Ctx) -> Answer:
         a = Answer(headline=t("I could not find anything to check in that.", "उसमें जाँचने लायक़ कुछ नहीं मिला।"))
         return _done(a, ctx, _chips("scam"), "tip_scan")
     band = r.get("tone", "")
-    verdict = {"red": t("High risk of a scam", "ठगी का ऊँचा जोखिम"), "amber": t("Some warning signs", "कुछ चेतावनी के संकेत"),
-               "green": t("No scam tactics found", "ठगी की कोई चाल नहीं मिली")}.get(band, r.get("verdict", ""))
+    chk = r.get("checked", {})
+    verdict = {"red": t("High risk of a scam", "ठगी का ऊँचा जोखिम"),
+               "amber": t("Unverified: treat with caution", "अप्रमाणित: सावधानी रखिए") if chk.get("directive") and not r["flags"] else t("Some warning signs", "कुछ चेतावनी के संकेत"),
+               "green": t("Nothing wrong found, still not advice", "कुछ ग़लत नहीं मिला, फिर भी यह सलाह नहीं")}.get(band, r.get("verdict", ""))
+    ev = [[f["label"], f["quote"], f["why"]] for f in r["flags"]] + \
+         [[c["text"], c["status"].title(), c.get("evidence") or ""] for c in r["claims"]]
+    why = {"red": t("Do not act on it, and never pay anyone to join a tips group or hand over account access.", "इस पर कार्रवाई मत कीजिए, और टिप ग्रुप में जुड़ने या खाते की पहुँच देने के लिए पैसे कभी मत दीजिए।"),
+           "amber": t("Do not act on it alone. Ask the sender for the filing or result behind it, check the company on the exchange site and the sender on sebi.gov.in.", "सिर्फ़ इसके भरोसे कुछ मत कीजिए। भेजने वाले से इसके पीछे की फ़ाइलिंग या नतीजे माँगिए, कंपनी को एक्सचेंज की साइट पर और भेजने वाले को sebi.gov.in पर जाँचिए।"),
+           "green": t("What it says is consistent with the data we hold. That is not a reason to buy: check the company yourself.", "इसकी बातें हमारे पास के डेटा से मेल खाती हैं। यह ख़रीदने की वजह नहीं: कंपनी को ख़ुद जाँचिए।")}.get(band, "")
     a = Answer(headline=t(f"{verdict}: risk score {r['score']} out of 100.", f"{verdict}: जोखिम स्कोर सौ में से {r['score']}।"),
-               bullets=[t("Tactic found: " + f["label"] + f" ({f['quote']}).", "चाल मिली: " + FLAG_LABEL_HI.get(f["code"], f["label"]) + f" ({f['quote']})।") for f in r["flags"][:3]] +
-                       [t(f"Claim tested: {c['text']} is {c['status']}.", f"दावा जाँचा: {c['text']} → {CLAIM_STATUS_HI.get(c['status'], c['status'])}।") for c in r["claims"][:2]],
-               action=t("Do not act on it. Check the company on the exchange site, and never pay anyone to join a tips group.", "इस पर कार्रवाई मत कीजिए। कंपनी की जाँच एक्सचेंज की साइट पर कीजिए, और टिप ग्रुप में जुड़ने के लिए पैसे कभी मत दीजिए।"),
-               facts=[_fact(t("Risk score", "जोखिम स्कोर"), f"{r['score']}/100", {"red": "bad", "amber": "warn", "green": "good"}.get(band, ""))],
+               bullets=[t("Why: " + f["label"].lower() + f" ({f['quote']}). " + f["why"], "कारण: " + FLAG_LABEL_HI.get(f["code"], f["label"]) + f" ({f['quote']})।") for f in r["flags"][:4]] +
+                       [t(f"Checked against our data: {c['text']} is {c['status'].lower()}. {c.get('evidence') or ''}", f"हमारे डेटा से जाँचा: {c['text']} → {CLAIM_STATUS_HI.get(c['status'], c['status'])}।") for c in r["claims"][:3]],
+               action=why,
+               table={"columns": [t("What we looked at", "हमने क्या देखा"), t("What we found", "क्या मिला"), t("Why it matters", "यह क्यों मायने रखता है")], "rows": ev[:8]} if ev and ctx.lang != "hi" else None,
+               facts=[_fact(t("Risk score", "जोखिम स्कोर"), f"{r['score']}/100", {"red": "bad", "amber": "warn", "green": "good"}.get(band, "")),
+                      _fact(t("Claims tested against data", "डेटा से जाँचे दावे"), f"{chk.get('tested', 0)} / {chk.get('claims', 0)}")],
+               detail=r.get("summary"),
                visual={"page": "protect", "label": t("Open the tip scanner", "टिप स्कैनर खोलें"), "params": {}})
     return _done(a, ctx, _chips("scam", "predict" if False else "panic", "help"), "tip_scan")
 

@@ -39,6 +39,24 @@ FLAGS: list[tuple[str, str, str, int, str]] = [
     ("NO_STOPLOSS", "Tells you to ignore losses",
      r"\b(no\s+stop[- ]?loss|hold\s+till\s+(\d+|target)|never\s+sell)\b", 15,
      "Advice that ignores downside is advice that ignores your capital."),
+    ("RETURN_RATE", "Promises a fixed return every day, week or month",
+     r"(\b\d{1,3}(?:\.\d+)?\s?%\s*(?:return|profit|gain|income|growth)?s?\s*(?:per|a|every|each|/)\s*(?:day|week|month)\b|\b(?:daily|weekly|monthly)\s+(?:returns?|profits?|income)\b|\b(?:fixed|regular|steady)\s+(?:monthly|weekly|daily)\s+(?:returns?|income|payout)\b)", 55,
+     "Markets do not pay a steady rate every week. A fixed periodic payout is the signature of a Ponzi-style scheme."),
+    ("TRACK_RECORD", "Offers a track record as proof",
+     r"\b((?:last|previous|past)\s+\d+\s+(?:calls?|tips?|trades?)|(?:all|every)\s+(?:my\s+)?(?:calls?|tips?|trades?)\s+(?:hit|worked|made|were\s+profit\w*)|\d{2,3}\s?%\s*(?:accuracy|success|hit\s*rate|win\s*rate)|screenshots?\s+of\s+(?:profit|returns?)|see\s+my\s+profits?|proof\s+of\s+profit)\b", 20,
+     "A track record posted by the seller cannot be checked and is usually cherry-picked; real advisers publish audited, complete records."),
+    ("RISK_DENIAL", "Plays down the risk",
+     r"\b(low[- ]risk|safe\s+(?:bet|stock|investment|trade)|can'?t\s+(?:go\s+)?wrong|no\s+(?:risk|downside)|limited\s+downside|only\s+upside|cannot\s+fall|can'?t\s+fall)\b", 20,
+     "Every share can fall. A message that removes the downside from the picture is selling comfort, not information."),
+    ("PAYMENT", "Asks for money, account details or control of your account",
+     r"(\b(?:send|transfer|pay|deposit)\b[^.\n]{0,30}(?:₹|rs\.?|rupees|\d{3,})|\b(?:registration|joining|subscription|service|processing)\s*(?:fee|charges?)\b|\bupi\s*id\b|\baccount\s*(?:number|details)\b|\b(?:give|share|send)\s+(?:me\s+)?(?:your\s+)?(?:demat|login|password|otp|pin)\b|\btrade\s+(?:for|on\s+behalf\s+of)\s+you\b|\bmanage\s+(?:your\s+)?(?:account|portfolio|funds?)\b)", 55,
+     "A genuine adviser never takes money into a personal account or access to yours. This is how the money disappears."),
+    ("SECRECY", "Asks you to keep it quiet or says it is exclusive",
+     r"\b(?:don'?t|do\s+not)\s+(?:share|forward|tell)\b|\bonly\s+for\s+(?:selected|few|my|chosen)\b|\bexclusive\s+(?:tip|call|stock|group|access)\b|\bsecret\s+(?:tip|stock|call)\b|\bselected\s+members\b", 15,
+     "Secrecy stops you asking anyone who could tell you it is a scam."),
+    ("PENNY", "Pushes a penny or tiny stock",
+     r"\bpenny\s+stocks?\b|\bunder\s*(?:₹|rs\.?)\s?\d{1,2}\b|\b(?:tiny|small)\s+(?:company|cap)\b[^.\n]{0,25}\b(?:rocket|explode|jackpot|fly)\b", 15,
+     "Thinly traded stocks are easy to push up for a few days and hard to sell, which is why pump groups prefer them."),
     ("REGISTRATION", "Claims SEBI registration (verify it)",
      r"\bsebi[- ]?(registered|approved|certified)\b", 10,
      "Check any adviser at sebi.gov.in under Intermediaries before acting. Scam groups often claim it."),
@@ -119,6 +137,85 @@ def _market_facts(pit: PointInTimeStore, ticker: str) -> dict[str, Any]:
     return out
 
 
+_DIRECTIVE = re.compile(
+    r"\b(buy|accumulate|add|enter|invest(?:\s+in)?|go\s+long|book\s+profit|hold|keep|target|tgt|cmp|entry|stop[- ]?loss|sl|"
+    r"will\s+(?:go|rise|touch|cross|hit|double|fly|rally|jump|surge)|expected\s+to|set\s+to|poised\s+to|breakout|bullish|rally|"
+    r"strong\s+(?:buy|momentum)|worth\s+(?:buying|adding)|good\s+(?:buy|time\s+to\s+buy)|reasonable\s+to\s+(?:buy|hold|add))\b", re.I)
+_REASON = re.compile(
+    r"\b(because|due\s+to|since|results?|earnings|quarter(?:ly)?|q[1-4]|filing|annual\s+report|order\s+book|valuation|p/?e|debt|margins?|"
+    r"dividend|announced|announcement|acquisition|contract|guidance|balance\s+sheet|cash\s*flow|growth|profit|revenue|sales)\b", re.I)
+_HORIZON = re.compile(r"\b(?:in|within|by|over|next)\s+(?:the\s+next\s+)?(\d{1,3})\s*(day|days|week|weeks|month|months|year|years)\b|\b(intraday|this\s+week|next\s+week|this\s+month|swing)\b", re.I)
+_FUND_CLAIMS = [
+    ("DEBT", re.compile(r"\b(debt[- ]?free|zero\s+debt|no\s+debt|low\s+debt|very\s+little\s+debt)\b", re.I)),
+    ("VALUE", re.compile(r"\b(undervalued|cheap(?:ly)?\s+valued|trading\s+at\s+a\s+discount|bargain|low\s+valuation)\b", re.I)),
+    ("GROWTH", re.compile(r"\b((?:fast|high|strong|rapid|record|explosive)\s+growth|growing\s+fast|growth\s+story)\b", re.I)),
+    ("QUALITY", re.compile(r"\b((?:strong|robust|solid|healthy|great|excellent)\s+(?:fundamentals|balance\s+sheet|financials))\b", re.I)),
+    ("BREAKOUT", re.compile(r"\b(breakout|new\s+high|52[- ]?week\s+high|all[- ]?time\s+high|at\s+its\s+high)\b", re.I)),
+]
+
+
+def _horizon_days(text: str) -> int | None:
+    m = _HORIZON.search(text)
+    if not m:
+        return None
+    if m.group(3):
+        w = m.group(3).lower()
+        return 1 if w in ("intraday",) else 7 if "week" in w else 30 if "month" in w else 5
+    n, unit = int(m.group(1)), m.group(2).lower()
+    return n * (1 if unit.startswith("day") else 7 if unit.startswith("week") else 30 if unit.startswith("month") else 365)
+
+
+def _today(pit: PointInTimeStore) -> PointInTimeStore:
+    """Company statistics are stamped when they were fetched, which can be after the simulation clock; the checker reads at the real clock."""
+    from datetime import datetime, timezone
+    return PointInTimeStore(pit.conn, datetime.now(timezone.utc))
+
+
+def _val(pit: PointInTimeStore, tk: str, kind: str) -> float | None:
+    sg = pit.latest(tk, kind)
+    return sg.value_num if sg is not None and sg.value_num is not None else None
+
+
+def _fund_claim(code: str, tk: str, pit: PointInTimeStore, text: str) -> tuple[str, str | None, str]:
+    """(status, evidence, source) for one qualitative claim about a company, tested against the numbers we hold."""
+    nm = universe.name(tk)
+    if code == "DEBT":
+        de = _val(pit, tk, "debt_to_equity")
+        if de is None:
+            return "UNVERIFIED", f"We hold no debt figure for {nm}.", ""
+        ok = de < 30
+        return ("SUPPORTED" if ok else "CONTRADICTED"), f"{nm}'s borrowings are about {de:.0f}% of shareholders' capital ({'low' if ok else 'not low, and the tip calls it debt-free or low-debt'}).", "yfinance company statistics"
+    if code == "VALUE":
+        pe = _val(pit, tk, "pe_ratio")
+        peers = [x for x in (_val(pit, o, "pe_ratio") for o in universe.tickers() if o != tk and universe.sector(o) == universe.sector(tk)) if x]
+        if not pe or len(peers) < 3:
+            return "UNVERIFIED", f"We cannot compare {nm}'s price against profit with its peers.", ""
+        med = sorted(peers)[len(peers) // 2]
+        ok = pe < med * 0.9
+        bad = pe > med * 1.1
+        return ("SUPPORTED" if ok else "CONTRADICTED" if bad else "UNVERIFIED"), f"{nm} costs about {pe:.0f} times a year's profit; similar companies cost about {med:.0f}.", "yfinance company statistics, sector peers"
+    if code == "GROWTH":
+        g = _val(pit, tk, "rev_growth")
+        if g is None:
+            return "UNVERIFIED", f"We hold no recent sales-growth figure for {nm}.", ""
+        return ("SUPPORTED" if g >= 0.12 else "CONTRADICTED" if g <= 0.03 else "UNVERIFIED"), f"{nm}'s sales in the latest quarter moved {g * 100:+.0f}% against a year earlier.", "yfinance company statistics"
+    if code == "QUALITY":
+        from analysis import proscons
+        r = proscons.pros_cons(pit, tk, "en")
+        strong = sum(1 for x in r["pros"] if x["confidence"] != "weak")
+        weak = sum(1 for x in r["cons"] if x["confidence"] != "weak")
+        if not (r["pros"] or r["cons"]):
+            return "UNVERIFIED", f"We hold too little on {nm} to judge its fundamentals.", ""
+        return ("SUPPORTED" if strong >= weak + 3 else "CONTRADICTED" if weak >= strong else "UNVERIFIED"), f"{nm} shows {strong} good points and {weak} watch-outs in the numbers we hold.", "plain-words research summary"
+    if code == "BREAKOUT":
+        bars = [b["close"] for b in pit.prices(tk, 250) if b["close"]]
+        if len(bars) < 60:
+            return "UNVERIFIED", f"Not enough price history on {nm}.", ""
+        off = bars[-1] / max(bars) - 1
+        return ("SUPPORTED" if off >= -0.03 else "CONTRADICTED"), f"{nm} closed {abs(off) * 100:.0f}% {'below' if off < -0.001 else 'at'} its highest close of the past year.", "price history"
+    return "UNVERIFIED", None, ""
+
+
 def scan(pit: PointInTimeStore, text: str) -> dict[str, Any]:
     text = (text or "").strip()
     if not text:
@@ -129,7 +226,7 @@ def scan(pit: PointInTimeStore, text: str) -> dict[str, Any]:
     for code, label, rx, pts, why in FLAGS:
         m = re.search(rx, text, re.I)
         if m:
-            flags.append({"code": code, "label": label, "quote": m.group(0).strip(), "why": why})
+            flags.append({"code": code, "label": label, "quote": m.group(0).strip(), "why": why, "points": pts})
             points += pts
 
     tickers = find_companies(text)
@@ -179,15 +276,53 @@ def scan(pit: PointInTimeStore, text: str) -> dict[str, Any]:
             if extreme:
                 points += 20
 
+    # ---- what the tip says about a company, tested against the numbers we hold
+    now = _today(pit)
+    if tickers:
+        tk0 = tickers[0]
+        for code, rx in _FUND_CLAIMS:
+            m = rx.search(text)
+            if m:
+                status, ev, src = _fund_claim(code, tk0, now, text)
+                claims.append({"text": m.group(0).strip(), "status": status, "evidence": ev, "source": src or None})
+        facts0 = companies[0]
+        if (facts0.get("ret_21") or 0) > 0.20:
+            flags.append({"code": "CHASING", "label": "The price has already run up", "quote": f"{facts0['name']} is {facts0['ret_21'] * 100:+.0f}% in a month",
+                          "why": "Tips usually arrive after a big move, when the people who bought early want buyers to sell to."})
+            points += 10
+
+    # ---- the structure of the message, whatever its tone
+    directive = bool(_DIRECTIVE.search(text)) and bool(tickers or unknown)
+    horizon = _horizon_days(text)
+    checked = [c for c in claims if c["status"] in ("SUPPORTED", "CONTRADICTED") and not c["text"].lower().startswith(("target", "tgt"))]   # a target is an opinion, not a reason
+    if directive and not checked:
+        flags.append({"code": "NO_BASIS", "label": "A call with nothing checkable behind it",
+                      "quote": "(names a stock and a direction, gives no verifiable reason)" if not _REASON.search(text) else "(gives reasons we could not check against any filing)",
+                      "why": "A real research note says why: a result, a filing, a valuation. A bare call asks you to trust the sender, and calm wording is not evidence."})
+        points += 25 if not _REASON.search(text) else 15
+    for c in claims:                                    # a target said to arrive soon is judged on how fast it must move
+        if c["text"].lower().startswith(("target", "tgt")) and horizon and companies and companies[0].get("last_close"):
+            m = _TARGET.search(text)
+            up = (float(m.group(1).replace(",", "")) / companies[0]["last_close"] - 1) * 100 if m else 0
+            if (up >= 15 and horizon <= 30) or (up >= 30 and horizon <= 120):
+                flags.append({"code": "FAST_TARGET", "label": "Expects a very fast move", "quote": f"{up:+.0f}% in about {horizon} days",
+                              "why": "A well-run large company rarely moves this far this fast without news; tips that promise it are usually trying to start the move themselves."})
+                points += 20
+            break
+
     contradicted = sum(1 for c in claims if c["status"] == "CONTRADICTED")
     supported = sum(1 for c in claims if c["status"] == "SUPPORTED")
     points += 25 * contradicted + (10 if unknown else 0)
-    points = min(100, points)
+    # a claim that checks out earns a little credit, but never wipes out manipulation tactics
+    manip = sum(f["points"] if "points" in f else 0 for f in flags)
+    points -= min(15, 8 * supported) if not any(f["code"] in ("GUARANTEE", "PAYMENT", "INSIDER", "RETURN_RATE", "MULTIPLIER") for f in flags) else 0
+    points = max(0, min(100, points))
 
     if points >= 55 or (contradicted and points >= 35):
         verdict, tone = "UNVERIFIED — LIKELY A PUMP OR SCAM", "red"
-    elif points >= 25 or contradicted:
+    elif points >= 25 or contradicted or (directive and not supported):
         verdict, tone = "CAUTION — DO NOT ACT ON THIS ALONE", "amber"
+        points = max(points, 25)
     else:
         verdict, tone = "NO RED FLAGS FOUND — STILL NOT ADVICE", "green"
 
@@ -201,12 +336,15 @@ def scan(pit: PointInTimeStore, text: str) -> dict[str, Any]:
         parts.append(f"{supported} claim{'s' if supported != 1 else ''} roughly supported.")
     if unknown:
         parts.append("It names " + ", ".join(unknown) + ", which we have no data on, so nothing about it can be checked.")
+    if directive and not supported and not any(p.startswith("It uses") for p in parts):
+        parts.append("It reads calmly, but it recommends a stock without a reason we can verify, so it is treated as unsupported, not as safe.")
     if not parts:
         parts.append("Nothing in it is alarming, but nothing in it is supported either.")
     parts.append("Check any adviser at sebi.gov.in before paying or acting.")
 
     return {"verdict": verdict, "tone": tone, "score": points, "flags": flags,
             "claims": claims, "companies": companies, "unknown": unknown,
+            "checked": {"claims": len(claims), "tested": len(checked), "directive": directive},
             "summary": " ".join(parts),
             "disclaimer": "A checker, not advice. It tests claims against dated data on file; "
                           "it cannot know what is not on file."}
