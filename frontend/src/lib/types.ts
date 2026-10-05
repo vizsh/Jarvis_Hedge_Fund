@@ -9,7 +9,7 @@ export type EventType =
   | "telemetry" | "speech" | "error";
 
 export type OrbState = "idle" | "listening" | "thinking" | "speaking" | "alert";
-export type AgentState = "idle" | "thinking" | "done" | "failed";
+export type AgentState = "idle" | "waiting" | "thinking" | "done" | "failed";
 
 export interface WireEvent {
   v: number;

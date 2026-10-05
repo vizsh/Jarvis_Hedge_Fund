@@ -10,5 +10,5 @@
 .ss-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
 .ss-tag.ready { background: rgba(98, 210, 162, .14); color: #62d2a2; }
 .ss-tag.fetch { background: rgba(255, 159, 90, .14); color: #ffb86b; }
-.ss-status { margin-top: 8px; font-size: 13px; color: #8fd6e6; }
+.ss-status { margin-top: 8px; font-size: 13px; color: var(--text); }
 @media (max-width: 600px) { .ss-list li { grid-template-columns: 70px 1fr auto; } .ss-ex { display: none; } }

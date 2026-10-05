@@ -79,7 +79,7 @@ export function AllocationMap() {
             return (
               <g key={t.key} tabIndex={0} className={`alloc-tile ${hov === t.key ? "on" : hov ? "dim" : ""}`} onPointerEnter={() => setHov(t.key)} onPointerLeave={() => setHov(null)} onFocus={() => setHov(t.key)} onBlur={() => setHov(null)}>
                 <rect x={t.x} y={t.y} width={Math.max(0, t.width - 2)} height={Math.max(0, t.height - 2)} rx="5"
-                      style={{ fill: `hsl(${hue(t.sector)} 38% ${hov === t.key ? 34 : 24}%)`, stroke: over ? "var(--red)" : `hsl(${hue(t.sector)} 45% 42%)` }} />
+                      style={{ fill: `hsl(${hue(t.sector)} 38% var(${hov === t.key ? "--tile-l-on" : "--tile-l"}))`, stroke: over ? "var(--red)" : `hsl(${hue(t.sector)} 45% 48%)` }} />
                 {t.width > 70 && t.height > 34 && <text x={t.x + 9} y={t.y + 19} className="alloc-name">{(t.label.length > Math.floor(t.width / 8) ? t.label.slice(0, Math.floor(t.width / 8) - 1) + "…" : t.label)}</text>}
                 {t.width > 70 && t.height > 34 && <text x={t.x + 9} y={t.y + 36} className="alloc-w">{(t.w * 100).toFixed(1)}%</text>}
               </g>);

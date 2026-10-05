@@ -2,6 +2,7 @@ import { TamperDemo } from "./Demos";
 import { useEffect, useState } from "react";
 
 import { Page } from "./Page";
+import { GovernHero } from "../components/govern/GovernHero";
 import { useStore } from "../lib/store";
 import { useT } from "../lib/i18n";
 
@@ -225,12 +226,31 @@ function Ledger({ refreshKey }: { refreshKey: number }) {
 export default function Govern() {
   const { t } = useT();
   const [key, setKey] = useState(0);
+  const [tab, setTab] = useState<"check" | "rebalance" | "record" | "tamper">("check");
   const bump = () => setKey((k) => k + 1);
+  const TABS: [typeof tab, string, string][] = [
+    ["check", "Check a trade", "सौदा जाँचें"], ["rebalance", "Rebalance", "रीबैलेंस"], ["record", "Audit record", "ऑडिट रिकॉर्ड"], ["tamper", "Tamper test", "छेड़छाड़ परीक्षा"],
+  ];
+  const HELP: Record<typeof tab, [string, string]> = {
+    check: ["Type a trade and see it judged against your limits, with the largest size that would fit.", "कोई सौदा लिखिए और देखिए कि वह आपकी सीमाओं पर कैसा उतरता है, और सबसे बड़ा कितना आ सकता है।"],
+    rebalance: ["See a fix side by side, before and after, with what it would cost in tax and trading.", "सुधार को साथ-साथ देखिए, पहले और बाद में, टैक्स और ट्रेडिंग की लागत के साथ।"],
+    record: ["Every decision, in order, each sealed to the one before it.", "हर फ़ैसला, क्रम से, हर एक पिछले से जुड़ा हुआ।"],
+    tamper: ["Edit an old entry on purpose and watch the record catch it.", "जानबूझकर कोई पुरानी प्रविष्टि बदलिए और देखिए रिकॉर्ड उसे पकड़ लेता है।"],
+  };
   return (
     <Page title="Govern" lead={t("Rules that no AI can override: check a trade, simulate a fix, and keep an honest record.", "ऐसे नियम जिन्हें कोई AI नहीं बदल सकता: सौदा जाँचिए, सुधार आज़माइए, और ईमानदार रिकॉर्ड रखिए।")}>
-      <div className="grid g2"><Firewall onStage={bump} /><RebalanceSim refreshKey={key} onBooked={bump} /></div>
-      <div className="grid"><Ledger refreshKey={key} /></div>
-      <div className="grid"><TamperDemo /></div>
+      <GovernHero />
+      <div className="seg" role="tablist" aria-label={t("Governance tools", "नियम के औज़ार")}>
+        {TABS.map(([id, en, hi]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>{t(en, hi)}</button>)}
+      </div>
+      <p className="seg-help">{t(HELP[tab][0], HELP[tab][1])}</p>
+      <div className="grid g2" hidden={tab !== "check" && tab !== "rebalance"}>
+        {tab === "check" && <Firewall onStage={bump} />}
+        {tab === "check" && <RebalanceSim refreshKey={key} onBooked={bump} />}
+        {tab === "rebalance" && <RebalanceSim refreshKey={key} onBooked={bump} />}
+      </div>
+      {tab === "record" && <div className="grid"><Ledger refreshKey={key} /></div>}
+      {tab === "tamper" && <div className="grid"><TamperDemo /></div>}
     </Page>
   );
 }

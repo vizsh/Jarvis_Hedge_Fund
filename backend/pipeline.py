@@ -117,15 +117,12 @@ async def do_investigate(session: Session, bus: EventBus, ticker: str) -> None:
                  detail=f"{item.source_name} · {item.published_at[:10]}",
                  uri=item.source_uri)
 
-    for desk in DESKS:
-        bus.emit(EventType.AGENT_STATE, desk=desk.name, state="thinking")
-
-    reports = await run_desks(pack)
-
-    for report in reports:
+    def emit_report(report) -> None:
+        """One desk's result, sent the moment that desk finishes (not after all of them)."""
         bus.emit(EventType.AGENT_STATE, desk=report.desk,
                  state="failed" if report.error else "done",
-                 note=report.error or f"{report.latency_ms} ms")
+                 note=report.error or f"{report.latency_ms} ms", ms=report.latency_ms,
+                 accepted=len(report.accepted), rejected=len(report.rejected))
         desk_id = f"desk:{report.desk}"
         bus.emit(EventType.GRAPH_NODE, id=desk_id, label=report.desk, kind="claim",
                  detail=f"{len(report.accepted)} accepted / {len(report.rejected)} dropped")
@@ -145,6 +142,25 @@ async def do_investigate(session: Session, bus: EventBus, ticker: str) -> None:
         for claim, reason in report.rejected:
             bus.emit(EventType.CLAIM_REJECTED, desk=report.desk, claim=claim.claim,
                      reason=reason.value)
+
+    def on_step(kind: str, payload) -> None:
+        if kind == "analysts_start":
+            for name in payload:
+                bus.emit(EventType.AGENT_STATE, desk=name, state="thinking")
+            bus.emit(EventType.AGENT_STATE, desk="Red Team", state="waiting",
+                     note="waits for the analysts")
+        elif kind == "desk_done":
+            emit_report(payload)
+        elif kind == "red_start":
+            from agents.schema import Stance
+            acc = [c for r in payload["analysts"] for c in r.accepted]
+            bull = sum(c.weight for c in acc if c.stance is Stance.BULL)
+            bear = sum(c.weight for c in acc if c.stance is Stance.BEAR)
+            bus.emit(EventType.CONSENSUS, bull=round(bull, 3), bear=round(bear, 3), oppose=payload["oppose"])
+            bus.emit(EventType.AGENT_STATE, desk="Red Team", state="thinking",
+                     note=f"arguing the {payload['oppose']} side" if payload["oppose"] != "neutral" else "no majority to oppose")
+
+    reports = await run_desks(pack, on_event=on_step)
 
     verdict = fuse(pack, reports)
     session.counters.claims_accepted += verdict.claims_accepted

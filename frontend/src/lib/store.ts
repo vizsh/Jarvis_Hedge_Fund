@@ -27,7 +27,8 @@ interface State {
   simClock: string;
   ticker: string;
 
-  desks: Record<string, { state: AgentState; note?: string; ms?: number }>;
+  desks: Record<string, { state: AgentState; note?: string; ms?: number; accepted?: number; rejected?: number }>;
+  consensus: { bull: number; bear: number; oppose: string } | null;
   claims: Claim[];
   rejected: RejectedClaim[];
   conviction: Conviction | null;
@@ -72,6 +73,7 @@ export const useStore = create<State>((set, get) => ({
   simClock: "",
   ticker: "TCS.NS",
   desks: {},
+  consensus: null,
   claims: [],
   rejected: [],
   conviction: null,
@@ -101,7 +103,7 @@ export const useStore = create<State>((set, get) => ({
   reset: () =>
     set({
       claims: [], rejected: [], conviction: null, nodes: [], edges: [],
-      selected: null, proposal: null, decision: null, execution: null, desks: {},
+      selected: null, proposal: null, decision: null, execution: null, desks: {}, consensus: null,
     }),
 
   ingest: (e) => {
@@ -139,7 +141,7 @@ export const useStore = create<State>((set, get) => ({
 
       case "agent.state":
         set((s) => ({
-          desks: { ...s.desks, [p.desk]: { state: p.state, note: p.note } },
+          desks: { ...s.desks, [p.desk]: { state: p.state, note: p.note, ms: p.ms, accepted: p.accepted, rejected: p.rejected } },
           ...(p.state === "thinking" ? auto("graph") : {}),
           ...logLine("desk", `${p.desk}: ${p.state}`),
         }));
@@ -167,7 +169,11 @@ export const useStore = create<State>((set, get) => ({
         break;
 
       case "graph.reset":
-        set({ nodes: [], edges: [], selected: null, claims: [], rejected: [] });
+        set({ nodes: [], edges: [], selected: null, claims: [], rejected: [], conviction: null, consensus: null, desks: {} });
+        break;
+
+      case "consensus":
+        set({ consensus: { bull: Number(p.bull), bear: Number(p.bear), oppose: String(p.oppose) } });
         break;
 
       case "graph.node":

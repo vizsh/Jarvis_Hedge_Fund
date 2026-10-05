@@ -36,20 +36,36 @@ DISCOUNT_NO_DISSENT = 0.5
 DISCOUNT_WITH_DISSENT = 0.75
 
 
-async def run_desks(pack: EvidencePack, desks: tuple[Desk, ...] = ANALYST_DESKS
+async def run_desks(pack: EvidencePack, desks: tuple[Desk, ...] = ANALYST_DESKS, on_event=None
                     ) -> list[DeskReport]:
     """Two passes, because a blind dissenter is not a dissenter.
 
     Pass 1 runs the analysts in parallel. Pass 2 shows the Red Team what they actually
     concluded and asks it to oppose that specific position. The cost is wall clock --
     the passes are inherently sequential -- and it buys dissent that is about something.
+
+    `on_event(kind, payload)` (optional, synchronous) is told as each step really happens, so a UI can show the
+    work as it unfolds instead of after it: "analysts_start", "desk_done" (each desk the moment it finishes) and
+    "red_start" (with the analysts' reports and the stance the Red Team must oppose).
     """
-    analysts = list(await asyncio.gather(*(run_desk(d, pack) for d in desks)))
+    def tell(kind: str, payload) -> None:
+        if on_event is not None:
+            on_event(kind, payload)
+
+    async def one(d: Desk) -> DeskReport:
+        r = await run_desk(d, pack)
+        tell("desk_done", r)
+        return r
+
+    tell("analysts_start", [d.name for d in desks])
+    analysts = list(await asyncio.gather(*(one(d) for d in desks)))
     consensus, oppose = consensus_brief(analysts)
+    tell("red_start", {"analysts": analysts, "oppose": oppose})
 
     # With no analyst claims there is nothing to dissent from, so the Red Team runs
     # unconstrained rather than being forced into an arbitrary stance.
     red = await run_desk(RED_TEAM, pack, consensus, oppose if consensus else "")
+    tell("desk_done", red)
     return [*analysts, red]
 
 

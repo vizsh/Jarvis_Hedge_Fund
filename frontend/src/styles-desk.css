@@ -18,7 +18,7 @@
 
 .vb-progress { display: flex; gap: 2px; width: 52px; flex-shrink: 0; }
 .vb-progress span {
-  flex: 1; height: 3px; background: rgba(255, 255, 255, 0.12); transition: background 0.2s;
+  flex: 1; height: 3px; background: rgb(var(--wash) / 0.12); transition: background 0.2s;
 }
 .vb-progress span.on { background: var(--cyan); box-shadow: 0 0 6px var(--cyan-dim); }
 
@@ -26,7 +26,7 @@
 .vb-mute { position: relative; }
 .vb-menu {
   position: absolute; bottom: 100%; right: 0; z-index: 30; margin-bottom: 4px;
-  background: rgba(8, 6, 18, 0.98); border: 1px solid var(--cyan-dim); min-width: 90px;
+  background: var(--glass-bg); border: 1px solid var(--cyan-dim); min-width: 90px;
 }
 .vb-menu div { padding: 6px 10px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
 .vb-menu div:hover { background: rgba(242, 185, 75, 0.14); color: var(--cyan); }
@@ -108,7 +108,7 @@
   align-items: center; padding: 3px 0; font-size: 10.5px;
 }
 .a-name { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.a-bar { height: 8px; background: rgba(255, 255, 255, 0.05); position: relative; }
+.a-bar { height: 8px; background: rgb(var(--wash) / 0.05); position: relative; }
 .a-bar span { display: block; height: 100%; }
 .a-bar .pos { background: linear-gradient(90deg, rgba(98, 210, 162, 0.4), var(--green)); }
 .a-bar .neg { background: linear-gradient(90deg, rgba(255, 122, 112, 0.4), var(--red)); }

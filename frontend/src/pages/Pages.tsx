@@ -2,6 +2,7 @@ import { StockSearch } from "../components/StockSearch";
 import { Icon } from "../components/Icon";
 import { AllocationMap } from "../components/charts/AllocationMap";
 import { ResearchSummary } from "../components/ResearchSummary";
+import { Arena } from "../components/research/Arena";
 import { useT } from "../lib/i18n";
 import { ChatThread } from "../components/ChatThread";
 import { GoalFan } from "./Demos";
@@ -127,6 +128,7 @@ export function Research() {
         <StockSearch />
         <p className="faint small">{t("Runs entirely on this machine, from saved prices, company numbers and headlines.", "पूरी तरह इसी मशीन पर चलता है, सहेजे गए भाव, कंपनी के आँकड़ों और सुर्ख़ियों से।")}</p>
       </section>
+      <Arena />
       <ResearchSummary />
       <details className="tech-details">
         <summary>{t("How the analyst desks reasoned (technical detail)", "विश्लेषक डेस्क ने कैसे सोचा (तकनीकी ब्योरा)")}
@@ -147,7 +149,7 @@ export function Research() {
 /* ------------------------------------------------------------ Assistant */
 export function Assistant() {
   return (
-    <div className="assistant-stage">
+    <div className="assistant-stage" data-theme="dark">
       <div className="canvas-layer">
         <Canvas camera={{ position: [0, 0.35, 6.0], fov: 54 }} dpr={[1, 1.5]}
                 gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}>

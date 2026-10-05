@@ -3,7 +3,7 @@
 .sum-head h2 { margin: 0 0 4px; font-size: 24px; }
 .sum-about { margin: 0 0 6px; color: var(--text-dim); font-size: 15.5px; line-height: 1.5; }
 .sum-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin: 12px 0; align-items: start; }
-.sum-col { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--rule); background: rgba(255,255,255,.03); }
+.sum-col { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--rule); background: rgb(var(--wash) / .03); }
 .sum-col h3 { margin: 0 0 8px; font-size: 17px; }
 .sum-col h3 small { color: var(--text-dim); font-weight: 400; }
 .sum-col.good { border-color: rgba(98, 210, 162,.4); background: rgba(98, 210, 162,.05); }
@@ -11,7 +11,7 @@
 .sum-col.watch { border-color: rgba(255, 159, 90,.45); background: rgba(255, 159, 90,.05); }
 .sum-col.watch h3 { color: var(--amber); }
 .sum-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.sum-col li b { display: block; font-size: 15.5px; color: #fff; margin-bottom: 2px; }
+.sum-col li b { display: block; font-size: 15.5px; color: var(--strong); margin-bottom: 2px; }
 .sum-col li span { display: block; font-size: 14.5px; line-height: 1.55; color: var(--text); }
 .sum-none { margin: 0; color: var(--text-dim); font-size: 14.5px; }
 .sum-you { padding: 10px 14px; border-left: 3px solid var(--cyan); background: rgba(242, 185, 75,.06); margin: 8px 0; }

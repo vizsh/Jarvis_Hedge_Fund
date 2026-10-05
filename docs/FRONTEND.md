@@ -79,3 +79,14 @@ Charts (all interactive, keyboard-reachable, reduced-motion safe):
 - `components/Chart.tsx`: portfolio value vs benchmark (TradingView lightweight-charts, themed), with 1M/3M/6M/1Y range chips and a live crosshair readout.
 - `components/charts/FanChart.tsx`: goal range-of-outcomes (bad / typical / good paths, goal line, hover or arrow-key readout, animated reveal).
 - `components/charts/AllocationMap.tsx`: squarified treemap by sector then company; a sector over the person's own cap is outlined in coral.
+
+## Light and dark themes
+`lib/theme.ts` + the sun/moon button in the top bar. The choice follows the operating system until you press the button, then is remembered (`jarvis.theme`); an inline script in `index.html` sets it before first paint so there is no flash. Both themes are token sets in `styles-theme.css` (`[data-theme="dark"]` / `[data-theme="light"]`); translucent whites in older CSS are now `rgb(var(--wash) / a)` so they flip to translucent ink in light mode. The canvas chart re-reads its colours on the `jarvis:theme` event. The 3D assistant stage and the WhatsApp phone mock are designed dark and stay dark in both.
+
+## The analyst arena (Research page)
+`components/research/Arena.tsx` draws what the backend actually does when a company is analysed, driven only by real events, in the order they happened: dated **evidence** (grouped prices / company numbers / headlines / filings) is shared with **three analyst desks that reason at once** (pulses travel along the lines while a desk is thinking); each **claim** that survives the citation gate flies to its side of the **committee balance** (supports / cautions), a claim without a valid citation is shown being **dropped**; then the **Red Team** (waiting until the analysts finish) reads their conclusions and argues the opposite side; the balance tilts with the weight of what survived and the **plain summary** node lights up. A five-step strip, live counters (evidence shared, claims kept, dropped, analyst agreement, evidence quality) and a feed of the latest claims accompany it; hovering a claim lights the evidence it cites.
+
+Backend support: `agents/orchestrator.run_desks(on_event=...)` reports `analysts_start`, each `desk_done` the moment that desk finishes, and `red_start`; `pipeline.do_investigate` turns them into `agent.state` (including `waiting`), `claim`, `claim.rejected` and the new `consensus` event as they happen instead of after all desks have finished.
+
+## Govern page
+A permanent "Your limits, right now" header draws the three rules the firewall enforces (largest single stock, largest industry, cash floor) as bars with the limit marked, then a segmented control switches between Check a trade, Rebalance, Audit record and Tamper test, so the page is no longer one 5,000 px scroll.

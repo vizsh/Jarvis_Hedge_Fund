@@ -35,6 +35,7 @@ class EventType(str, Enum):
     AGENT_STATE = "agent.state"        # idle|thinking|done|failed per desk
     CLAIM = "claim"                    # an agent claim WITH citations
     CLAIM_REJECTED = "claim.rejected"  # dropped: no citations. This is the anti-hallucination counter.
+    CONSENSUS = "consensus"            # the analysts have finished: what they lean to, and what the Red Team must oppose
     CONVICTION = "conviction"          # fused score + groupthink flag
 
     # --- provenance graph ---

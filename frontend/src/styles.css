@@ -53,7 +53,7 @@ body::after {
   content: "";
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgb(var(--wash) / 0.016) 0 1px, transparent 1px 3px),
     linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px) 0 0 / 64px 64px,
     linear-gradient(0deg, var(--rule-soft) 1px, transparent 1px) 0 0 / 64px 64px;
   mix-blend-mode: screen;
@@ -135,7 +135,7 @@ body::after {
 }
 .brand {
   font-family: var(--display); font-weight: 700; font-size: 16px;
-   color: #fff; white-space: nowrap; flex-shrink: 0;
+   color: var(--strong); white-space: nowrap; flex-shrink: 0;
   text-shadow: 0 0 16px rgba(242, 185, 75, 0.65);
 }
 .brand span { color: var(--cyan); }
@@ -182,7 +182,7 @@ body::after {
 .boot-line.ok { color: var(--text-dim); }
 .boot-line.warn { color: var(--amber); }
 .boot-line.fail { color: var(--red); }
-.boot-line:first-child { color: #fff; font-size: 15px; letter-spacing: 0.1em; }
+.boot-line:first-child { color: var(--strong); font-size: 15px; letter-spacing: 0.1em; }
 @keyframes bootIn { from { opacity: 0; transform: translateX(-9px) } to { opacity: 1; transform: none } }
 .boot-cursor {
   display: inline-block; width: 8px; height: 14px; background: var(--cyan);
@@ -234,7 +234,7 @@ body::after {
   color: var(--text-dim); margin-bottom: 4px;
 }
 .meter .row b { color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-.meter .track { height: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.meter .track { height: 4px; background: rgb(var(--wash) / 0.06); overflow: hidden; }
 .meter .fill {
   height: 100%; background: linear-gradient(90deg, var(--violet), var(--cyan));
   transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -246,7 +246,7 @@ body::after {
 
 /* exposure bar with a cap marker — the limit has to be visible, not implied */
 .expo { margin-bottom: 7px; }
-.expo .track { position: relative; height: 14px; background: rgba(255,255,255,0.05); }
+.expo .track { position: relative; height: 14px; background: rgb(var(--wash) / 0.05); }
 .expo .fill { height: 100%; background: linear-gradient(90deg, var(--violet-dim), var(--cyan-dim)); }
 .expo .fill.over { background: linear-gradient(90deg, rgba(122,23,48,0.7), var(--red)); }
 .expo .cap {
@@ -404,7 +404,7 @@ body::after {
 
 .phase-pips { display: flex; gap: 5px; }
 .pip {
-  width: 22px; height: 3px; background: rgba(255,255,255,0.12); cursor: pointer;
+  width: 22px; height: 3px; background: rgb(var(--wash) / 0.12); cursor: pointer;
   transition: all 0.25s;
 }
 .pip.on { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
@@ -478,7 +478,7 @@ body::after {
 
 .prompter-rail { display: flex; gap: 3px; margin-top: 9px; }
 .prompter-rail .tick {
-  flex: 1; height: 3px; background: rgba(255,255,255,0.1); cursor: pointer;
+  flex: 1; height: 3px; background: rgb(var(--wash) / 0.1); cursor: pointer;
   transition: background 0.2s;
 }
 .prompter-rail .tick.done { background: var(--violet-dim); }

@@ -10,7 +10,8 @@ import { setVoiceFor, useLang, voiceFor } from "../lib/lang";
 import { speak } from "../lib/speak";
 import { ForceStop } from "./Chrome";
 import { MicIcon } from "./VoiceInput";
-import { Mark } from "./Icon";
+import { Icon, Mark } from "./Icon";
+import { useTheme } from "../lib/theme";
 import { KioskToggle } from "./KioskBar";
 import { usePilot } from "../lib/pilot";
 import { send } from "../lib/socket";
@@ -34,12 +35,25 @@ function VoicePicker() {
   );
 }
 
+function ThemeToggle() {
+  const theme = useTheme((s) => s.theme);
+  const toggle = useTheme((s) => s.toggle);
+  const hi = useLang((s) => s.lang) === "hi";
+  return (
+    <button className="theme-toggle" onClick={toggle} aria-label={theme === "dark" ? (hi ? "हल्की थीम" : "Switch to light theme") : (hi ? "गहरी थीम" : "Switch to dark theme")}
+            title={theme === "dark" ? "Light theme" : "Dark theme"}>
+      <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
+    </button>
+  );
+}
+
 function LangSwitch() {
   const lang = useLang((s) => s.lang);
   const set = useLang((s) => s.set);
   return (
     <div className="langsw" role="group" aria-label="Answer language">
       <KioskToggle />
+      <ThemeToggle />
       <button className={lang === "en" ? "on" : ""} onClick={() => set("en")}>EN</button>
       <button className={lang === "hi" ? "on" : ""} onClick={() => set("hi")} title="उत्तर हिन्दी में">हिन्दी</button>
     </div>

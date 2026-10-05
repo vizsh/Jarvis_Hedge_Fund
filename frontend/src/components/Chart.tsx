@@ -31,7 +31,7 @@ export function PortfolioChart() {
       layout: { background: { color: "transparent" }, textColor: "#7d7f87", fontSize: 11,
                 fontFamily: "Instrument Sans, system-ui, sans-serif" },
       grid: { vertLines: { visible: false },
-              horzLines: { color: "rgba(255,255,255,0.045)" } },
+              horzLines: { color: "rgb(var(--wash) / 0.045)" } },
       rightPriceScale: { borderColor: "rgba(242, 185, 75,0.16)" },
       timeScale: { borderColor: "rgba(242, 185, 75,0.16)", fixLeftEdge: true },
       crosshair: { vertLine: { color: "rgba(242, 185, 75,0.4)", width: 1 },
@@ -53,10 +53,22 @@ export function PortfolioChart() {
       color: "rgba(141, 162, 255,0.85)", lineWidth: 1, lineStyle: 2,
       priceLineVisible: false, crosshairMarkerVisible: false,
     });
+    const paint = () => {
+      const css = getComputedStyle(document.documentElement);
+      const acc = css.getPropertyValue("--accent").trim() || "#f2b94b", vio = css.getPropertyValue("--violet").trim() || "#8da2ff";
+      const dim = css.getPropertyValue("--text-faint").trim() || "#7d7f87", wash = css.getPropertyValue("--wash").trim().split(/\s+/).join(",") || "255,255,255";
+      chart.current?.applyOptions({ layout: { textColor: dim }, grid: { horzLines: { color: `rgba(${wash},0.07)` } },
+        rightPriceScale: { borderColor: `rgba(${wash},0.12)` }, timeScale: { borderColor: `rgba(${wash},0.12)` },
+        crosshair: { vertLine: { color: `rgba(${wash},0.35)` }, horzLine: { color: `rgba(${wash},0.35)` } } });
+      port.current?.applyOptions({ lineColor: acc, topColor: acc + "4d", bottomColor: acc + "00" });
+      bench.current?.applyOptions({ color: vio });
+    };
+    paint();
+    window.addEventListener("jarvis:theme", paint);
     const onResize = () =>
       box.current && chart.current?.applyOptions({ width: box.current.clientWidth });
     window.addEventListener("resize", onResize);
-    return () => { window.removeEventListener("resize", onResize); chart.current?.remove(); };
+    return () => { window.removeEventListener("resize", onResize); window.removeEventListener("jarvis:theme", paint); chart.current?.remove(); };
   }, []);
 
   const applyRange = () => {

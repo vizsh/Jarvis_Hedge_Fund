@@ -110,7 +110,7 @@
 }
 .modal {
   width: min(620px, 94vw); max-height: 86vh; display: flex; flex-direction: column;
-  background: rgba(8, 6, 18, 0.97); border: 1px solid var(--rule); position: relative;
+  background: var(--glass-bg); border: 1px solid var(--rule); position: relative;
 }
 .modal::before, .modal::after {
   content: ""; position: absolute; width: 13px; height: 13px; border-color: var(--cyan);
@@ -165,7 +165,7 @@
 .search-wrap { position: relative; margin-bottom: 10px; }
 .suggest {
   position: absolute; left: 0; right: 0; top: 100%; z-index: 5;
-  background: rgba(8, 6, 18, 0.98); border: 1px solid var(--cyan-dim);
+  background: var(--glass-bg); border: 1px solid var(--cyan-dim);
 }
 .suggest-row {
   display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;

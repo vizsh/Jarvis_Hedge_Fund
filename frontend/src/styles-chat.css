@@ -1,36 +1,36 @@
 /* ---- chat thread + structured answer cards */
-.chat { position: absolute; left: 16px; top: 16px; bottom: 236px; width: min(440px, calc(100% - 32px)); z-index: 4; display: flex; flex-direction: column; border-radius: 14px; background: rgba(8, 14, 22, .82); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(0,0,0,.45); overflow: hidden; }
-.chat-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.chat { position: absolute; left: 16px; top: 16px; bottom: 236px; width: min(440px, calc(100% - 32px)); z-index: 4; display: flex; flex-direction: column; border-radius: 14px; background: rgba(8, 14, 22, .82); border: 1px solid rgb(var(--wash) / .12); backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(0,0,0,.45); overflow: hidden; }
+.chat-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid rgb(var(--wash) / .08); }
 .chat-head b { margin-right: auto; font-size: 14px; }
 .chat-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
-.chat-empty p { color: #9fb3c8; font-size: 13.5px; margin: 0 0 10px; }
+.chat-empty p { color: var(--text-dim); font-size: 13.5px; margin: 0 0 10px; }
 .bubble-you { align-self: flex-end; max-width: 85%; padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: rgba(0,229,255,.16); border: 1px solid rgba(0,229,255,.35); font-size: 14px; }
-.bubble-jarvis { align-self: flex-start; max-width: 92%; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.06); font-size: 13.5px; color: #cfe0f0; }
+.bubble-jarvis { align-self: flex-start; max-width: 92%; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: rgb(var(--wash) / .06); font-size: 13.5px; color: var(--text); }
 
-.voicetoggle { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; cursor: pointer; color: inherit; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); transition: background .2s, border-color .2s; }
+.voicetoggle { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; cursor: pointer; color: inherit; border: 1px solid rgb(var(--wash) / .2); background: rgb(var(--wash) / .06); transition: background .2s, border-color .2s; }
 .voicetoggle.on { border-color: var(--cyan); background: rgba(0,229,255,.12); }
 .voicetoggle.off { border-color: rgba(255, 159, 90,.6); background: rgba(255, 159, 90,.1); }
 
-.acard { display: flex; flex-direction: column; gap: 9px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-left: 3px solid var(--cyan); animation: pop .3s ease; }
+.acard { display: flex; flex-direction: column; gap: 9px; padding: 12px 14px; border-radius: 12px; background: rgb(var(--wash) / .05); border: 1px solid rgb(var(--wash) / .1); border-left: 3px solid var(--cyan); animation: pop .3s ease; }
 .acard.scam_help, .acard.tip_scan, .acard.predict { border-left-color: #ff7a70; }
 .acard.fund_overlap, .acard.fee_drag { border-left-color: #ff9f5a; }
 .acard.emergency, .acard.goal, .acard.digest { border-left-color: #62d2a2; }
 .acard-head { font-size: 15.5px; font-weight: 700; line-height: 1.4; }
 .acard.compact .acard-head { font-size: 14.5px; }
 .afacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 7px; }
-.afact { display: flex; flex-direction: column; gap: 1px; padding: 7px 9px; border-radius: 8px; background: rgba(255,255,255,.06); }
+.afact { display: flex; flex-direction: column; gap: 1px; padding: 7px 9px; border-radius: 8px; background: rgb(var(--wash) / .06); }
 .afact-v { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.afact-l { font-size: 11px; color: #9fb3c8; }
+.afact-l { font-size: 11px; color: var(--text-dim); }
 .afact.good .afact-v { color: #62d2a2; } .afact.bad .afact-v { color: #ff968c; } .afact.warn .afact-v { color: #ffb86b; }
-.atable-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgba(255,255,255,.08); }
+.atable-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgb(var(--wash) / .08); }
 .atable { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.atable th { text-align: left; font-weight: 600; color: #9fb3c8; padding: 5px 8px; background: rgba(255,255,255,.04); white-space: nowrap; }
-.atable td { padding: 5px 8px; border-top: 1px solid rgba(255,255,255,.06); }
+.atable th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 5px 8px; background: rgb(var(--wash) / .04); white-space: nowrap; }
+.atable td { padding: 5px 8px; border-top: 1px solid rgb(var(--wash) / .06); }
 .abullets { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; line-height: 1.5; color: #d6e4f2; }
 .aaction { padding: 8px 10px; border-radius: 8px; background: rgba(0,229,255,.1); font-size: 13.5px; }
-.adetail summary { cursor: pointer; font-size: 12px; color: #8fb0cc; } .adetail p { margin: 6px 0 0; font-size: 12.5px; color: #9fb3c8; line-height: 1.5; }
+.adetail summary { cursor: pointer; font-size: 12px; color: #8fb0cc; } .adetail p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .atools, .achips { display: flex; flex-wrap: wrap; gap: 6px; }
-.abtn { padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; color: inherit; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.05); }
+.abtn { padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; color: inherit; border: 1px solid rgb(var(--wash) / .2); background: rgb(var(--wash) / .05); }
 .abtn:hover { border-color: var(--cyan); } .abtn.primary { background: rgba(0,229,255,.16); border-color: var(--cyan); font-weight: 700; }
 .achip { padding: 5px 11px; border-radius: 999px; font-size: 12.5px; cursor: pointer; color: #bfe9f5; border: 1px solid rgba(0,229,255,.35); background: rgba(0,229,255,.06); text-align: left; }
 .achip:hover { background: rgba(0,229,255,.18); }

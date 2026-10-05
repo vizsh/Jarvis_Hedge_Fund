@@ -122,7 +122,7 @@ export function CorrelationPanel() {
   const tickers = Object.keys(data.names ?? {});
 
   const cell = (a: string, b: string) => {
-    if (a === b) return { bg: "rgba(255,255,255,0.10)", v: 1 };
+    if (a === b) return { bg: "rgb(var(--wash) / 0.10)", v: 1 };
     const r = data.matrix?.[a]?.[b];
     if (r == null) return { bg: "transparent", v: null };
     // Red for "these are the same bet", blue for genuinely independent.
