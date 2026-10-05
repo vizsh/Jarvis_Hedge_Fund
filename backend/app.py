@@ -1166,6 +1166,25 @@ async def tts_status() -> dict:
             "voices": tts_mod.catalogue()}
 
 
+class SetupIn(BaseModel):
+    persona: str | None = None
+    features: list[str] = []
+
+
+@app.get("/setup")
+async def setup_get() -> dict:
+    """The prototype's features, the starting baskets, and what this install has chosen."""
+    from backend import setup as setup_mod
+    return {**setup_mod.catalogue(), "current": setup_mod.current(session.conn)}
+
+
+@app.post("/setup")
+async def setup_post(body: SetupIn) -> dict:
+    from backend import setup as setup_mod
+    cur = setup_mod.save(session.conn, body.persona, body.features)
+    return {"current": cur, "price": setup_mod.price_of(cur["features"]), "dummy": True}
+
+
 class ScanIn(BaseModel):
     text: str
 

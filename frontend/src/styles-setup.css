@@ -1,0 +1,24 @@
+/* Setup: baskets as big cards, a clear feature list, one obvious start button. */
+.su-h { margin: 26px 0 12px; font-size: 1.3rem; color: var(--strong); }
+.su-baskets { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.su-basket { display: flex; flex-direction: column; gap: 10px; text-align: left; padding: 20px; min-height: 230px; border-radius: 18px; cursor: pointer; font: inherit; color: var(--text); background: var(--surface); border: 1.5px solid var(--line-strong); box-shadow: var(--shadow-1); }
+.su-basket:hover { border-color: var(--accent); }
+.su-basket.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent) inset; }
+.su-bname { font-size: 1.2rem; font-weight: 700; color: var(--strong); }
+.su-who { font-size: 1rem; line-height: 1.5; color: var(--text-dim); }
+.su-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.su-chips i { font-style: normal; font-size: .85rem; padding: 4px 10px; border-radius: 999px; background: var(--surface-3); color: var(--text); }
+.su-price { font-weight: 700; color: var(--accent); }
+.su-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.su-feat { display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 12px; align-items: start; padding: 14px 16px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--line); cursor: pointer; }
+.su-feat.on { border-color: var(--accent); }
+.su-feat input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); grid-row: span 2; }
+.su-fname { font-weight: 700; color: var(--strong); }
+.su-fblurb { grid-column: 2 / 4; font-size: .95rem; color: var(--text-dim); line-height: 1.45; }
+.su-tier { font-size: .9rem; font-weight: 700; }
+.su-tier.free { color: var(--green); } .su-tier.paid { color: var(--amber); }
+.su-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 26px 0 8px; padding: 18px 20px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.su-foot b { color: var(--strong); } .su-foot small { display: block; color: var(--text-dim); margin-top: 2px; }
+.su-foot .btn.go { min-height: 52px; padding: 0 24px; font-size: 1.05rem; }
+.su-locked { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; max-width: 620px; }
+.su-locked p { margin: 0; font-size: 1.05rem; line-height: 1.6; }

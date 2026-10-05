@@ -16,6 +16,7 @@ import { go, hashParams, useHash } from "../lib/router";
 import { send } from "../lib/socket";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
+import { featureOf, useSetup } from "../lib/setup";
 import { ActionQueue, JobsLauncher } from "../components/Actions";
 import { CalibrationPanel } from "../components/Calibration";
 import { CommandBar, Scrubber } from "../components/Chrome";
@@ -49,7 +50,7 @@ export function Home() {
     <Page title="Know what you own. Stay in control."
           lead={t("A plain-language guard for your money. Pick where to go, or just ask the assistant at the bottom right.", "आपके पैसे की सरल भाषा में निगरानी। जहाँ जाना हो चुनिए, या नीचे दाएँ सहायक से सीधे पूछिए।")}>
       <nav className="tiles" aria-label={t("Pages", "पेज")}>
-        {TILES.map((x) => (
+        {TILES.filter((x) => useSetup.getState().features.includes(featureOf(x.to))).map((x) => (
           <a className="tile" key={x.to} href={"#" + x.to}>
             <span className="tile-ic" aria-hidden><Icon name={x.icon} size={22} /></span>
             <h2>{hi ? x.hi[0] : x.en[0]}</h2>

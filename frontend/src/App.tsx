@@ -21,6 +21,8 @@ import Govern from "./pages/Govern";
 import Practice from "./pages/Practice";
 import { Assistant, Home, Learn, Portfolio, Research } from "./pages/Pages";
 import { TourOverlay } from "./components/TourOverlay";
+import { featureOf, useSetup } from "./lib/setup";
+import { Locked, Setup } from "./pages/Setup";
 
 // Where each named panel lives, so the command palette and guided flows can send you there.
 const PANEL_ROUTE: Record<string, string> = {
@@ -41,7 +43,11 @@ export default function App() {
   const setBuilder = useUI((s) => s.setBuilder);
   const setReport = useGuide((s) => s.setReport);
 
-  useEffect(() => { connect(); initVoices(); installBargeIn(); }, []);
+  useEffect(() => { connect(); initVoices(); installBargeIn(); void useSetup.getState().load(); }, []);
+  const setupState = useSetup();
+  const setupFeatures = setupState.features;
+  // First visit: go to setup once, then never force it again.
+  useEffect(() => { if (setupState.loaded && !setupState.done && route !== "/setup") go("/setup"); }, [setupState.loaded, setupState.done, route]);
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -54,8 +60,10 @@ export default function App() {
     return () => window.removeEventListener("jarvis:open", onOpen);
   }, [setBuilder, setReport]);
 
+  const isLocked = route !== "/" && route !== "/setup" && !setupFeatures.includes(featureOf(route));
   const page =
-    route === "/portfolio" ? <Portfolio />
+    isLocked ? <Locked route={route} />
+    : route === "/portfolio" ? <Portfolio />
     : route === "/protect" ? <Protect key={hash} />
     : route === "/rural" ? <Rural key={hash} />
     : route === "/whatsapp" ? <WhatsApp />
@@ -64,6 +72,7 @@ export default function App() {
     : route === "/govern" ? <Govern />
     : route === "/research" ? <Research />
     : route === "/assistant" ? <Assistant />
+    : route === "/setup" ? <Setup />
     : <Home />;
 
   return (

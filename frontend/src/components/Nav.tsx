@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { go, HI_LABEL, ROUTES, useRoute } from "../lib/router";
+import { featureOf, useSetup } from "../lib/setup";
 import { onVoice, stop as stopNow } from "../lib/speak";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
@@ -67,6 +68,7 @@ export function TopNav() {
   const fund = useStore((s) => s.fund);
   const setBuilder = useUI((s) => s.setBuilder);
   const ref = useRef<HTMLElement>(null);
+  const setupFeatures = useSetup((s) => s.features);
   // The nav wraps to two rows on narrower screens; pages that fill "the rest of the screen" read its real height.
   useEffect(() => {
     const el = ref.current;
@@ -81,11 +83,12 @@ export function TopNav() {
     <header className="topnav" ref={ref}>
       <a className="brand-mini" href="#/"><Mark size={28} /><b>Jarvis</b></a>
       <nav className="navlinks" aria-label="Pages">
-        {ROUTES.map((r) => (
+        {ROUTES.filter((r) => setupFeatures.includes(featureOf(r.path))).map((r) => (
           <a key={r.path} href={"#" + r.path} className={route === r.path ? "on" : ""}>{lang === "hi" ? HI_LABEL[r.label] ?? r.label : r.label}</a>
         ))}
       </nav>
       <div className="nav-right">
+        <button className="btn sm ghost" onClick={() => go("/setup")} title="My prototype">{lang === "hi" ? "मेरा सेटअप" : "My setup"}</button>
         <button className="btn sm ghost" onClick={() => setBuilder(true)}
                 title="Load, build or paste a portfolio">
           {fund?.portfolio_name ?? "Portfolio"} ▾
