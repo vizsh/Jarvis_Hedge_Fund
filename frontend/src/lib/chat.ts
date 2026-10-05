@@ -53,6 +53,8 @@ interface ChatState {
   pending: number;            // when the last question was sent and not yet answered (0 = nothing waiting)
   voice: boolean;
   push: (m: Omit<ChatMessage, "id" | "at">) => void;
+  /** A question that was spoken: the server answers it directly, so the answer may arrive before the transcript does. */
+  pushSpoken: (text: string) => void;
   clear: () => void;
   setVoice: (on: boolean) => void;
 }
@@ -64,6 +66,18 @@ export const useChat = create<ChatState>((set) => ({
   voice: voiceReplies(),
   pending: 0,
   push: (m) => set((s) => ({ messages: [...s.messages.slice(-60), { ...m, id: nextId++, at: Date.now() }], pending: m.who === "you" ? Date.now() : 0 })),
+  pushSpoken: (text) => set((s) => {
+    const ms = s.messages;
+    const last = ms[ms.length - 1];
+    const prev = ms[ms.length - 2];
+    if (ms.some((m) => m.who === "you" && m.text === text && Date.now() - m.at < 15000)) return s;
+    const q: ChatMessage = { id: nextId++, who: "you", text, at: Date.now() };
+    // answer already shown with no question above it: put the question in front of it
+    if (last && last.who === "jarvis" && Date.now() - last.at < 20000 && (!prev || prev.who === "jarvis")) {
+      return { messages: [...ms.slice(0, -1), q, last], pending: 0 };
+    }
+    return { messages: [...ms.slice(-60), q], pending: Date.now() };
+  }),
   clear: () => set({ messages: [], pending: 0 }),
   setVoice: (on) => { setVoiceReplies(on); set({ voice: on }); },
 }));

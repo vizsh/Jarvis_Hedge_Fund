@@ -21,6 +21,7 @@
 
 import { create } from "zustand";
 
+import { useChat } from "./chat";
 import { useLang } from "./lang";
 import * as socket from "./socket";
 import { allowSpeech, interrupt } from "./speak";
@@ -116,6 +117,8 @@ export const useVoice = create<VoiceState>((set, get) => ({
     }
     if (result?.transcript) {
       set({ heard: result.transcript, heardAt: Date.now() });
+      // a spoken question appears in the chat like a typed one, above its answer
+      if (result.ok) useChat.getState().pushSpoken(result.transcript);
     }
     if (!result || !result.ok) {
       set({ error: socket.micError ?? "I could not make that out. Tap the microphone and try again." });
