@@ -219,3 +219,5 @@ p, li, label, td, th { font-size: 1rem; }
 /* warnings and good news read on the light background */
 .rural-table tr.bad td, .bad { color: var(--red); font-weight: 600; }
 .rural-table td.good, .good { color: var(--green); font-weight: 600; }
+/* selects on the rural forms: light field, dark text (the theme's select colour was grey on light) */
+.rural-card select, .rural-form select, .rural-row select, .card select { background: var(--surface) !important; color: var(--strong) !important; border: 1.5px solid var(--line-strong) !important; }
