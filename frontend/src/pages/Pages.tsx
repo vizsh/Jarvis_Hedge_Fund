@@ -47,11 +47,11 @@ const TILES: { to: string; icon: string; en: [string, string]; hi: [string, stri
 
 export function Home() {
   const { t, hi } = useT();
+  const { features, all } = useSetup();
   return (
     <Page title="Know what you own. Stay in control."
           lead={t("A plain-language guard for your money. Pick where to go, or just ask the assistant at the bottom right.", "आपके पैसे की सरल भाषा में निगरानी। जहाँ जाना हो चुनिए, या नीचे दाएँ सहायक से सीधे पूछिए।")}>
       {(["fraud", "credit", "invest", "reach"] as const).map((g) => {
-        const { features, all } = useSetup.getState();
         const shown = TILES.filter((x) => features.includes(featureOf(x.to)) && all.find((f) => f.id === featureOf(x.to))?.group === g);
         if (!shown.length) return null;
         return (

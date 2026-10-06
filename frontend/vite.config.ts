@@ -16,7 +16,7 @@ export default defineConfig({
           "/rebalance", "/attribution", "/lots", "/history",
           "/tts", "/language", "/translate", "/scan", "/tax", "/firewall", "/sandbox", "/ledger",
           "/funds", "/myfunds", "/scamcall", "/feedrag", "/emergency", "/digest", "/goal", "/panic",
-          "/recovery", "/rural", "/research", "/twilio", "/messaging", "/offline", "/kiosk", "/stocks", "/actions", "/flows", "/palette", "/drilldown", "/report", "/watch"]
+          "/recovery", "/rural", "/research", "/twilio", "/messaging", "/offline", "/kiosk", "/stocks", "/actions", "/flows", "/palette", "/drilldown", "/report", "/watch", "/setup"]
         .map((route) => [route, "http://localhost:8000"]),
     ]),
   },
