@@ -10,26 +10,29 @@ from __future__ import annotations
 from typing import Any
 
 FEATURES: list[dict[str, Any]] = [
-    {"id": "assistant", "route": "/assistant", "tier": "free", "price": 0, "en": "Assistant", "hi": "सहायक",
+    {"id": "assistant", "group": "reach", "route": "/assistant", "tier": "free", "price": 0, "en": "Assistant", "hi": "सहायक",
      "blurb": "Ask in words or voice; answers with figures, charts and tours.", "blurb_hi": "बोलकर या लिखकर पूछिए; आँकड़े और चार्ट के साथ जवाब।"},
-    {"id": "rural", "route": "/rural", "tier": "free", "price": 0, "en": "Rural tools", "hi": "ग्रामीण औज़ार",
+    {"id": "rural", "group": "credit", "route": "/rural", "tier": "free", "price": 0, "en": "Rural tools", "hi": "ग्रामीण औज़ार",
      "blurb": "Moneylender cost, schemes, papers, harvest plan, group ledger.", "blurb_hi": "साहूकार का ब्याज, योजनाएँ, काग़ज़, फ़सल योजना, समूह बही।"},
-    {"id": "whatsapp", "route": "/whatsapp", "tier": "free", "price": 0, "en": "WhatsApp & SMS", "hi": "व्हाट्सऐप और SMS",
+    {"id": "whatsapp", "group": "reach", "route": "/whatsapp", "tier": "free", "price": 0, "en": "WhatsApp & SMS", "hi": "व्हाट्सऐप और SMS",
      "blurb": "The same tools on a basic phone, Hindi voice notes included.", "blurb_hi": "सादे फ़ोन पर वही औज़ार, हिंदी वॉइस नोट के साथ।"},
-    {"id": "protect", "route": "/protect", "tier": "free", "price": 0, "en": "Scam protection", "hi": "ठगी से सुरक्षा",
+    {"id": "protect", "group": "fraud", "route": "/protect", "tier": "free", "price": 0, "en": "Scam protection", "hi": "ठगी से सुरक्षा",
      "blurb": "Scam scripts, tip checker, recovery coach, tax shield.", "blurb_hi": "ठगी के तरीक़े, टिप जाँच, रिकवरी कोच, टैक्स बचत।"},
-    {"id": "learn", "route": "/learn", "tier": "free", "price": 0, "en": "Learn", "hi": "सीखें",
+    {"id": "learn", "group": "reach", "route": "/learn", "tier": "free", "price": 0, "en": "Learn", "hi": "सीखें",
      "blurb": "Plain-English explanations, goal range, glossary.", "blurb_hi": "सरल भाषा में समझ, लक्ष्य का दायरा, शब्दकोश।"},
-    {"id": "portfolio", "route": "/portfolio", "tier": "paid", "price": 199, "en": "Portfolio X-ray", "hi": "पोर्टफ़ोलियो एक्स-रे",
+    {"id": "portfolio", "group": "invest", "route": "/portfolio", "tier": "paid", "price": 199, "en": "Portfolio X-ray", "hi": "पोर्टफ़ोलियो एक्स-रे",
      "blurb": "Health grade, spread, allocation map and what-to-do list.", "blurb_hi": "सेहत ग्रेड, फैलाव, आवंटन और क्या करें सूची।"},
-    {"id": "research", "route": "/research", "tier": "paid", "price": 299, "en": "Research desk", "hi": "शोध डेस्क",
+    {"id": "research", "group": "invest", "route": "/research", "tier": "paid", "price": 299, "en": "Research desk", "hi": "शोध डेस्क",
      "blurb": "Company research: plain summary, analysts, charts, comparisons.", "blurb_hi": "कंपनी शोध: सरल सार, विश्लेषक, चार्ट, तुलना।"},
-    {"id": "practice", "route": "/practice", "tier": "paid", "price": 99, "en": "Practice tools", "hi": "अभ्यास औज़ार",
+    {"id": "practice", "group": "invest", "route": "/practice", "tier": "paid", "price": 99, "en": "Practice tools", "hi": "अभ्यास औज़ार",
      "blurb": "Fee drag, fund overlap, emergency meter, weekly digest.", "blurb_hi": "फ़ीस का असर, फ़ंड ओवरलैप, इमरजेंसी मीटर, साप्ताहिक सार।"},
-    {"id": "govern", "route": "/govern", "tier": "paid", "price": 499, "en": "Govern & audit", "hi": "नियम और ऑडिट",
+    {"id": "govern", "group": "reach", "route": "/govern", "tier": "paid", "price": 499, "en": "Govern & audit", "hi": "नियम और ऑडिट",
      "blurb": "Risk firewall, limits, rebalance, tamper-evident audit record.", "blurb_hi": "जोखिम की दीवार, सीमाएँ, संतुलन, छेड़छाड़-रोधी रिकॉर्ड।"},
 ]
-HOME = {"id": "home", "route": "/", "tier": "free", "price": 0, "en": "Home", "hi": "होम"}
+# Loss channel each feature addresses (docs/CONTEXT.md section 4): fraud, credit, invest, reach.
+GROUPS = ["fraud", "credit", "invest", "reach"]
+
+HOME = {"id": "home", "group": "reach", "route": "/", "tier": "free", "price": 0, "en": "Home", "hi": "होम"}
 
 ALL_IDS = [f["id"] for f in FEATURES]
 PAID_IDS = [f["id"] for f in FEATURES if f["tier"] == "paid"]

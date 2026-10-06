@@ -16,7 +16,8 @@ import { go, hashParams, useHash } from "../lib/router";
 import { send } from "../lib/socket";
 import { useStore } from "../lib/store";
 import { useUI } from "../lib/ui";
-import { featureOf, useSetup } from "../lib/setup";
+import { GROUP_LABEL, featureOf, useSetup } from "../lib/setup";
+import "../styles-setup.css";
 import { ActionQueue, JobsLauncher } from "../components/Actions";
 import { CalibrationPanel } from "../components/Calibration";
 import { CommandBar, Scrubber } from "../components/Chrome";
@@ -49,16 +50,25 @@ export function Home() {
   return (
     <Page title="Know what you own. Stay in control."
           lead={t("A plain-language guard for your money. Pick where to go, or just ask the assistant at the bottom right.", "आपके पैसे की सरल भाषा में निगरानी। जहाँ जाना हो चुनिए, या नीचे दाएँ सहायक से सीधे पूछिए।")}>
-      <nav className="tiles" aria-label={t("Pages", "पेज")}>
-        {TILES.filter((x) => useSetup.getState().features.includes(featureOf(x.to))).map((x) => (
-          <a className="tile" key={x.to} href={"#" + x.to}>
-            <span className="tile-ic" aria-hidden><Icon name={x.icon} size={22} /></span>
-            <h2>{hi ? x.hi[0] : x.en[0]}</h2>
-            <p>{hi ? x.hi[1] : x.en[1]}</p>
-            <span className="tile-go">{t("Open", "खोलें")} <Icon name="arrow" size={15} /></span>
-          </a>
-        ))}
-      </nav>
+      {(["fraud", "credit", "invest", "reach"] as const).map((g) => {
+        const { features, all } = useSetup.getState();
+        const shown = TILES.filter((x) => features.includes(featureOf(x.to)) && all.find((f) => f.id === featureOf(x.to))?.group === g);
+        if (!shown.length) return null;
+        return (
+          <section className="tile-group" key={g} aria-label={hi ? GROUP_LABEL[g].hi : GROUP_LABEL[g].en}>
+            <h3>{hi ? GROUP_LABEL[g].hi : GROUP_LABEL[g].en}<small>{hi ? GROUP_LABEL[g].blurb_hi : GROUP_LABEL[g].blurb}</small></h3>
+            <nav className="tiles" aria-label={hi ? GROUP_LABEL[g].hi : GROUP_LABEL[g].en}>
+              {shown.map((x) => (
+                <a className="tile" key={x.to} href={"#" + x.to}>
+                  <span className="tile-ic" aria-hidden><Icon name={x.icon} size={22} /></span>
+                  <h2>{hi ? x.hi[0] : x.en[0]}</h2>
+                  <p>{hi ? x.hi[1] : x.en[1]}</p>
+                  <span className="tile-go">{t("Open", "खोलें")} <Icon name="arrow" size={15} /></span>
+                </a>
+              ))}
+            </nav>
+          </section>);
+      })}
     </Page>
   );
 }

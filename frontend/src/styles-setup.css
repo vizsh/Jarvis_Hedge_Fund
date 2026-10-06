@@ -77,3 +77,9 @@
 }
 @media (max-width: 480px) { .su-opt { grid-template-columns: 22px 1fr; } .su-oprice { grid-column: 2; } .su-row { grid-template-columns: 1fr 52px; } .su-rprice { display: none; } }
 @media (prefers-reduced-motion: reduce) { .su-menu span, .su-opt.on .su-dot::after { animation: none; } .su-switch i, .su-opt, .su-row { transition: none; } }
+
+/* Loss-channel headings: setup rows and home tiles share the same label style. */
+.su-group h3 small, .tile-group h3 small { display: block; margin-top: 2px; font-size: .8rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-faint); }
+.tile-group { margin-top: 26px; }
+.tile-group:first-of-type { margin-top: 8px; }
+.tile-group h3 { margin: 0 0 10px; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }

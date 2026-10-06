@@ -3,9 +3,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "../styles-setup.css";
 import { useLang } from "../lib/lang";
 import { go } from "../lib/router";
-import { type Feat, type Persona, useSetup } from "../lib/setup";
+import { GROUP_LABEL, type Feat, type Persona, useSetup } from "../lib/setup";
 import { Page } from "./Page";
 
+const GROUPS = ["fraud", "credit", "invest", "reach"];
 const rupee = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 /** Counts from the old value to the new one, so a price change reads as a change rather than a jump. */
@@ -75,11 +76,11 @@ export function Setup() {
           <section className="su-sec">
             <header><span className="su-n">2</span><h2>{hi ? "सुविधाएँ चुनिए" : "Choose features"}</h2>
               <small>{chosen.length} {hi ? "चालू" : "on"}{persona && <> · {hi ? "शुरुआत" : "from"} <i>{hi ? persona.hi : persona.en}</i></>}</small></header>
-            {(["free", "paid"] as const).map((tier) => (
-              <div className="su-group" key={tier}>
-                <h3>{tier === "free" ? (hi ? "हमेशा मुफ़्त" : "Always free") : (hi ? "सशुल्क" : "Paid")}</h3>
+            {GROUPS.map((g) => (
+              <div className="su-group" key={g}>
+                <h3>{hi ? GROUP_LABEL[g].hi : GROUP_LABEL[g].en}<small>{hi ? GROUP_LABEL[g].blurb_hi : GROUP_LABEL[g].blurb}</small></h3>
                 <ul className="su-rows">
-                  {feats.filter((f) => f.tier === tier).map((f) => {
+                  {feats.filter((f) => f.group === g).map((f) => {
                     const on = chosen.includes(f.id);
                     return (
                       <li key={f.id}>
