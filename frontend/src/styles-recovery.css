@@ -30,8 +30,8 @@
 .rcv-drafts summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
 .rcv-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .rcv-texts { display: flex; flex-direction: column; gap: 10px; }
-.rcv-text { border-radius: 8px; border: 1px solid rgb(var(--wash) / .12); overflow: hidden; }
-.rcv-text-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: rgb(var(--wash) / .06); font-size: 13px; }
-.rcv-text pre { margin: 0; padding: 10px; white-space: pre-wrap; font: inherit; font-size: 12.5px; line-height: 1.55; color: #d6e4f2; }
+.rcv-text { border-radius: 8px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+.rcv-text-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--surface-2); color: var(--text); font-size: 13px; }
+.rcv-text pre { margin: 0; padding: 10px; white-space: pre-wrap; font: inherit; font-size: 13.5px; line-height: 1.6; color: var(--text); }
 .linklike { all: unset; cursor: pointer; text-decoration: underline; color: var(--text); }
 @media (max-width: 700px) { .rcv-top { grid-template-columns: 1fr; } }
