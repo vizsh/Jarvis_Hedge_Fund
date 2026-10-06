@@ -2,7 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      // Same front door as the backend: "/" goes to the landing page, which the backend serves at /landing/.
+      name: "landing-front-door",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === "/") {
+            res.statusCode = 302;
+            res.setHeader("Location", "/landing/");
+            res.end();
+            return;
+          }
+          next();
+        });
+      },
+    },
+  ],
   server: {
     port: 5173,
     // Every backend route needs an entry here. Adding an endpoint to FastAPI and
@@ -10,6 +27,7 @@ export default defineConfig({
     // index, the fetch "succeeds", and the feature just never works.
     proxy: Object.fromEntries([
       ["/ws", { target: "ws://localhost:8000", ws: true }],
+      ["/landing", "http://localhost:8000"],
       ...["/health", "/state", "/policy", "/prices", "/evidence", "/command", "/boot",
           "/stt", "/script", "/recordings", "/replay", "/record", "/calibration", "/universe", "/portfolios", "/profiles",
           "/xray", "/stress", "/ask", "/glossary", "/screen", "/correlation",
