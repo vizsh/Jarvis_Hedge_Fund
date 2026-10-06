@@ -145,6 +145,7 @@ VERIFY = [
     ("Company: mca.gov.in (is the company real and when was it formed?)", "कंपनी: mca.gov.in (क्या कंपनी असली है और कब बनी?)"),
     ("Cyber fraud: call 1930 or cybercrime.gov.in; otherwise your local police station", "साइबर ठगी: 1930 पर फ़ोन करें या cybercrime.gov.in; नहीं तो अपना थाना"),
 ]
+SAFE_BENCHMARK = 7.0   # yearly % of a bank fixed deposit: the benchmark a promise is compared with
 SAFE_YEARLY = [("Bank fixed deposit", "बैंक एफ़डी", 7.0), ("Post Office savings schemes", "डाकघर की बचत योजनाएँ", 7.5)]
 
 
@@ -174,18 +175,23 @@ def scheme_check(text: str = "", put: float | None = None, get: float | None = N
         if len(money) >= 2 and mo and money[1] > money[0]:
             put, get, months = money[0], money[1], mo
     hits = [(fid, w, en, hi) for fid, (w, en, hi, rx) in FLAGS.items() if re.search(rx, low)]
-    score = sum(w for _, w, _, _ in hits)
     ret = implied_return(put, get, months) if (put and get and months) else None
+    # Each signal is a probability-like weight p (0 to 1). They combine as 1 - prod(1 - p), so a second
+    # warning adds less than the first and the score cannot jump on one word. Return signal is smooth:
+    # 0 at the safe benchmark (7% a year), rising on a log scale to 60 points at 100% a year.
+    parts = [(fid, w, hi if lang == "hi" else en) for fid, w, en, hi in hits]
     rflags = []
-    if ret is not None:
-        if ret >= 30:
-            score += 40
-            rflags.append(t(f"The promise works out to {ret:,.0f}% a year. Bank deposits pay about 7%; nothing safe pays this.",
-                            f"यह वादा साल के {ret:,.0f}% के बराबर है। बैंक जमा लगभग 7% देते हैं; कोई सुरक्षित चीज़ इतना नहीं देती।"))
-        elif ret >= 15:
-            score += 20
-            rflags.append(t(f"The promise works out to {ret:,.0f}% a year, much more than safe options (about 7%). High returns carry high risk of loss.",
-                            f"यह वादा साल के {ret:,.0f}% के बराबर है, सुरक्षित विकल्पों (लगभग 7%) से बहुत ज़्यादा। ऊँचे मुनाफ़े में नुक़सान का ख़तरा भी ऊँचा होता है।"))
+    if ret is not None and ret > SAFE_BENCHMARK:
+        pts = min(60.0, 50.0 * math.log(ret / SAFE_BENCHMARK) / math.log(100.0 / SAFE_BENCHMARK))
+        if pts >= 1:
+            parts.append(("returns", round(pts), t(f"The promise works out to {ret:,.0f}% a year against about {SAFE_BENCHMARK:g}% from a bank deposit.",
+                                                   f"यह वादा साल के {ret:,.0f}% के बराबर है, जबकि बैंक जमा लगभग {SAFE_BENCHMARK:g}% देती है।")))
+            rflags.append(parts[-1][2])
+    keep = 1.0
+    for _fid, w, _txt in parts:
+        keep *= 1 - min(w, 100) / 100
+    score = int(round(100 * (1 - keep)))
+    breakdown = [{"id": fid, "points": int(round(w)), "text": txt} for fid, w, txt in parts]
     score = min(100, score)
     level = "red" if score >= 60 else "amber" if score >= 30 else "green"
     verdict = {
@@ -194,6 +200,7 @@ def scheme_check(text: str = "", put: float | None = None, get: float | None = N
         "green": t("No common red flag found in what you wrote. That is not proof it is safe: still verify it.", "आपके लिखे में कोई आम चेतावनी नहीं मिली। इसका मतलब यह नहीं कि यह सुरक्षित है: फिर भी जाँचिए।"),
     }[level]
     return {"score": score, "level": level, "verdict": verdict, "implied_yearly_pct": None if ret is None else round(ret, 1),
+            "breakdown": breakdown,
             "flags": [{"id": f, "text": hi if lang == "hi" else en, "weight": w} for f, w, en, hi in hits] + [{"id": "returns", "text": s, "weight": 0} for s in rflags],
             "compare": [{"name": hi if lang == "hi" else en, "yearly_pct": r} for en, hi, r in SAFE_YEARLY],
             "verify": [hi if lang == "hi" else en for en, hi in VERIFY],

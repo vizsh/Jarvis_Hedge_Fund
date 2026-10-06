@@ -221,3 +221,10 @@ p, li, label, td, th { font-size: 1rem; }
 .rural-table td.good, .good { color: var(--green); font-weight: 600; }
 /* selects on the rural forms: light field, dark text (the theme's select colour was grey on light) */
 .rural-card select, .rural-form select, .rural-row select, .card select { background: var(--surface) !important; color: var(--strong) !important; border: 1.5px solid var(--line-strong) !important; }
+
+/* Offer checker: how the score was built */
+.rural-why { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.rural-why h3 { margin: 0 0 4px; font-size: 14px; }
+.rural-why ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.rural-why li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--text); }
+.rural-why-pts { min-width: 3ch; font-family: var(--mono); font-weight: 700; color: var(--accent); }

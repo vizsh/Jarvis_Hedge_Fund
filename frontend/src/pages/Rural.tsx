@@ -108,7 +108,7 @@ function LoanTool({ init }: { init: Record<string, string> }) {
 }
 
 /* ------------------------------------------------------------------ A2 offer checker */
-type Offer = { score: number; level: string; verdict: string; rule: string; implied_yearly_pct: number | null;
+type Offer = { score: number; level: string; verdict: string; rule: string; implied_yearly_pct: number | null; breakdown: { id: string; points: number; text: string }[];
   flags: { id: string; text: string }[]; verify: string[]; compare: { name: string; yearly_pct: number }[] };
 
 function SchemeTool({ init }: { init: Record<string, string> }) {
@@ -142,6 +142,12 @@ function SchemeTool({ init }: { init: Record<string, string> }) {
         <div className={`rural-big ${r.level}`}><span>{r.score}</span><small>/100 {t("risk", "जोखिम")}</small></div>
         <p className="rural-head">{r.verdict}</p>
         {r.implied_yearly_pct !== null && <p>{t(`What they promise works out to ${Math.round(r.implied_yearly_pct)}% a year.`, `उनका वादा साल के ${Math.round(r.implied_yearly_pct)}% के बराबर है।`)} {t("A bank deposit pays about 7%.", "बैंक जमा लगभग 7% देती है।")}</p>}
+        {r.breakdown.length > 0 && (<div className="rural-why">
+          <h3>{t("How this score is built", "यह स्कोर कैसे बना")}</h3>
+          <p className="tiny muted">{t("Each signal adds less than the one before, so one word cannot decide the score. A zero means nothing was found, not that the offer is safe.", "हर संकेत पिछले से कम जोड़ता है, इसलिए एक शब्द स्कोर तय नहीं करता। शून्य का मतलब है कुछ नहीं मिला, यह नहीं कि ऑफ़र सुरक्षित है।")}</p>
+          <ul>{r.breakdown.map((x) => (
+            <li key={x.id}><span className="rural-why-pts">+{x.points}</span><span>{x.text}</span></li>))}</ul>
+        </div>)}
         {r.flags.length > 0 && <ul className="rural-flags">{r.flags.map((f) => <li key={f.id}>{f.text}</li>)}</ul>}
         <div className="rural-rule">{r.rule}</div>
         <h3>{t("Check it yourself", "ख़ुद जाँचिए")}</h3>
