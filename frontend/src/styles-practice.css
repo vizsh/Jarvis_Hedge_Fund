@@ -28,15 +28,16 @@
 @media (max-width: 800px) { .ovl { grid-template-columns: 1fr; } }
 
 /* ---- practice: scam call */
+/* Scam-call rehearsal: all colours come from theme tokens so the light and dark themes both read. */
 .scgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
-.sccard { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 16px; border-radius: 10px; background: linear-gradient(160deg, rgba(255, 122, 112,.12), rgb(var(--wash) / .03)); border: 1px solid rgba(255, 122, 112,.35); color: inherit; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.sccard { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--red); color: var(--text); cursor: pointer; transition: transform .15s, box-shadow .15s; }
 .sccard:hover { transform: translateY(-3px); box-shadow: 0 8px 26px rgba(255, 122, 112,.25); }
 .scicon { font-size: 26px; } .scgo { color: var(--cyan); font-weight: 700; margin-top: 4px; }
-.phone { max-width: 560px; margin: 0 auto; padding: 18px; border-radius: 26px; background: linear-gradient(180deg, #0c1622, #070d15); border: 1px solid rgb(var(--wash) / .15); box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 0 40px rgba(0,229,255,.05); display: flex; flex-direction: column; gap: 12px; }
+.phone { max-width: 560px; margin: 0 auto; padding: 18px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow, 0 8px 30px rgba(0,0,0,.08)); color: var(--text); display: flex; flex-direction: column; gap: 12px; }
 .phone-top { display: flex; align-items: center; gap: 14px; }
 .callname { font-size: 18px; font-weight: 700; } .calltime { color: var(--green); font-variant-numeric: tabular-nums; }
 .voicetog { margin-left: auto; }
-.avatar { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; background: rgb(var(--wash) / .1); position: relative; flex: none; }
+.avatar { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); position: relative; flex: none; }
 .avatar.ringing::before, .avatar.ringing::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--green); animation: ripple 1.6s infinite; }
 .avatar.ringing::after { animation-delay: .8s; }
 @keyframes ripple { from { transform: scale(1); opacity: .8; } to { transform: scale(2.1); opacity: 0; } }
@@ -45,21 +46,21 @@
 .callbtn:hover { transform: scale(1.1); } .callbtn.green { background: #1fbf6b; animation: shake 1s infinite; } .callbtn.red { background: #e5384f; }
 @keyframes shake { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-14deg); } 80% { transform: rotate(14deg); } 90% { transform: rotate(-8deg); } }
 .pressure { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-dim); }
-.pbar { flex: 1; height: 8px; border-radius: 4px; background: rgb(var(--wash) / .1); overflow: hidden; }
+.pbar { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .pbar div { height: 100%; background: #ff9f5a; transition: width .6s; } .pbar div.hi { background: #ff7a70; }
 .wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 34px; }
-.wave i { width: 3px; height: 4px; border-radius: 2px; background: var(--cyan); opacity: .5; }
+.wave i { width: 3px; height: 4px; border-radius: 2px; background: var(--accent); opacity: .5; }
 .wave.on i { animation: bar .6s ease-in-out infinite alternate; opacity: 1; }
 @keyframes bar { from { height: 4px; } to { height: 30px; } }
-.bubble.caller { min-height: 76px; padding: 12px 14px; border-radius: 14px 14px 14px 4px; background: rgba(255, 122, 112,.12); border: 1px solid rgba(255, 122, 112,.3); line-height: 1.5; }
+.bubble.caller { min-height: 76px; padding: 12px 14px; border-radius: 14px 14px 14px 4px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font-size: 15px; line-height: 1.6; }
 .flagpops { display: flex; flex-wrap: wrap; gap: 6px; }
-.flagpop { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: rgba(255, 159, 90,.15); border: 1px solid rgba(255, 159, 90,.5); color: #ffcf70; animation: pop .35s cubic-bezier(.2,1.6,.4,1); cursor: help; }
+.flagpop { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--red); color: var(--text); animation: pop .35s cubic-bezier(.2,1.6,.4,1); cursor: help; }
 @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .replies { display: flex; flex-direction: column; gap: 6px; }
-.reply { text-align: left; padding: 9px 12px; border-radius: 8px; background: rgb(var(--wash) / .06); border: 1px solid rgb(var(--wash) / .14); color: inherit; cursor: pointer; transition: background .15s, border-color .15s; }
-.reply:hover:not(:disabled) { background: rgba(0,229,255,.12); border-color: var(--cyan); }
+.reply { text-align: left; padding: 9px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s; }
+.reply:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
 .btn.danger { color: #ff7a90; border-color: rgba(255, 122, 112,.5); }
-.calllog { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #7e93a8; max-height: 110px; overflow: auto; border-top: 1px solid rgb(var(--wash) / .08); padding-top: 8px; }
+.calllog { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--text-dim); max-height: 110px; overflow: auto; border-top: 1px solid var(--line); padding-top: 8px; }
 .logline.you { color: var(--text); }
 .endcard { text-align: center; display: flex; flex-direction: column; gap: 8px; animation: pop .4s ease; }
 .endicon { font-size: 44px; } .endtitle { font-size: 22px; font-weight: 800; }
@@ -107,8 +108,8 @@
 .micbtn { display: inline-flex; align-items: center; gap: 6px; }
 .micbtn.listening { background: rgba(255, 122, 112, .22); border-color: #ff7a70; animation: micpulse 1.1s ease-in-out infinite; }
 @keyframes micpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 122, 112,.5); } 50% { box-shadow: 0 0 0 8px rgba(255, 122, 112,0); } }
-.micmsg { padding: 7px 10px; border-radius: 8px; background: rgba(0,229,255,.1); font-size: 13px; }
-.micmsg.warn { background: rgba(255, 159, 90,.12); color: #ffcf70; }
+.micmsg { padding: 7px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--text); font-size: 13.5px; }
+.micmsg.warn { background: var(--surface-2); color: var(--text); border-left: 3px solid var(--red); }
 .voicetog.hf { margin: 0; }
 
 .fd-inline { padding: 10px; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid rgb(var(--wash) / .1); }
