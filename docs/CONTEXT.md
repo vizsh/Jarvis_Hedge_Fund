@@ -87,7 +87,7 @@ Home is always on. The other nine (plus home makes ten) are below. Routes are ha
 | **Investing protection** | Portfolio X-ray (fees, overlap, concentration); Research desk (plain company summary, confidence on every line); Practice tools (fee drag, overlap, fund checks) |
 | **Reach and trust** | Assistant (English and Hindi, voice); WhatsApp and SMS (simulator today); Learn (checked topics, glossary); Govern and audit (limits and a tamper-evident record for advisers and banks) |
 
-Each feature page states its loss channel in one line. The home tiles and the setup screen use the same four groups.
+Not yet in the app: showing these groups on the home tiles, the setup screen and each feature page. That is the next UI step.
 
 Other things a user sees: the **Home** menu (tiles for the features they chose), the **My setup** button (change the basket and
 features at any time), the **Set up** page (`#/setup`), and the **locked-feature** page that appears when a feature is not in the
