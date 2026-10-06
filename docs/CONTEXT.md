@@ -3,7 +3,7 @@
 This is the single document to read before answering any question about the project, its problem, its users, its features, its
 numbers, or its status. Every other doc goes deeper on one area; this one says what the whole thing is and why.
 
-Last updated: 5 October 2026 (commit `470d22a` and later).
+Last updated: 6 October 2026 (commit `470d22a` and later).
 
 ---
 
@@ -18,19 +18,31 @@ It is a prototype, not a product. It is paper trading only (no broker, no real m
 
 ## 2. The problem it addresses
 
-The project's problem statement is about money and the people who lose the most from not understanding it. The three
-loss-making situations the product targets, with the figures used in the pitch (sources in section 9):
+**The problem in one sentence:** ordinary households, especially rural and first-time savers, lose money through three channels
+(scams, expensive informal credit, and fees or tips they cannot check). A plain-language check at the moment of decision can catch
+most of these early. Each loss also weakens the lender or bank that serves the household, so the problem reaches institutions too.
 
-| Problem | Scale | Who it hits | What JARVIS does |
+| Loss channel | What it looks like | Figure we can cite | Source and status |
 |---|---|---|---|
-| **Almost no one understands money** | 27% of Indian adults are financially literate; 24% in rural areas; over 80% of women are not (NCFE 2019) | Everyone, most of all rural adults and women | Plain explanations, a glossary, every number explained, Hindi voice and text |
-| **Digital fraud** | About ₹22,845 crore lost in 2024, up 206% on 2023's ₹7,465 crore; about 19 lakh financial-fraud complaints on NCRP in 2024 (I4C, as reported) | Anyone with a phone; the first-hour window decides recovery | Nine scam scripts, a scam-call rehearsal, a recovery coach that orders the first hour, a tip checker |
-| **Informal credit at very high rates** | Informal lenders charge typically 24–40% a year and up to about 150%; formal banks 6–20% (NSS-based summaries; dated, verify before quoting) | Farmers, daily-wage families, small traders | Moneylender cost check (monthly rate to yearly rate), credit-score guide, scheme finder |
-| **Investing without support** | About 9.5% of households participate in markets; rural about 6%, urban about 15% (SEBI Investor Survey 2025) | First-time and middle-class investors | Portfolio X-ray, fee drag, fund overlap, tax shield, research desk with plain summaries |
-| **Hidden costs and duplication** | A 2% fee can take about a third of 20 years of growth (illustration in the app) | Retail investors with several funds | Fee drag and overlap checks, shown as arithmetic |
+| **Digital fraud** | Panic transfers, OTP and remote-app scams, fake KYC and impersonation calls | About ₹22,845 crore lost in 2024, against about ₹7,465 crore in 2023; about 19 lakh financial-fraud complaints on NCRP in 2024 | I4C figures as reported in a 2025 industry summary. Quote the official I4C release before a pitch. |
+| **Informal credit** | A moneylender quotes ₹2 to ₹5 per ₹100 a month | Arithmetic, not a survey: 5% a month is 60% a year on simple interest, and more with compounding. A formal Kisan Credit Card costs about 7% a year, or about 4% with prompt-repayment interest relief (`backend/rural.py`) | The arithmetic is exact. The informal-rate range comes from older SIDBI and NSS-based summaries (dated, re-check before quoting). |
+| **Fees and unverified tips** | A fund fee quietly takes a large share of long-run growth; tips with no time frame or source | Shown in the app with the user's own inputs (a 2% fee on a 20-year horizon is an illustration, not a national statistic) | Calculation, not a survey. |
 
-Official problem-statement wording: **not stored in this repository.** If you have the exact text from the hackathon brief, paste it
-into section 2 so answers can quote it verbatim. Until then, the framing above is the one the product was built and pitched on.
+**Why it matters to lenders and banks.** A household that pays 60% a year on an informal loan has little left to repay a formal loan
+or to keep a savings account funded. That raises default risk on co-operative bank and microfinance loans, and it moves borrowers
+back to informal lenders once formal lenders tighten. The prototype does not measure these effects. A pilot with a partner bank
+would have to.
+
+**Context figures, with the caveat attached.**
+- Financial literacy: 27% of Indian adults overall and 24% in rural areas (NCFE 2019 survey).
+- Households in the securities market: about 9.5% overall, about 6% rural (SEBI Investor Survey 2025; verify on sebi.gov.in).
+- Rural share of GDP: about 46% of net domestic product (NITI Aayog / CSO estimates).
+- Rural share of deposits: strictly rural bank branches hold about 10 to 11% of scheduled bank deposits; rural plus semi-urban
+  branches hold about 28 to 30% (RBI Basic Statistical Returns). Always say which of the two you mean.
+
+**Figures we do not use until a source is found** (they appeared in an outside draft without a source): bank fraud of ₹48,000 crore
+in FY 2025–26; "₹5,000–8,000 crore recovered through 1930"; co-operative bank NPA of 35–38% and ₹7,500 crore of stressed rural
+assets; "trillions" of unclaimed benefits; and "25–30% of deposits" without the rural / semi-urban qualifier.
 
 ## 3. Who it is for: the reform (scope by audience)
 
@@ -64,7 +76,18 @@ Home is always on. The other nine (plus home makes ten) are below. Routes are ha
 | **Portfolio X-ray** (`#/portfolio`) | Paid | Health grade, spread, allocation map, what-to-do list, and a chart of your money against the index. | Retail investors | Working on sample portfolios. |
 | **Research desk** (`#/research`) | Paid | Search any listed stock. A plain-words summary: good points, watch-outs, peer ranks, confidence on every line, how current the data is. Four analyst desks and a forced sceptic study the company. Time machine. | Retail investors | Working. Summary reads growth, cash, valuation, ownership and price behaviour. |
 | **Practice tools** (`#/practice`) | Paid | Fund overlap checker, fee-drag slider, emergency-fund meter, weekly spoken digest, scam-call rehearsal. | Retail investors, anyone learning | Working. |
-| **Govern & audit** (`#/govern`) | Paid | Risk firewall that checks any trade against per-stock, per-industry and cash limits; rebalance simulator; hash-chained audit record; tamper test. | Banks, advisers, family offices | Working on the paper-trading portfolio. |
+| **Govern & audit** (`#/govern`) | Paid | Risk firewall that checks any trade against per-stock, per-industry and cash limits; rebalance simulator; tamper-evident audit record (hash-chained on this machine, not anchored outside it); tamper test. | Banks, advisers, family offices | Working on the paper-trading portfolio. |
+
+**Grouped by the loss each one addresses.** The features are not reduced or moved; this is how they are explained.
+
+| Loss channel | Features that address it |
+|---|---|
+| **Fraud shield** | Scam protection (scripts, rehearsal, tip checker, recovery coach); the Assistant's scam answers; the Learn topics on fraud |
+| **Credit cost** | Rural tools (moneylender check, KCC and SHG comparison, credit score guide, schemes, papers); the Assistant's loan answers |
+| **Investing protection** | Portfolio X-ray (fees, overlap, concentration); Research desk (plain company summary, confidence on every line); Practice tools (fee drag, overlap, fund checks) |
+| **Reach and trust** | Assistant (English and Hindi, voice); WhatsApp and SMS (simulator today); Learn (checked topics, glossary); Govern and audit (limits and a tamper-evident record for advisers and banks) |
+
+Each feature page states its loss channel in one line. The home tiles and the setup screen use the same four groups.
 
 Other things a user sees: the **Home** menu (tiles for the features they chose), the **My setup** button (change the basket and
 features at any time), the **Set up** page (`#/setup`), and the **locked-feature** page that appears when a feature is not in the
@@ -184,6 +207,7 @@ research with confidence marks; WhatsApp simulator with 30 everyday questions an
 assistant; offline pack for the rural tools; 532 passing tests.
 
 **Known gaps (be honest about these on any slide):**
+- The audit chain is tamper-evident, not tamper-proof. Someone who rewrites the whole chain can recompute every hash unless the latest hash is anchored somewhere outside the machine. Anchoring is not built.
 - WhatsApp is a simulator. A real number needs a Twilio account and the webhook (`docs/MESSAGING.md`).
 - The setup is saved once per install, not per user. A real product needs accounts.
 - Payments are dummy. No checkout, no invoices.

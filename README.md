@@ -2,6 +2,8 @@
 
 **A free, local, bilingual (English / हिन्दी) assistant that helps ordinary Indian savers protect their money, understand it, and keep it honest.**
 
+**The problem:** households lose money to scams, expensive informal credit and fees they cannot check. JARVIS checks those decisions in plain language, before the money moves. Features are grouped by loss channel in [docs/CONTEXT.md](docs/CONTEXT.md) §4.
+
 [![tests](https://img.shields.io/badge/tests-532%20passing-brightgreen)](docs/TESTING.md)
 ![local first](https://img.shields.io/badge/runs-100%25%20local-blue)
 ![languages](https://img.shields.io/badge/languages-English%20%7C%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-orange)
