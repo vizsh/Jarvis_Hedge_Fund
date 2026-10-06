@@ -83,3 +83,7 @@
 .tile-group { margin-top: 26px; }
 .tile-group:first-of-type { margin-top: 8px; }
 .tile-group h3 { margin: 0 0 10px; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
+
+/* Each loss-channel group spans the full page width; its tiles flow in a responsive grid. */
+.tile-group { width: 100%; grid-column: 1 / -1; min-width: 0; }
+.tile-group .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 320px)); justify-content: start; gap: 14px; }

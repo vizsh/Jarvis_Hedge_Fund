@@ -1,215 +1,266 @@
-# JARVIS // ALPHA OS
+# JARVIS // money, plainly
 
-**A free, local, bilingual (English / हिन्दी) assistant that helps ordinary Indian savers protect their money, understand it, and keep it honest.**
-
-**The problem:** households lose money to scams, expensive informal credit and fees they cannot check. JARVIS checks those decisions in plain language, before the money moves. Features are grouped by loss channel in [docs/CONTEXT.md](docs/CONTEXT.md) §4.
+**A free, local, bilingual (English and हिन्दी) money guard for Indian households.** It checks a decision before money moves: a scam call, a tip, a moneylender's quote, a fund's fee, a loan offer. Every number is computed by code you can read. No model writes a figure.
 
 [![tests](https://img.shields.io/badge/tests-532%20passing-brightgreen)](docs/TESTING.md)
 ![local first](https://img.shields.io/badge/runs-100%25%20local-blue)
 ![languages](https://img.shields.io/badge/languages-English%20%7C%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-orange)
-![paper trading](https://img.shields.io/badge/money-paper%20only-lightgrey)
+![money](https://img.shields.io/badge/money-paper%20only%20%C2%B7%20no%20charges-lightgrey)
+![status](https://img.shields.io/badge/status-prototype%20%C2%B7%20pre--pilot-yellow)
 
-> Not an alpha engine and not investment advice. Every number on screen is computed by code you can read, not guessed by an AI.
-> Paper trading only. No broker, no real money, no cloud.
-
-| Voice + text assistant | Fund overlap |
-|---|---|
-| ![Assistant chat with an inline fee slider](docs/img/assistant-chat.jpg) | ![Two funds hold the same stocks](docs/img/fund-overlap.jpg) |
-| **Scam call rehearsal** | **Tip scanner + tax shield** |
-| ![Rehearse a scam call](docs/img/scam-call.jpg) | ![Scanning a scam tip](docs/img/tip-scanner.jpg) |
-
-More screenshots: [docs/FEATURES.md](docs/FEATURES.md).
+> **Prototype, not a product.** Paper trading only. No broker, no real money, no real payments. Not investment advice. Figures in the business documents are assumptions until a pilot measures them.
 
 ---
 
-> **Start here:** [docs/CONTEXT.md](docs/CONTEXT.md) is the complete knowledge base: the problem with sourced numbers, every feature
-> and its use case, the audiences and pricing, how each part works, the honesty rules, status, gaps and next steps.
+## Contents
 
-## Who it is for: five starting baskets
+[The problem](#the-problem) · [The prototype](#the-prototype) · [How a question is answered](#how-a-question-is-answered) · [Architecture](#architecture) · [Business](#business) · [Quick start](#quick-start) · [Data](#data) · [Documentation](#documentation) · [Honest limits](#honest-limits) · [Tech stack](#tech-stack)
 
-Setup (`#/setup`) asks who the prototype is for and starts from one basket. Every feature works in every basket; you can add or remove
-features at any time with **My setup**. Prices are dummy and nothing is charged.
+---
 
-| Basket | Features it starts with | Demo price |
-|---|---|---|
-| Full prototype (for pitching) | All ten | Free in the demo |
-| Banks and co-operative banks | Assistant, Rural, WhatsApp, Scam protection, Learn, Govern & audit | ₹499/month |
-| Farmers and rural families | Assistant, Rural, WhatsApp, Scam protection, Learn | Free |
-| Self-help groups and NGOs | Assistant, Rural, WhatsApp, Scam protection, Learn | Free |
-| Middle-class retail investors | Assistant, Portfolio X-ray, Research, Practice, Scam protection, Learn | ₹597/month |
+## See it
 
-Rural and self-help features are always free. Paid features are Portfolio X-ray (₹199), Research desk (₹299), Practice tools (₹99) and
-Govern & audit (₹499) per month.
-
-## Why it exists
-
-Three things routinely cost Indian households money, and none of them needs a prediction to fix:
-
-1. **Scams.** Fake bank-KYC calls, "digital arrest" video calls, WhatsApp "guaranteed return" groups. They work because victims are rushed and alone.
-2. **Hidden costs and duplication.** Two mutual funds that hold the same shares. A "small" 2% fee that eats a third of 20 years of growth.
-3. **Panic and no safety net.** Selling at the bottom of a crash; no idea how many months of cash they have.
-
-JARVIS makes each of those *visible and interactive*: you drag a slider, replay a crash on your own holdings, rehearse the scam call, and see the arithmetic.
-
-## Who it helps
-
-| If you are... | JARVIS gives you... |
+| Landing | Set up for your audience |
 |---|---|
-| A salaried or retail investor with 8-20 stocks or a few mutual funds | A portfolio X-ray, fee and overlap checks, a tax shield, a goal chart |
-| A first-time investor | Plain-language answers, a glossary, "every number is a door" explanations |
-| Someone whose parents get "bank officer" calls | A scam-call rehearsal in English or Hindi, by voice or text |
-| Most comfortable in Hindi | The whole assistant, visuals and guided steps in Hindi (see [LANGUAGE](docs/LANGUAGE.md)) |
-| A student or judge who wants to see how it works | Glass-box explanations, a hash-chained ledger, a time machine, honest test numbers |
+| ![Landing page](docs/img/landing.png) | ![Setup screen with five baskets](docs/img/setup.png) |
+| **Home, grouped by loss** | **Scam protection and recovery coach** |
+| ![Home with tiles grouped into four loss channels](docs/img/home.png) | ![Scam protection page](docs/img/protect.png) |
+| **Scam-call rehearsal** | **"Is this offer real?"** |
+| ![Scam-call rehearsal screen](docs/img/rehearsal.png) | ![Offer checker with the score breakdown](docs/img/rural-offer.png) |
+| **Research desk** | **Portfolio X-ray** |
+| ![Research desk](docs/img/research.png) | ![Portfolio X-ray](docs/img/portfolio.png) |
+| **Govern and audit** | **WhatsApp chat** |
+| ![Governance firewall](docs/img/govern.png) | ![WhatsApp simulator](docs/img/whatsapp.png) |
 
-## What is inside
+More older captures: [docs/FEATURES.md](docs/FEATURES.md) (fee drag, goal chart, fund overlap, emergency meter, tip scanner, ledger tamper test).
 
-| Area | Features | Details |
-|---|---|---|
-| **Assistant** | Voice and text chat; structured answer cards; inline interactive visuals; saved funds; nine guided jobs | [ASSISTANT](docs/ASSISTANT.md) |
-| **Protect** | **Scam recovery coach**, stock-tip scanner, tax shield, panic-sell replay, standing "tell me if" rules | [FEATURES](docs/FEATURES.md#protect) |
-| **Rural** | Moneylender interest checker, "is this offer real?", government-scheme finder, document readiness, harvest/wage income planner | [RURAL](docs/RURAL.md) |
-| **WhatsApp / SMS** | The same tools by message (numbered menu, voice notes, Hindi), Twilio-ready webhook and a browser simulator | [MESSAGING](docs/MESSAGING.md) |
-| **Learn / Practice** | Goal chart, fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam call rehearsal, glossary, drill-downs | [FEATURES](docs/FEATURES.md#learn-and-practice) |
-| **Govern** | Risk firewall, rebalance simulator, tamper-evident audit ledger and tamper test | [FEATURES](docs/FEATURES.md#govern) |
-| **Setup** | Five starting baskets by audience, a feature picker, a live menu preview and a dummy price; locked features add in one tap | [CONTEXT](docs/CONTEXT.md#3-who-it-is-for-the-reform-scope-by-audience) |
-| **Research** | **Search and analyse any listed stock**, four AI analysts and a forced dissenter, citation gate, time machine, calibration | [GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md) |
-| **Voice** | Local neural voices (Kokoro, Piper), instant Stop, local Whisper speech-to-text | [VOICE](docs/VOICE.md) |
-| **Bilingual** | English and Hindi chosen per screen, including **speaking and typing Hindi**; hand-written Hindi with numbers placed by code | [LANGUAGE](docs/LANGUAGE.md) |
+---
 
-## Architecture at a glance
+## The problem
 
-```mermaid
-flowchart LR
-    subgraph Browser["Browser (React + Vite)"]
-        UI["Pages: Home, Portfolio, Protect, Learn, Practice, Govern, Research, Assistant"]
-        CHAT["Chat thread + answer cards + inline visuals"]
-        SPK["Speech engine (one audio element)"]
-    end
-    subgraph Backend["FastAPI backend (Python 3.11)"]
-        ROUTE["assistant.py: rules, then optional LLM intent pick"]
-        TOOLS["Calculators: fees, emergency, goal, panic, overlap, scanner, tax"]
-        LANG["Hindi rules + glossary + flows"]
-        BUS["Event bus -> WebSocket"]
-        TTS["Kokoro / Piper TTS"]
-        STT["faster-whisper STT"]
-    end
-    DB[("SQLite snapshot: prices, signals, ledger, lots, portfolios")]
-    OLL["Ollama llama3.1:8b (optional)"]
+Three things cost Indian households money, and each has a moment where a short, plain check would change the outcome.
 
-    UI -- "HTTP + lang + tab id" --> ROUTE
-    CHAT -- "WebSocket command" --> BUS
-    ROUTE --> TOOLS --> DB
-    ROUTE -. "only if rules found nothing" .-> OLL
-    ROUTE --> LANG
-    BUS -- "speech events (own tab only)" --> CHAT
-    SPK -- "/tts" --> TTS
-    UI -- "/stt" --> STT
-```
+| Loss channel | What it looks like | What we can cite | Status |
+|---|---|---|---|
+| **Digital fraud** | Panic transfers, OTP and remote-app scams, fake KYC calls | About ₹22,845 crore lost in 2024 (I4C, as reported in a 2025 summary) | Verify against the official release |
+| **Informal credit** | A moneylender quotes ₹2 to ₹5 per ₹100 a month | 5% a month is 60% a year on simple interest (arithmetic). Formal KCC about 7%, about 4% with prompt-repayment relief | Arithmetic exact; rate ranges dated |
+| **Fees and unverified tips** | A fund fee takes a share of long-run growth; tips without a time frame | Shown in the app with the user's own inputs | Calculation, not a survey |
 
-Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Context (cited, with caveats): 27% of adults financially literate, 24% rural (NCFE 2019); about 9.5% of households in markets, about 6% rural (SEBI 2025, verify). Full sources: [docs/CONTEXT.md](docs/CONTEXT.md) section 9.
+
+---
+
+## The prototype
+
+Ten features, grouped by the loss each one addresses. Home is always on. Routes are hash routes (`#/route`).
+
+| Loss channel | Feature (route) | Tier | What it does |
+|---|---|---|---|
+| **Fraud shield** | Scam protection (`#/protect`) | Free | Nine scam scripts; tip checker with eight specialists; recovery coach for the first hour; tax shield; panic-sell replay; standing "tell me if" rules |
+| **Credit cost** | Rural tools (`#/rural`) | Free | Moneylender check; "is this offer real?" with a score breakdown; 19 government schemes; papers checklist; harvest and wage planner; group ledger; offline once saved |
+| **Investing protection** | Portfolio X-ray (`#/portfolio`) | Paid | Health grade, spread, allocation map, what-to-do list, money against the index |
+| **Investing protection** | Research desk (`#/research`) | Paid | Plain company summary with confidence marks; three analyst desks and a red team; citation gate; time machine |
+| **Investing protection** | Practice tools (`#/practice`) | Paid | Fund overlap, fee-drag slider, emergency-fund meter, weekly spoken digest, scam-call rehearsal |
+| **Reach and trust** | Assistant (`#/assistant`) | Free | Types or speaks a question in English or Hindi; answer cards with figures, charts and steps; guided tours |
+| **Reach and trust** | WhatsApp and SMS (`#/whatsapp`) | Free | The same answers on a phone chat: menu, voice notes, Hindi. Simulator today |
+| **Reach and trust** | Learn (`#/learn`) | Free | 32 checked explanations in English and Hindi; goal range from the portfolio's own history; glossary |
+| **Reach and trust** | Govern and audit (`#/govern`) | Paid | Risk firewall for trades; rebalance simulator; hash-chained audit record; tamper test |
+| All | Setup (`#/setup`) | Free | Choose one of five baskets and switch features; a locked page adds anything not in the setup |
+
+**Baskets** (for demonstration): full prototype; banks and co-operative banks; farmers and rural families; self-help groups and NGOs; middle-class retail investors. Every feature works in every basket. Prices shown are dummy.
+
+---
 
 ## How a question is answered
 
+Every typed or spoken question follows one path, whether from the assistant or WhatsApp.
+
 ```mermaid
-flowchart TD
-    Q["Question typed or spoken"] --> R{"Precise rules match?"}
-    R -- yes --> H["Tool handler (calculator)"]
-    R -- no --> L{"Older explainer rules match?"}
-    L -- yes --> H
-    L -- no --> M{"Local model confident (>= 0.75)?"}
-    M -- yes --> H
-    M -- no --> A["Ask: 'did you mean...' with 3 suggestions"]
-    H --> C["Structured answer card (EN or HI) + optional inline visual"]
+flowchart LR
+    Q[Question<br/>text or voice] --> U[Understand the whole sentence<br/>backend/understand.py]
+    U -->|app question| T[Guided tour]
+    U -->|company| R[Company summary and charts]
+    U -->|tip| TP[Tip panel: 8 specialists]
+    U -->|loss| RC[Recovery coach]
+    U -->|money question| RU[Rule router<br/>assistant.py]
+    RU --> CA[Pure calculator<br/>analysis and rural]
+    CA --> W[Hand-written Hindi or English template<br/>numbers placed by code]
+    W --> A[Answer card]
+    OPT[Optional local model<br/>may pick one intent only] -. choose .-> RU
 ```
 
-The model may only **pick which tool to run**. It never writes an answer and never produces a number. Measured accuracy on sentences written after the rules were tuned is in [docs/ASSISTANT.md](docs/ASSISTANT.md#measured-accuracy).
+Three rules hold everywhere: the model never writes a number; the risk engine never imports a model; a translation may never change a figure.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        UI[React + TypeScript pages<br/>hash router and zustand stores]
+        SW[Offline pack<br/>service worker + Pyodide]
+    end
+    subgraph Server["One process: FastAPI"]
+        API[HTTP routes and /ws WebSocket]
+        BRAIN[Understanding, rules, templates]
+        CALC[Calculators<br/>analysis, rural, risk]
+        AG[Agents<br/>tip panel, research desks, red team]
+        PIT[Point-in-time store]
+    end
+    DB[(SQLite<br/>snapshot, ledger, setup)]
+    STT[faster-whisper<br/>speech in]
+    TTS[Kokoro or Piper<br/>speech out]
+    LLM[Ollama llama3.1:8b<br/>optional]
+    EXT[Public data<br/>Yahoo, SEC, news, FRED, NSE]
+    UI --> API
+    SW -. offline .-> UI
+    API --> BRAIN --> CALC --> PIT --> DB
+    BRAIN --> AG
+    AG --> PIT
+    BRAIN -. pick intent .-> LLM
+    UI -->|/stt| STT
+    UI -->|/tts| TTS
+    EXT -->|ingest at build time| DB
+```
+
+| Layer | Rule | Where |
+|---|---|---|
+| Truth (numbers) | Pure and deterministic; no model imported | `analysis/`, `risk/`, `backend/rural.py`, `backend/ledger.py` |
+| Meaning (what was asked) | Rules first; a model may only pick one intent | `backend/understand.py`, `assistant.py`, `intents.py`, `router.py` |
+| Words (how it is said) | Hand-written templates; numbers placed by code | `backend/vernacular.py`, `hindi_*.py`, `knowledge.py`, `scams.py` |
+
+Full detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TECHNICAL_OVERVIEW.md](docs/TECHNICAL_OVERVIEW.md).
+
+---
+
+## Business
+
+JARVIS is free for households. Banks, state missions, NGOs and CSR funds pay for it, because they carry the cost of the losses it prevents.
+
+| Payer | What they buy | Why they pay |
+|---|---|---|
+| Co-operative and rural banks | Assistant, recovery coach, credit-cost explainer, staff audit trail | Fewer fraud losses and complaints; better rural loans |
+| State missions and NGOs | Offline pack, group ledger, scheme finder | Reach with few field staff; reportable outcomes |
+| CSR funds | Impact reporting built on counted events | Spend obligations with evidence |
+| Urban investors | Portfolio X-ray, fee drag, research, practice | Clear value on their own money (after a SEBI opinion) |
+
+The arithmetic is simple and is shown with its assumptions in [docs/IMPACT_MODEL.md](docs/IMPACT_MODEL.md). For a 100,000-customer bank, the assumed saving is about ₹10.6 lakh a year against a ₹3 lakh fee. Those inputs are unmeasured. The pilot in [docs/PILOT_PLAN.md](docs/PILOT_PLAN.md) exists to measure them.
+
+Read next: [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md) · [docs/COMPETITORS.md](docs/COMPETITORS.md) · [docs/PILOT_PLAN.md](docs/PILOT_PLAN.md) · [docs/BUSINESS_DATA_COSTS.md](docs/BUSINESS_DATA_COSTS.md) · [JARVIS_Learning_Guide.docx](JARVIS_Learning_Guide.docx)
+
+---
 
 ## Quick start
 
-Prerequisites: Python 3.11, Node 18+, and (optional but recommended) [Ollama](https://ollama.com) with `llama3.1:8b`.
+Requirements: Python 3.11 or newer, Node 18 or newer. Optional: Ollama for the local model; a microphone for voice.
 
 ```bash
+# 1. Install Python dependencies
 pip install -r requirements.txt
-python tools/ingest.py              # build the frozen data snapshot (~5 min)
-python tools/get_voice.py           # download the Piper and Kokoro voices (~400 MB, one time)
+
+# 2. Build the frontend
 cd frontend && npm install && npm run build && cd ..
+
+# 3. Run the backend (serves the app, the landing page and the API)
 python -m uvicorn backend.app:app --port 8000
 ```
 
-Open <http://localhost:8000>. Pick **EN** or **हिन्दी** at the top right. Open the **Assistant** page and tap the orb, or type.
+Then open:
+- `http://localhost:8000/`: the landing page, which leads into the prototype
+- `http://localhost:8000/index.html#/setup`: the setup screen
+- `http://localhost:8000/index.html#/`: the prototype home
 
-Developer mode (hot reload): `npm run dev --prefix frontend` serves the UI at `:5173`.
+Developer mode with hot reload:
 
 ```bash
-python -m pytest tests/ -q          # 385 tests
+npm run dev --prefix frontend      # http://localhost:5173 (proxies API routes to :8000)
 ```
 
-Detailed setup, environment variables and troubleshooting: [docs/SETUP.md](docs/SETUP.md).
+Tests:
 
-## Repository layout
+```bash
+python -m pytest tests/ -q         # 532 tests
+```
 
-```
-analysis/   calculators: tools.py (fees, emergency), goal.py, panic.py, scanner.py, shield.py,
-            stress.py, xray.py, rebalance.py, attribution.py, factors.py, tax.py
-backend/    app.py (FastAPI + WebSocket) · assistant.py (routing + handlers) · explain.py (original explainer)
-            practice.py / practice_hi.py (funds, scam scenarios) · digest.py · flows.py / flows_hi.py
-            vernacular.py + hindi_rules.py + hindi_page_rules.py + glossary_hi.py (Hindi)
-            ledger.py · sandbox.py · watchlist.py · drilldown.py · tts.py · bus.py · session.py
-agents/     research desks, citation gate, orchestrator, local-LLM client
-core/       frozen event contract, SQLite schema, point-in-time store
-risk/       policy, portfolio, the deterministic risk engine
-voice/      stt.py (faster-whisper)
-ingest/     data adapters with point-in-time safety tiers
-frontend/   React + Vite + Three.js (pages, components, stores)
-config/     policy profiles, universe, demo script
-docs/       the documentation set (see below)
-tests/      385 tests incl. blind routing-evaluation sets
-tools/      ingest, voice download, demos, dry run, calibration backfill
-```
+Voice models and the optional local model are downloaded by the scripts in `tools/` (see [docs/VOICE.md](docs/VOICE.md)).
+
+---
+
+## Data
+
+Market data comes from free public sources, frozen into `data/snapshot.db` at build time. Each source declares how trustworthy its publication dates are, so the app never shows a figure from the future.
+
+| Data | Source | Used for |
+|---|---|---|
+| Daily prices, 57 symbols, 2019 to 2026 | Yahoo Finance via yfinance | Charts, tip volatility, research, X-ray |
+| Fundamentals and ratios | yfinance | Company summary, tip fundamentals |
+| US company facts | SEC EDGAR | US names in the universe |
+| News and filings | Google News RSS, GDELT | Research desk evidence |
+| Macro series | FRED, RBI and NSE series | Context |
+| Scheme details | Official portals, named in `backend/rural.py` | Rural tools (static text; check before use) |
+| Rates and tax constants | Stated in code, dated | Calculators (update each year) |
+
+Every data set, its status and its licence risk: [docs/DATA.md](docs/DATA.md) and [docs/BUSINESS_DATA_COSTS.md](docs/BUSINESS_DATA_COSTS.md) section 3. Yahoo and NSE-derived data **cannot be sold as is**; a licensed feed is needed before any paid use.
+
+---
 
 ## Documentation
 
 | Document | What it covers |
 |---|---|
-| [docs/FEATURES.md](docs/FEATURES.md) | Every feature: what it does, who it is for, how it works, limits (with screenshots) |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, request lifecycle, event bus, per-screen language, stores |
-| [docs/ASSISTANT.md](docs/ASSISTANT.md) | Intent routing, handlers, answer cards, evaluation numbers, how to add an intent |
-| [docs/VOICE.md](docs/VOICE.md) | TTS/STT engines, Stop semantics, hands-free, latency |
-| [docs/LANGUAGE.md](docs/LANGUAGE.md) | The bilingual design and how to add a language |
-| [docs/API.md](docs/API.md) | Every HTTP/WebSocket endpoint |
-| [docs/DATA.md](docs/DATA.md) | The snapshot, tables, config files, sample fund data, tax constants |
-| [docs/FRONTEND.md](docs/FRONTEND.md) | Pages, components, stores, styling, i18n helper |
-| [docs/TESTING.md](docs/TESTING.md) | Test suites, blind evaluation sets, honest numbers |
-| [docs/SAFETY_AND_PRIVACY.md](docs/SAFETY_AND_PRIVACY.md) | What stays local, what it will not do, scam-safety principles |
-| [docs/SETUP.md](docs/SETUP.md) | Install, models, environment variables, troubleshooting |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Known gaps and what to build next |
-| [docs/GOVERNANCE_ENGINE.md](docs/GOVERNANCE_ENGINE.md) | The original core: time machine, research desks, firewall, calibration |
-| [SPEC.md](SPEC.md) | The original build plan |
+| [CONTEXT.md](docs/CONTEXT.md) | The single knowledge base: problem, features, audiences, honesty rules, status |
+| [TECHNICAL_OVERVIEW.md](docs/TECHNICAL_OVERVIEW.md) | Stack, agents, engines and flows per feature |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagrams, event contract, invariants |
+| [FEATURES.md](docs/FEATURES.md) | Each feature with screenshots |
+| [DATA.md](docs/DATA.md) | Data sources and point-in-time safety |
+| [SETUP.md](docs/SETUP.md) | Setup, baskets and the demo price |
+| [RURAL.md](docs/RURAL.md) | Rural tools in detail |
+| [MESSAGING.md](docs/MESSAGING.md) | WhatsApp and SMS, and the Twilio route |
+| [VOICE.md](docs/VOICE.md) · [LANGUAGE.md](docs/LANGUAGE.md) | Speech and bilingual design |
+| [SAFETY_AND_PRIVACY.md](docs/SAFETY_AND_PRIVACY.md) | What never leaves the machine |
+| [TESTING.md](docs/TESTING.md) | Test suites and how to run them |
+| [BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md) | Who pays, what they buy, pricing, go-to-market |
+| [IMPACT_MODEL.md](docs/IMPACT_MODEL.md) | The arithmetic with every assumption marked |
+| [COMPETITORS.md](docs/COMPETITORS.md) | Competitors by job, and the wedge |
+| [PILOT_PLAN.md](docs/PILOT_PLAN.md) | How a pilot measures the assumptions |
+| [BUSINESS_DATA_COSTS.md](docs/BUSINESS_DATA_COSTS.md) | Running costs, project costs, data sources |
+| [ROADMAP.md](docs/ROADMAP.md) | What comes next |
 
-## Design rules
-
-1. **The model never produces a number.** Figures come from calculators; text comes from templates.
-2. **The risk engine never imports an LLM.** Arithmetic approves or blocks.
-3. **Say what you do not know.** Unsure means ask, not guess. Samples are labelled as samples.
-4. **Local and free.** No paid API, no cloud, no raw data leaves the machine.
-5. **Language is the user's choice,** per screen; nothing is forced into Hindi or English.
-6. **Interrupt anything.** Stop cuts the voice mid-word and ends any inline briefing or call.
+---
 
 ## Honest limits
 
-- Mutual-fund holdings are **illustrative samples**, not live factsheets. Real data import is on the [roadmap](docs/ROADMAP.md).
-- The tip scanner understands **English** tips only.
-- Prices are a **frozen snapshot**, not live; there is no broker and no real money.
-- No research desk beats a coin flip; the project says so and builds around it ([GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md)).
-- Voice quality and Hindi speech recognition on real voices have to be judged by a human listener.
-- The optional language-model stage needs Ollama; without it the assistant asks instead of guessing.
+- **Business numbers are assumptions.** No pilot has run and no bank has used the product.
+- **WhatsApp is a simulator.** Live delivery needs a Twilio account and approved templates.
+- **Mutual-fund holdings are illustrative samples**, not factsheets.
+- **Prices are a frozen snapshot**, not live, and cover a 53-company universe well.
+- **The setup is saved once per install**, not per user. Payments are dummy.
+- **The tip scanner reads English tips only.**
+- **Hindi speech recognition is untested with rural speakers.**
+- **The audit chain is tamper-evident, not tamper-proof.** Anchoring outside the machine is not built.
+- **The offer checker reads word patterns.** It can miss new wording and has no negation handling yet.
+- **No research desk beats a coin flip.** The project says so and builds around it ([GOVERNANCE_ENGINE](docs/GOVERNANCE_ENGINE.md)).
+- **The local model is optional.** Without Ollama, the assistant asks instead of guessing.
+
+---
 
 ## Tech stack
 
-Python 3.11 · FastAPI · SQLite · faster-whisper · Kokoro / Piper TTS · Ollama (llama3.1:8b) · React 18 · Vite · Three.js / react-three-fiber · zustand · lightweight-charts · pytest
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.11, FastAPI, uvicorn, WebSocket |
+| Storage | SQLite (WAL) |
+| Speech | faster-whisper (in); Kokoro or Piper (out) |
+| Optional model | Ollama, llama3.1:8b |
+| Frontend | React 18, TypeScript, Vite, zustand, Three.js (react-three-fiber), lightweight-charts |
+| Offline | Service worker, Pyodide running the rural calculators |
+| Tests | pytest (532), TypeScript check, Vite build |
 
 Hotkeys (assistant): `SPACE` hold to speak · `/` focus the box · `Esc` stop speaking · `T` presenter mode · `Ctrl+K` search everything.
 
-## License and attribution
+---
 
-Research and education prototype. Market data via free public sources (see [docs/DATA.md](docs/DATA.md)); verify before relying on any figure. Not financial advice.
+## Licence and attribution
+
+Research and education prototype. Market data is from free public sources; verify before relying on any figure. Not financial advice. The landing page at `landing/` was built from an external Next.js project and is served as a static build at `/landing/`.
